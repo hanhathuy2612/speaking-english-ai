@@ -1,0 +1,36 @@
+[tool.poetry]
+name = "speaking-english-backend"
+version = "0.1.0"
+description = "FastAPI backend for the Speaking English App using LM Studio for AI, Whisper for STT and edge-tts for TTS."
+authors = ["You <you@example.com>"]
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "^3.11"
+fastapi = {extras = ["all"], version = "0.115.0"}
+uvicorn = {extras = ["standard"], version = "0.30.0"}
+sqlalchemy = "2.0.36"
+alembic = "1.13.2"
+python-jose = {extras = ["cryptography"], version = "3.3.0"}
+passlib = {extras = ["bcrypt"], version = "1.7.4"}
+httpx = "0.27.2"
+python-dotenv = "1.0.1"
+aiosqlite = "0.20.0"
+pydantic-settings = "2.6.1"
+faster-whisper = "1.0.3"
+edge-tts = "6.1.10"
+
+[tool.poetry.group.dev.dependencies]
+black = "^24.3.0"
+ruff = "^0.6.0"
+poethepoet = "^0.29.0"
+
+[tool.poe.tasks]
+dev = "uvicorn app.main:app --reload --host 0.0.0.0 --port 8000"
+lint = "ruff app"
+format = "black app"
+
+[build-system]
+requires = ["poetry-core>=1.9.0"]
+build-backend = "poetry.core.masonry.api"
+

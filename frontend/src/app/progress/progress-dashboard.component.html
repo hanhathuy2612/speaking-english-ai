@@ -1,0 +1,85 @@
+<div class="page">
+  <div class="container dash-page">
+    <h1>Your Progress</h1>
+
+    <div class="loading" *ngIf="loading">
+      <div class="spinner" style="width:40px;height:40px;border-width:4px"></div>
+    </div>
+
+    <ng-container *ngIf="!loading && data">
+      <!-- Stats -->
+      <div class="stats-row">
+        <div class="stat-card">
+          <h3>Total Sessions</h3>
+          <div class="big">{{ data.total_sessions }}</div>
+        </div>
+        <div class="stat-card">
+          <h3>Total Turns</h3>
+          <div class="big">{{ data.total_turns }}</div>
+        </div>
+        <div class="stat-card" *ngIf="data.avg_scores">
+          <h3>Avg Overall</h3>
+          <div class="big">
+            {{ data.avg_scores.overall | number: '1.1-1' }}
+          </div>
+        </div>
+        <div class="stat-card">
+          <h3>Days Practiced</h3>
+          <div class="big">{{ data.daily_minutes.length }}</div>
+        </div>
+      </div>
+
+      <!-- Charts -->
+      <div class="charts-row">
+        <div class="chart-card">
+          <h2>Daily Practice (minutes)</h2>
+          <canvas #lineChart height="160"></canvas>
+        </div>
+        <div class="chart-card">
+          <h2>Skill Scores</h2>
+          <canvas #radarChart height="160"></canvas>
+        </div>
+      </div>
+
+      <!-- Recent sessions -->
+      <div class="card" style="padding:0;overflow:hidden">
+        <div style="padding:20px 24px;border-bottom:1px solid var(--clr-border)">
+          <h2 style="font-size:16px;font-weight:600">Recent Sessions</h2>
+        </div>
+        <table class="sessions-table">
+          <thead>
+            <tr>
+              <th>Topic</th>
+              <th>Date</th>
+              <th>Turns</th>
+              <th>Avg Score</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let s of data.recent_sessions">
+              <td>{{ s.topic_title }}</td>
+              <td>{{ s.started_at | date: 'MMM d, y' }}</td>
+              <td>{{ s.turn_count }}</td>
+              <td>
+                {{
+                  s.avg_overall !== null
+                    ? (s.avg_overall | number: '1.1-1')
+                    : '—'
+                }}
+              </td>
+            </tr>
+            <tr *ngIf="data.recent_sessions.length === 0">
+              <td
+                colspan="4"
+                style="color:var(--clr-text-muted);text-align:center;padding:32px"
+              >
+                No sessions yet. Start talking!
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </ng-container>
+  </div>
+</div>
+
