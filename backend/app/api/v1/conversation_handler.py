@@ -138,10 +138,24 @@ class ConversationHandler:
         self._tts_voice: str = settings.tts_voice
         self.session_id: int | None = None
         self.topic: Topic | None = None
+        self.level_override: str | None = None  # real-time override from client; None = use topic.level
         self.history: list[dict[str, str]] = []
         self.turn_index = 0
         self.audio_buffer = bytearray()
         self.utterance_start: float = 0.0
+
+    def _effective_level(self) -> str | None:
+        """Level for next reply: override if set, else topic level."""
+        if self.level_override is not None:
+            return self.level_override.strip() or None
+        if self.topic and self.topic.level:
+            return self.topic.level.strip() or None
+        return None
+
+    def set_level(self, level: str | None) -> None:
+        """Set real-time level override (e.g. from client dropdown). '' or None = use topic level."""
+        s = (level or "").strip()
+        self.level_override = s if s else None
 
     async def handle_start(self, db: AsyncSession, data: dict) -> bool:
         """
@@ -209,12 +223,18 @@ class ConversationHandler:
                     "message": "session_started",
                     "topicId": topic_id,
                     "sessionId": self.session_id,
+                    "topicLevel": topic.level,
                 }
             )
             history_payload = []
             for t in turns:
                 history_payload.append({"role": "user", "text": t.user_text})
-                history_payload.append({"role": "assistant", "text": t.assistant_text})
+                history_payload.append({
+                    "role": "assistant",
+                    "text": t.assistant_text,
+                    "turnId": t.id,
+                    "guideline": t.guideline,
+                })
             await self._send({"type": "history", "messages": history_payload})
             return True
 
@@ -246,6 +266,7 @@ class ConversationHandler:
                 "message": "session_started",
                 "topicId": topic_id,
                 "sessionId": self.session_id,
+                "topicLevel": topic.level,
             }
         )
         return True
@@ -261,6 +282,8 @@ class ConversationHandler:
         """Generate and stream AI opening (greeting/question); append to history and stream TTS."""
         if not self.topic:
             return
+        effective = self._effective_level() or ""
+        level_key = effective.strip().lower()
         prompt = (
             f"[Start the conversation about: {self.topic.title}. "
             "Say a short greeting or one opening question to get the learner to speak. "
@@ -269,10 +292,12 @@ class ConversationHandler:
         messages = self._lm.build_messages(
             [{"role": "user", "content": prompt}],
             topic_context=self.topic.title,
+            topic_level=effective or None,
         )
+        max_open_tokens = 80 if level_key in ("a1", "a2") else 120
         try:
             opening_text = await stream_llm(
-                self._send, self._lm, messages, temperature=0.7, max_tokens=120
+                self._send, self._lm, messages, temperature=0.7, max_tokens=max_open_tokens
             )
         except Exception as e:
             logger.warning("Opening message failed: %s", e)
@@ -322,8 +347,19 @@ class ConversationHandler:
 
         await self._send({"type": "user_transcript", "text": user_text})
         self.history.append({"role": "user", "content": user_text})
-        messages = self._lm.build_messages(self.history, topic_context=self.topic.title)
+        effective = self._effective_level() or ""
+        messages = self._lm.build_messages(
+            self.history,
+            topic_context=self.topic.title,
+            topic_level=effective or None,
+        )
         settings = get_settings()
+        level_key = effective.strip().lower()
+        max_tokens = settings.lm_conversation_max_tokens
+        if level_key == "a1":
+            max_tokens = min(max_tokens, 80)
+        elif level_key == "a2":
+            max_tokens = min(max_tokens, 120)
 
         try:
             assistant_text = await stream_llm(
@@ -331,7 +367,7 @@ class ConversationHandler:
                 self._lm,
                 messages,
                 temperature=0.7,
-                max_tokens=settings.lm_conversation_max_tokens,
+                max_tokens=max_tokens,
             )
         except Exception:
             logger.exception("LM generate failed")
@@ -352,17 +388,6 @@ class ConversationHandler:
             tts_path.write_bytes(tts_bytes)
 
         score = await self._scorer.score(user_text, self.topic.title, duration)
-        await self._send(
-            {
-                "type": "turn_score",
-                "fluency": score.get("fluency", 5),
-                "vocabulary": score.get("vocabulary", 5),
-                "grammar": score.get("grammar", 5),
-                "overall": score.get("overall", 5),
-                "feedback": score.get("feedback", ""),
-            }
-        )
-
         turn = Turn(
             session_id=self.session_id,
             index_in_session=self.turn_index,
@@ -385,6 +410,17 @@ class ConversationHandler:
             )
         )
         await db.commit()
+        await self._send(
+            {
+                "type": "turn_score",
+                "turnId": turn.id,
+                "fluency": score.get("fluency", 5),
+                "vocabulary": score.get("vocabulary", 5),
+                "grammar": score.get("grammar", 5),
+                "overall": score.get("overall", 5),
+                "feedback": score.get("feedback", ""),
+            }
+        )
         self.turn_index += 1
         return True
 

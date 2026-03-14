@@ -10,7 +10,9 @@ Topic: {topic}
 Learner's speech (transcribed): {transcript}
 Duration (seconds): {duration:.1f}
 
-Score each dimension from 0 to 10:
+If the transcript is in Vietnamese or mostly not English: give low scores for vocabulary and grammar, and in "feedback" kindly ask them to try again in English (e.g. "That sounded like Vietnamese—give it a go in English next time, even a short sentence helps!").
+
+Otherwise score each dimension from 0 to 10:
 - fluency: How smoothly and naturally they spoke (consider word count vs duration).
 - vocabulary: Range and accuracy of word choice.
 - grammar: Grammatical correctness.

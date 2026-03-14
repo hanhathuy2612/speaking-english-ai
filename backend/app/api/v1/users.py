@@ -1,0 +1,50 @@
+"""Current user profile and TTS preferences."""
+
+from fastapi import APIRouter, Depends
+from sqlalchemy import select, update
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.deps import get_current_user
+from app.db.session import get_db
+from app.models.user import User
+from app.schemas.user import UpdatePreferencesRequest, UserMeResponse
+
+router = APIRouter()
+
+
+@router.get("/me", response_model=UserMeResponse)
+async def get_me(user: User = Depends(get_current_user)) -> UserMeResponse:
+    """Return current user id, username, and saved TTS preferences."""
+    return UserMeResponse(
+        user_id=user.id,
+        username=user.username,
+        tts_voice=user.tts_voice,
+        tts_rate=user.tts_rate,
+    )
+
+
+@router.patch("/me", response_model=UserMeResponse)
+async def update_me(
+    body: UpdatePreferencesRequest,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> UserMeResponse:
+    """Update current user TTS preferences (voice and/or rate)."""
+    values: dict = {}
+    if body.tts_voice is not None:
+        values["tts_voice"] = body.tts_voice
+    if body.tts_rate is not None:
+        values["tts_rate"] = body.tts_rate
+    if values:
+        await db.execute(update(User).where(User.id == user.id).values(**values))
+        await db.commit()
+    # Refetch to return persisted state
+    result = await db.execute(select(User).where(User.id == user.id))
+    updated = result.scalar_one_or_none()
+    u = updated or user
+    return UserMeResponse(
+        user_id=u.id,
+        username=u.username,
+        tts_voice=u.tts_voice,
+        tts_rate=u.tts_rate,
+    )

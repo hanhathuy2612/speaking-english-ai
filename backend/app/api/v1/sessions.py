@@ -71,6 +71,7 @@ async def get_session(
                 index_in_session=t.index_in_session,
                 user_text=t.user_text,
                 assistant_text=t.assistant_text,
+                guideline=t.guideline,
                 fluency=score.fluency if score else None,
                 vocabulary=score.vocabulary if score else None,
                 grammar=score.grammar if score else None,

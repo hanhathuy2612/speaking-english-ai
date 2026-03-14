@@ -1,0 +1,46 @@
+/* Design tokens: colors, spacing, typography */
+:root {
+  /* Base palette */
+  --clr-bg: #0f1419;
+  --clr-bg-elevated: #1a1f26;
+  --clr-surface: #252b33;
+  --clr-surface-2: #2d3540;
+  --clr-border: #3d4553;
+  --clr-border-focus: #5c8dd6;
+  --clr-text: #e6edf3;
+  --clr-text-muted: #8b9cad;
+
+  /* Brand & semantic */
+  --clr-accent: #58a6ff;
+  --clr-accent-hover: #79b8ff;
+  --clr-success: #3fb950;
+  --clr-danger: #f85149;
+  --clr-warning: #d29922;
+
+  /* Semantic backgrounds / borders */
+  --clr-danger-bg: rgba(248, 81, 73, 0.12);
+  --clr-danger-bg-soft: rgba(248, 81, 73, 0.1);
+  --clr-danger-border: rgba(248, 81, 73, 0.3);
+  --clr-accent-bg: rgba(88, 166, 255, 0.12);
+  --clr-accent-bg-soft: rgba(88, 166, 255, 0.1);
+  --clr-success-bg: rgba(63, 185, 80, 0.2);
+  --clr-warning-bg: rgba(210, 153, 34, 0.2);
+  --clr-danger-bg-strong: rgba(248, 81, 73, 0.15);
+  --clr-purple: #a371f7;
+  --clr-purple-bg: rgba(163, 113, 247, 0.2);
+  --clr-coral: #f08880;
+
+  /* Tables / overlays */
+  --clr-table-header-bg: rgba(0, 0, 0, 0.15);
+  --clr-row-hover: rgba(255, 255, 255, 0.02);
+
+  /* Layout & motion */
+  --radius: 12px;
+  --radius-sm: 8px;
+  --radius-pill: 999px;
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.25);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
+  --shadow-focus: 0 0 0 3px rgba(92, 141, 214, 0.2);
+  --transition: 0.2s ease;
+}

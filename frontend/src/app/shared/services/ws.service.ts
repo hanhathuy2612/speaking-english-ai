@@ -42,7 +42,12 @@ export class WsService implements OnDestroy {
       this.ws = null;
     }
     const token = this.auth.getToken() ?? '';
-    const url = `${environment.wsBaseUrl}/ws/conversation?token=${encodeURIComponent(token)}&topic_id=${topicId}`;
+    const wsBase =
+      environment.wsBaseUrl ||
+      (typeof location !== 'undefined'
+        ? (location.protocol === 'https:' ? 'wss:' : 'ws:') + '//' + location.host + '/api/v1'
+        : '/api/v1');
+    const url = `${wsBase}/ws/conversation?token=${encodeURIComponent(token)}&topic_id=${topicId}`;
     this.ws = new WebSocket(url);
     this.ws.binaryType = 'arraybuffer';
 

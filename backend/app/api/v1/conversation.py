@@ -4,7 +4,8 @@ WebSocket endpoint for full-duplex spoken conversation.
 Message protocol
 ────────────────
 Client → Server (JSON):
-  {"type": "start",       "topicId": int}
+  {"type": "start",       "topicId": int, ...}
+  {"type": "set_level",   "level": "A1"|"A2"|"B1"|"B2"|"C1"|""}  -- real-time level override
   {"type": "audio_end"}   -- after binary audio frames
   {"type": "stop"}        -- end session
 
@@ -100,6 +101,8 @@ async def conversation_ws(websocket: WebSocket) -> None:
                         # Only send AI opening for new sessions, not when resuming
                         if not data.get("sessionId"):
                             await handler.send_opening_message()
+                elif msg_type == "set_level":
+                    handler.set_level(data.get("level"))
                 elif msg_type == "tts_preferences":
                     handler.handle_tts_preferences(data)
                 elif msg_type == "audio_end":

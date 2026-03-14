@@ -23,8 +23,11 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 60
 
-    # Database
-    database_url: str = "sqlite+aiosqlite:///./speaking_english.db"
+    # Database — change in backend/.env (DATABASE_URL variable). Watch .env.example.
+    # Format: postgresql+asyncpg://USER:PASSWORD@HOST:PORT/DATABASE
+    database_url: str = (
+        "postgresql+asyncpg://postgres:postgres@localhost:5432/speaking_english"
+    )
     cors_allowed_origins: list[str] = ["http://localhost:4200"]
     max_audio_upload_mb: int = 10
     request_timeout_seconds: int = 60

@@ -1,0 +1,56 @@
+<div class="modal-header">
+  <h2 class="modal-title" id="topic-form-modal-title">{{ modalTitle() }}</h2>
+  <button type="button" class="btn-close" (click)="cancel()" aria-label="Close"></button>
+</div>
+<div class="modal-body">
+  <form (ngSubmit)="submit()" class="topic-form-modal__form">
+    <div class="field">
+      <label for="topic-form-title">Title</label>
+      <input
+        id="topic-form-title"
+        type="text"
+        [value]="title()"
+        (input)="onTitleInput($any($event.target).value)"
+        placeholder="e.g. Shopping & Markets"
+        maxlength="255"
+      />
+    </div>
+    <div class="field">
+      <label for="topic-form-desc">Description (optional)</label>
+      <textarea
+        id="topic-form-desc"
+        [value]="description()"
+        (input)="onDescriptionInput($any($event.target).value)"
+        placeholder="Short description for this topic"
+        rows="2"
+      ></textarea>
+    </div>
+    <div class="field">
+      <label for="topic-form-level">Level (optional)</label>
+      <ng-select
+        id="topic-form-level"
+        name="level"
+        [items]="levelOptions"
+        bindLabel="label"
+        bindValue="value"
+        [ngModel]="level()"
+        (ngModelChange)="onLevelChange($event)"
+        placeholder="General"
+        [searchable]="false"
+        [clearable]="true"
+      >
+      </ng-select>
+    </div>
+    @if (error()) {
+      <p class="topic-form-modal__error">{{ error() }}</p>
+    }
+    <div class="topic-form-modal__actions">
+      <button type="button" class="btn btn--ghost" (click)="cancel()" [disabled]="saving()">
+        Cancel
+      </button>
+      <button type="submit" class="btn btn--primary" [disabled]="saving() || !title().trim()">
+        {{ submitLabel() }}
+      </button>
+    </div>
+  </form>
+</div>

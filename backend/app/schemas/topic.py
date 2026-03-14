@@ -14,3 +14,9 @@ class TopicIn(BaseModel):
     title: str = Field(..., min_length=1, max_length=255)
     description: str | None = Field(None, max_length=2000)
     level: str | None = Field(None, max_length=20)
+
+
+class TopicUpdate(BaseModel):
+    title: str | None = Field(None, min_length=1, max_length=255)
+    description: str | None = Field(None, max_length=2000)
+    level: str | None = Field(None, max_length=20)

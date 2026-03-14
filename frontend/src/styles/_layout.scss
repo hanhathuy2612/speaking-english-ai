@@ -1,0 +1,11 @@
+/* Page & container */
+.page {
+  min-height: calc(100vh - 56px);
+}
+
+.container {
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 24px;
+}

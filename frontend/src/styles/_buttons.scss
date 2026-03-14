@@ -1,0 +1,49 @@
+/* Links & buttons */
+a {
+  color: var(--clr-accent);
+  text-decoration: none;
+  transition: color var(--transition);
+
+  &:hover {
+    color: var(--clr-accent-hover);
+  }
+}
+
+button,
+.btn {
+  font-family: inherit;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 10px 18px;
+  transition:
+    background var(--transition),
+    color var(--transition),
+    transform 0.1s ease;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  &.btn--primary {
+    background: var(--clr-accent);
+    color: #fff;
+
+    &:hover:not(:disabled) {
+      background: var(--clr-accent-hover);
+    }
+  }
+
+  &.btn--ghost {
+    background: transparent;
+    color: var(--clr-text-muted);
+
+    &:hover:not(:disabled) {
+      background: var(--clr-surface-2);
+      color: var(--clr-text);
+    }
+  }
+}

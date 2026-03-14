@@ -23,71 +23,6 @@
   }
 }
 
-.topic-create {
-  margin-bottom: 32px;
-  padding: 24px;
-
-  &__title {
-    font-size: 1.125rem;
-    font-weight: 600;
-    margin: 0 0 20px;
-    color: var(--clr-text);
-  }
-
-  &__form {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-  }
-
-  &__form .field {
-    margin: 0;
-  }
-
-  &__form label {
-    display: block;
-    font-size: 0.8125rem;
-    font-weight: 500;
-    color: var(--clr-text);
-    margin-bottom: 6px;
-  }
-
-  &__form input,
-  &__form textarea,
-  &__form select {
-    width: 100%;
-    font-family: inherit;
-    font-size: 0.9375rem;
-    color: var(--clr-text);
-    background: var(--clr-bg);
-    border: 1px solid var(--clr-border);
-    border-radius: var(--radius-sm);
-    padding: 12px 14px;
-  }
-
-  &__form textarea {
-    resize: vertical;
-    min-height: 60px;
-  }
-
-  &__form select {
-    cursor: pointer;
-    max-width: 120px;
-  }
-
-  &__error {
-    color: var(--clr-danger);
-    font-size: 0.875rem;
-    margin: 0;
-  }
-
-  &__actions {
-    display: flex;
-    gap: 12px;
-    margin-top: 8px;
-  }
-}
-
 .loading {
   display: flex;
   flex-direction: column;
@@ -142,11 +77,30 @@
   gap: 10px;
 }
 
+.topic-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.topic-card__edit {
+  flex-shrink: 0;
+  padding: 4px 8px;
+  opacity: 0.7;
+
+  &:hover {
+    opacity: 1;
+  }
+}
+
 .topic-title {
   font-size: 1.0625rem;
   font-weight: 600;
   margin: 0;
   color: var(--clr-text);
+  flex: 1;
+  min-width: 0;
 }
 
 .topic-desc {

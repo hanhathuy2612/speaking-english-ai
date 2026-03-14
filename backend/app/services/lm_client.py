@@ -13,8 +13,33 @@ _DEFAULT_SYSTEM = (
     "Use everyday language, contractions (I'm, that's), and a warm tone. "
     "It's fine to reply in 2–4 sentences when it fits the flow. Avoid lists, bullet points, or stiff phrases. "
     "If the user makes a small mistake, you can gently correct in a natural way. "
-    "Stay on the topic."
+    "Stay on the topic. "
+    "If the user speaks in Vietnamese or mixes Vietnamese with English, still understand what they mean and respond only in English; kindly encourage them to try saying it in English for practice (e.g. 'I get what you mean! Try saying that in English—even a simple sentence is great practice.')."
 )
+
+# Guidelines for different topic levels
+_LEVEL_INSTRUCTIONS: dict[str, str] = {
+    "a1": (
+        "Level A1: Reply in ONE very short sentence only (about 5–12 words). "
+        "Use only simple, common words. No long explanations."
+    ),
+    "a2": (
+        "Level A2: Reply in 1–2 short sentences (about 10–20 words total). "
+        "Use simple vocabulary and clear grammar."
+    ),
+    "b1": (
+        "Level B1: Reply in 2–3 short sentences. Use everyday vocabulary. "
+        "Keep it clear and not too long."
+    ),
+    "b2": (
+        "Level B2: Reply in 2–4 sentences. Natural and clear. "
+        "Avoid being long-winded."
+    ),
+    "c1": (
+        "Level C1: You may reply in 2–4 sentences with natural, varied language. "
+        "Still keep replies concise."
+    ),
+}
 
 
 class LMStudioClient:
@@ -34,12 +59,16 @@ class LMStudioClient:
         self,
         history: list[dict[str, str]],
         topic_context: str | None = None,
+        topic_level: str | None = None,
         system_prompt: str | None = None,
     ) -> list[dict[str, str]]:
         settings = get_settings()
         system = system_prompt or _DEFAULT_SYSTEM
         if topic_context:
             system += f"\n\nCurrent conversation topic: {topic_context}"
+        level_key = (topic_level or "").strip().lower()
+        if level_key in _LEVEL_INSTRUCTIONS:
+            system += f"\n\n{_LEVEL_INSTRUCTIONS[level_key]}"
         if settings.lm_system_prompt_extra:
             system += f"\n\n{settings.lm_system_prompt_extra.strip()}"
         return [{"role": "system", "content": system}, *history]

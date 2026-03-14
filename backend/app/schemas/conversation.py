@@ -7,6 +7,7 @@ class TurnOut(BaseModel):
     index_in_session: int
     user_text: str
     assistant_text: str
+    guideline: str | None = None
     fluency: float | None = None
     vocabulary: float | None = None
     grammar: float | None = None

@@ -10,15 +10,27 @@ FastAPI backend for the Speaking English app: auth, topics, real-time spoken con
    poetry install
    ```
 
-2. **Configure environment**:
+2. **Database (PostgreSQL)**:
+
+   - Install and start PostgreSQL.
+   - Create the app database (one of):
+     - **Script (recommended):** from `backend/` run:
+       ```bash
+       poetry run poe create-db
+       ```
+       This reads `DATABASE_URL` from `.env` and creates the database if it does not exist.
+     - **Manual:** `createdb speaking_english` (Mac/Linux) or in psql: `CREATE DATABASE speaking_english;`
+   - Then create tables: `poetry run alembic upgrade head`
+
+3. **Configure environment**:
 
    ```bash
    cp .env.example .env
    ```
 
-   Edit `.env` and set at least `JWT_SECRET_KEY`. For local AI, start LM Studio and load a model (see below).
+   Edit `.env`: set `DATABASE_URL` (e.g. `postgresql+asyncpg://postgres:postgres@localhost:5432/speaking_english`) and at least `JWT_SECRET_KEY`. For local AI, start LM Studio and load a model (see below).
 
-3. **Run the server**:
+4. **Run the server**:
 
    ```bash
    poetry run poe dev

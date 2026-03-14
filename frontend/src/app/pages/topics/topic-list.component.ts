@@ -1,31 +1,30 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, inject, Injector, OnInit, signal } from '@angular/core';
 import { Router } from '@angular/router';
+import { NgbModal, NgbModalRef, NgbModalModule } from '@ng-bootstrap/ng-bootstrap';
 import { finalize } from 'rxjs';
 import { ApiService, Topic } from '../../shared/services/api.service';
-
-const LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1'] as const;
+import {
+  TopicFormModalComponent,
+  TOPIC_FORM_MODAL_DATA,
+} from './topic-form-modal/topic-form-modal.component';
 
 @Component({
   selector: 'app-topic-list',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, NgbModalModule],
   styleUrls: ['./topic-list.component.scss'],
   templateUrl: './topic-list.component.html',
 })
 export class TopicListComponent implements OnInit {
   topics = signal<Topic[]>([]);
   loading = signal(false);
-  showCreateForm = signal(false);
-  newTitle = signal('');
-  newDescription = signal('');
-  newLevel = signal<string>('');
-  createError = signal('');
-  creating = signal(false);
 
-  readonly levels = LEVELS;
   readonly api = inject(ApiService);
   readonly router = inject(Router);
+  private readonly injector = inject(Injector);
+  private readonly modalService = inject(NgbModal);
+  private modalRef: NgbModalRef | null = null;
 
   ngOnInit(): void {
     this.loadTopics();
@@ -49,44 +48,44 @@ export class TopicListComponent implements OnInit {
   }
 
   openCreateForm(): void {
-    this.showCreateForm.set(true);
-    this.newTitle.set('');
-    this.newDescription.set('');
-    this.newLevel.set('');
-    this.createError.set('');
+    this.modalRef = this.modalService.open(TopicFormModalComponent, {
+      size: 'lg',
+      backdrop: 'static',
+      keyboard: false,
+    });
+    this.modalRef.closed.subscribe((created) => {
+      this.modalRef = null;
+      if (created != null) {
+        this.topics.update((list) => [...list, created as Topic]);
+      }
+    });
+    this.modalRef.dismissed.subscribe(() => {
+      this.modalRef = null;
+    });
   }
 
-  cancelCreate(): void {
-    this.showCreateForm.set(false);
-    this.createError.set('');
+  openEditForm(topic: Topic): void {
+    const modalInjector = Injector.create({
+      providers: [{ provide: TOPIC_FORM_MODAL_DATA, useValue: topic }],
+      parent: this.injector,
+    });
+    this.modalRef = this.modalService.open(TopicFormModalComponent, {
+      size: 'lg',
+      backdrop: 'static',
+      keyboard: false,
+      injector: modalInjector,
+    });
+    this.modalRef.closed.subscribe((updated) => {
+      this.modalRef = null;
+      if (updated != null) {
+        this.topics.update((list) =>
+          list.map((t) => (t.id === (updated as Topic).id ? (updated as Topic) : t)),
+        );
+      }
+    });
+    this.modalRef.dismissed.subscribe(() => {
+      this.modalRef = null;
+    });
   }
 
-  submitCreate(): void {
-    const title = this.newTitle().trim();
-    if (!title) {
-      this.createError.set('Title is required.');
-      return;
-    }
-    this.createError.set('');
-    this.creating.set(true);
-    this.api
-      .createTopic({
-        title,
-        description: this.newDescription().trim() || null,
-        level: this.newLevel().trim() || null,
-      })
-      .pipe(finalize(() => this.creating.set(false)))
-      .subscribe({
-        next: () => {
-          this.loadTopics();
-          this.showCreateForm.set(false);
-          this.newTitle.set('');
-          this.newDescription.set('');
-          this.newLevel.set('');
-        },
-        error: (err) => {
-          this.createError.set(err?.error?.detail ?? 'Failed to create topic.');
-        },
-      });
-  }
 }

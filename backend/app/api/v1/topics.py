@@ -6,7 +6,7 @@ from app.core.deps import get_current_user
 from app.db.session import get_db
 from app.models.conversation import Topic
 from app.models.user import User
-from app.schemas.topic import TopicIn, TopicOut
+from app.schemas.topic import TopicIn, TopicOut, TopicUpdate
 
 router = APIRouter()
 
@@ -39,6 +39,34 @@ async def create_topic(
         level=payload.level.strip() if payload.level else None,
     )
     db.add(topic)
+    await db.commit()
+    await db.refresh(topic)
+    return TopicOut.model_validate(topic)
+
+
+@router.patch("/{topic_id:int}", response_model=TopicOut)
+async def update_topic(
+    topic_id: int,
+    payload: TopicUpdate,
+    db: AsyncSession = Depends(get_db),
+    _user: User = Depends(get_current_user),
+) -> TopicOut:
+    """Update an existing topic (title, description, level)."""
+    result = await db.execute(select(Topic).where(Topic.id == topic_id))
+    topic = result.scalar_one_or_none()
+    if not topic:
+        raise HTTPException(status_code=404, detail="Topic not found")
+    if payload.title is not None:
+        title = payload.title.strip()
+        if title:
+            existing = await db.execute(select(Topic).where(Topic.title == title, Topic.id != topic_id))
+            if existing.scalar_one_or_none() is not None:
+                raise HTTPException(status_code=400, detail="A topic with this title already exists")
+            topic.title = title
+    if payload.description is not None:
+        topic.description = payload.description.strip() or None
+    if payload.level is not None:
+        topic.level = payload.level.strip() or None
     await db.commit()
     await db.refresh(topic)
     return TopicOut.model_validate(topic)

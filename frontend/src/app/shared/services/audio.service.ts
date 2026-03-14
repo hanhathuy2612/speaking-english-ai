@@ -8,9 +8,12 @@ export class AudioService {
   private audioCtx: AudioContext | null = null;
   private analyser: AnalyserNode | null = null;
   private rafId: number | null = null;
+  private trackEndedListeners: Array<{ track: MediaStreamTrack; handler: () => void }> = [];
 
   readonly chunk$ = new Subject<ArrayBuffer>();
   readonly volume$ = new Subject<number>(); // 0-100
+  /** Fires when the microphone track ends during recording (e.g. device switched). Call stopRecording + audio_end and clear stream for next recording. */
+  readonly deviceLostDuringRecording$ = new Subject<void>();
 
   private recordedChunks: ArrayBuffer[] = [];
   private pendingOnChunk: ((buf: ArrayBuffer) => void) | null = null;
@@ -51,37 +54,77 @@ export class AudioService {
       }
     };
     this.mediaRecorder.start(200); // 200ms slices
+
+    this._attachTrackEndedListeners();
+  }
+
+  private _attachTrackEndedListeners(): void {
+    this._removeTrackEndedListeners();
+    const stream = this.stream;
+    if (!stream) return;
+    const handler = (): void => {
+      this._removeTrackEndedListeners();
+      this._releaseStream();
+      this.deviceLostDuringRecording$.next();
+    };
+    for (const track of stream.getAudioTracks()) {
+      track.addEventListener('ended', handler);
+      this.trackEndedListeners.push({ track, handler });
+    }
+  }
+
+  private _removeTrackEndedListeners(): void {
+    for (const { track, handler } of this.trackEndedListeners) {
+      track.removeEventListener('ended', handler);
+    }
+    this.trackEndedListeners = [];
+  }
+
+  private _releaseStream(): void {
+    if (this.stream) {
+      this.stream.getTracks().forEach((t) => t.stop());
+      this.stream = null;
+    }
   }
 
   /** Stops recording; when done, sends one full WebM blob via the callback, then resolves. Send audio_end after this. */
   stopRecording(): Promise<void> {
-    return new Promise((resolve) => {
-      const recorder = this.mediaRecorder;
-      const onChunk = this.pendingOnChunk;
-      this._stopVolume();
-      if (this.audioCtx) {
-        this.audioCtx.close();
-        this.audioCtx = null;
-      }
-      if (!recorder || recorder.state !== 'recording') {
-        resolve();
-        return;
-      }
-      recorder.onstop = () => {
-        this.mediaRecorder = null;
-        this.pendingOnChunk = null;
-        const chunks = this.recordedChunks;
-        this.recordedChunks = [];
-        if (chunks.length > 0 && onChunk) {
-          const total = chunks.reduce((s, c) => s + c.byteLength, 0);
-          const out = new Uint8Array(total);
-          let offset = 0;
-          for (const c of chunks) {
-            out.set(new Uint8Array(c), offset);
-            offset += c.byteLength;
-          }
-          onChunk(out.buffer);
+    this._removeTrackEndedListeners();
+    const recorder = this.mediaRecorder;
+    const onChunk = this.pendingOnChunk;
+    this._stopVolume();
+    if (this.audioCtx) {
+      this.audioCtx.close();
+      this.audioCtx = null;
+    }
+    const flushChunks = (): void => {
+      this.mediaRecorder = null;
+      this.pendingOnChunk = null;
+      const chunks = this.recordedChunks;
+      this.recordedChunks = [];
+      if (chunks.length > 0 && onChunk) {
+        const total = chunks.reduce((s, c) => s + c.byteLength, 0);
+        const out = new Uint8Array(total);
+        let offset = 0;
+        for (const c of chunks) {
+          out.set(new Uint8Array(c), offset);
+          offset += c.byteLength;
         }
+        onChunk(out.buffer);
+      }
+    };
+    if (!recorder) {
+      flushChunks();
+      return Promise.resolve();
+    }
+    if (recorder.state !== 'recording') {
+      // Already stopped (e.g. track ended when device switched) — still flush so we send what we have
+      flushChunks();
+      return Promise.resolve();
+    }
+    return new Promise((resolve) => {
+      recorder.onstop = () => {
+        flushChunks();
         resolve();
       };
       recorder.stop();
@@ -111,7 +154,14 @@ export class AudioService {
   private playbackCtx: AudioContext | null = null;
   private playbackSource: AudioBufferSourceNode | null = null;
 
-  /** Stop any currently playing audio (replay or TTS). Call before starting a new replay. */
+  /** Streaming TTS: one context, schedule chunks back-to-back for gapless playback */
+  private streamingCtx: AudioContext | null = null;
+  private streamingNextStart = 0;
+  private streamingScheduledCount = 0;
+  private streamingEndResolve: (() => void) | null = null;
+  private streamingEndRequested = false;
+
+  /** Stop any currently playing audio (replay or TTS). Also stops streaming playback. */
   stopPlayback(): void {
     if (this.playbackSource) {
       try {
@@ -125,6 +175,92 @@ export class AudioService {
       this.playbackCtx.close().catch(() => {});
       this.playbackCtx = null;
     }
+    this._stopStreamingPlayback();
+  }
+
+  private _stopStreamingPlayback(): void {
+    if (this.streamingCtx) {
+      this.streamingCtx.close().catch(() => {});
+      this.streamingCtx = null;
+    }
+    this.streamingNextStart = 0;
+    this.streamingScheduledCount = 0;
+    this.streamingEndRequested = true;
+    if (this.streamingEndResolve) {
+      this.streamingEndResolve();
+      this.streamingEndResolve = null;
+    }
+  }
+
+  private _onStreamingChunkEnded(): void {
+    this.streamingScheduledCount--;
+    if (
+      this.streamingEndRequested &&
+      this.streamingScheduledCount <= 0 &&
+      this.streamingEndResolve
+    ) {
+      const resolve = this.streamingEndResolve;
+      this.streamingEndResolve = null;
+      if (this.streamingCtx) {
+        this.streamingCtx.close().catch(() => {});
+        this.streamingCtx = null;
+      }
+      this.streamingNextStart = 0;
+      this.streamingScheduledCount = 0;
+      this.streamingEndRequested = false;
+      resolve();
+    }
+  }
+
+  /**
+   * Enqueue a TTS chunk for gapless streaming playback. Chunks are decoded and scheduled
+   * back-to-back on one AudioContext so there are no gaps between chunks.
+   */
+  enqueueStreamingChunk(data: ArrayBuffer): void {
+    if (!data?.byteLength) return;
+    (async () => {
+      if (!this.streamingCtx) {
+        this.streamingCtx = new AudioContext();
+        this.streamingNextStart = this.streamingCtx.currentTime;
+        this.streamingEndRequested = false;
+      }
+      const ctx = this.streamingCtx;
+      try {
+        const buf = await ctx.decodeAudioData(data.slice(0));
+        const src = ctx.createBufferSource();
+        src.buffer = buf;
+        src.connect(ctx.destination);
+        const startAt = this.streamingNextStart;
+        this.streamingNextStart += buf.duration;
+        this.streamingScheduledCount++;
+        src.onended = () => this._onStreamingChunkEnded();
+        src.start(startAt);
+      } catch {
+        this._onStreamingChunkEnded();
+      }
+    })();
+  }
+
+  /**
+   * Call when no more TTS chunks will be sent. Returns a promise that resolves when all
+   * scheduled chunks have finished playing.
+   */
+  endStreamingPlayback(): Promise<void> {
+    this.streamingEndRequested = true;
+    return new Promise<void>((resolve) => {
+      this.streamingEndResolve = resolve;
+      if (this.streamingScheduledCount <= 0) {
+        if (this.streamingCtx) {
+          this.streamingCtx.close().catch(() => {});
+          this.streamingCtx = null;
+        }
+        this.streamingNextStart = 0;
+        this.streamingScheduledCount = 0;
+        this.streamingEndRequested = false;
+        this.streamingEndResolve = null;
+        resolve();
+      }
+    });
   }
 
   /** Play one chunk; resolves when playback has finished. Stops any current playback first. */
@@ -148,11 +284,11 @@ export class AudioService {
     });
   }
 
+  /** Call when leaving conversation: stop playback, stop recording, release mic stream. */
   release(): void {
+    this.stopPlayback();
+    this._removeTrackEndedListeners();
     this.stopRecording();
-    if (this.stream) {
-      this.stream.getTracks().forEach((t) => t.stop());
-      this.stream = null;
-    }
+    this._releaseStream();
   }
 }
