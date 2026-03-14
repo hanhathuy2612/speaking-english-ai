@@ -8,7 +8,7 @@ import asyncio
 import base64
 import logging
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
 
@@ -398,6 +398,6 @@ class ConversationHandler:
             )
             sess = sess_q.scalar_one_or_none()
             if sess:
-                sess.ended_at = datetime.utcnow()
+                sess.ended_at = datetime.now(timezone.utc)
                 await db.commit()
         await self._send({"type": "status", "message": "session_stopped"})

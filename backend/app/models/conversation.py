@@ -1,13 +1,15 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Annotated
 
+from app.db.session import Base
 from sqlalchemy import ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.db.session import Base
-
-
 int_pk = Annotated[int, mapped_column(primary_key=True, index=True)]
+
+
+def _utc_now() -> datetime:
+    return datetime.now(timezone.utc)
 
 
 class Topic(Base):
@@ -31,7 +33,7 @@ class ConversationSession(Base):
     id: Mapped[int_pk]
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     topic_id: Mapped[int] = mapped_column(ForeignKey("topics.id"))
-    started_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+    started_at: Mapped[datetime] = mapped_column(default=_utc_now)
     ended_at: Mapped[datetime | None] = mapped_column(nullable=True)
 
     user = relationship("User", back_populates="sessions")
@@ -51,7 +53,7 @@ class Turn(Base):
     assistant_text: Mapped[str] = mapped_column(Text())
     user_audio_path: Mapped[str | None] = mapped_column(String(512), nullable=True)
     assistant_audio_path: Mapped[str | None] = mapped_column(String(512), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(default=_utc_now)
 
     session: Mapped["ConversationSession"] = relationship(back_populates="turns")
     score: Mapped["TurnScore | None"] = relationship(

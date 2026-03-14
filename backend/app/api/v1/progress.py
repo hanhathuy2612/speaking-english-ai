@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -62,7 +62,7 @@ async def get_summary(
         )
 
     # Daily minutes (last 30 days)
-    since = datetime.utcnow() - timedelta(days=30)
+    since = datetime.now(timezone.utc) - timedelta(days=30)
     sessions_q = await db.execute(
         select(ConversationSession)
         .where(ConversationSession.user_id == user.id, ConversationSession.started_at >= since)
