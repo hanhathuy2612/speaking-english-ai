@@ -1,16 +1,17 @@
+import { ProgressService } from '@/app/shared/services/progress.service';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
 import {
   AfterViewInit,
   Component,
   ElementRef,
+  inject,
   OnInit,
   signal,
   viewChild,
-  ViewChild,
 } from '@angular/core';
-import { ApiService, ProgressSummary } from '../../shared/services/api.service';
+import { RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
+import { ProgressSummary } from '../../shared/services/api.service';
 
 declare const Chart: any;
 
@@ -28,10 +29,10 @@ export class ProgressDashboardComponent implements OnInit, AfterViewInit {
   data = signal<ProgressSummary | undefined>(undefined);
   loading = signal(false);
 
-  constructor(private api: ApiService) {}
+  readonly progressService = inject(ProgressService);
 
   ngOnInit(): void {
-    this.api
+    this.progressService
       .getProgressSummary()
       .pipe(finalize(() => this.loading.set(false)))
       .subscribe({
@@ -52,6 +53,18 @@ export class ProgressDashboardComponent implements OnInit, AfterViewInit {
         this._renderCharts();
       }
     }, 200);
+  }
+
+  deleteSession(sessionId: number): void {
+    this.progressService.deleteSession(sessionId).subscribe({
+      next: () => {
+        this.data.update((d) =>
+          d
+            ? { ...d, recent_sessions: d.recent_sessions?.filter((s) => s.id !== sessionId) }
+            : undefined,
+        );
+      },
+    });
   }
 
   private _renderCharts(): void {

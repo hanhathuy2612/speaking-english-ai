@@ -1,6 +1,8 @@
-/* Global styles — @use first (Sass), then partials từ thư mục styles/ */
+/* Global styles — @use first (Sass), then partials from styles/ directory */
 @use 'bootstrap/scss/bootstrap';
-/* ng-select: theme (màu dark) load trước, component (structure) sau — with() ghi đè biến, có tác dụng */
+@use 'bootstrap-icons/font/bootstrap-icons';
+
+/* ng-select: theme (dark color scheme) load before, component (structure) after — with() overrides variables, has effect */
 @use '@ng-select/ng-select/scss/default.theme' with (
   $ng-select-highlight: #58a6ff,
   $ng-select-primary-text: #e6edf3,

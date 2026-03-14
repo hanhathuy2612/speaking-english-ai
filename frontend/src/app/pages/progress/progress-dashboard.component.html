@@ -74,6 +74,7 @@
                     <td>{{ s.avg_overall != null ? (s.avg_overall | number: '1.1-1') : '—' }}</td>
                     <td>
                       <a [routerLink]="['/conversation']" [queryParams]="{ topicId: s.topic_id, title: s.topic_title, sessionId: s.id }" class="btn btn--ghost btn--sm">Resume</a>
+                      <button type="button" class="btn btn--ghost btn--icon btn--sm" (click)="deleteSession(s.id)"></button>
                     </td>
                   </tr>
                 }

@@ -94,10 +94,6 @@ export class ApiService {
     );
   }
 
-  getProgressSummary(): Observable<ProgressSummary> {
-    return this.http.get<ProgressSummary>(`${this.base}/progress/summary`);
-  }
-
   /** Get answer suggestions for a question (for the guide panel). Optionally pass turnId to save guideline to that turn. */
   getGuidance(question: string, turnId?: number): Observable<{ suggestions: string[] }> {
     const body: { question: string; turn_id?: number } = { question: question.trim() };

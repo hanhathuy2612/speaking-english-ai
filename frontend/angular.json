@@ -27,11 +27,6 @@
               {
                 "glob": "**/*",
                 "input": "public"
-              },
-              {
-                "glob": "**/*",
-                "input": "node_modules/bootstrap-icons/font/fonts",
-                "output": "/fonts"
               }
             ],
             "styles": [

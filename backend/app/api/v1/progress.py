@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
@@ -26,7 +26,9 @@ async def get_summary(
 ) -> ProgressSummary:
     # Total sessions
     sess_q = await db.execute(
-        select(func.count()).select_from(ConversationSession).where(ConversationSession.user_id == user.id)
+        select(func.count())
+        .select_from(ConversationSession)
+        .where(ConversationSession.user_id == user.id)
     )
     total_sessions = sess_q.scalar() or 0
 
@@ -65,7 +67,10 @@ async def get_summary(
     since = datetime.now(timezone.utc) - timedelta(days=30)
     sessions_q = await db.execute(
         select(ConversationSession)
-        .where(ConversationSession.user_id == user.id, ConversationSession.started_at >= since)
+        .where(
+            ConversationSession.user_id == user.id,
+            ConversationSession.started_at >= since,
+        )
         .order_by(ConversationSession.started_at)
     )
     sessions = sessions_q.scalars().all()
@@ -77,7 +82,9 @@ async def get_summary(
         minutes = (end - s.started_at).total_seconds() / 60
         daily[day] = daily.get(day, 0) + minutes
 
-    daily_minutes = [DailyMinutes(date=d, minutes=round(m, 1)) for d, m in sorted(daily.items())]
+    daily_minutes = [
+        DailyMinutes(date=d, minutes=round(m, 1)) for d, m in sorted(daily.items())
+    ]
 
     # Recent sessions with selectinload to avoid N+1
     recent_q = await db.execute(
@@ -91,7 +98,9 @@ async def get_summary(
 
     recent_out: list[RecentSession] = []
     for s in recent_sessions_db:
-        turns_q = await db.execute(select(func.count()).select_from(Turn).where(Turn.session_id == s.id))
+        turns_q = await db.execute(
+            select(func.count()).select_from(Turn).where(Turn.session_id == s.id)
+        )
         tc = turns_q.scalar() or 0
 
         avg_q = await db.execute(
@@ -119,3 +128,16 @@ async def get_summary(
         daily_minutes=daily_minutes,
         recent_sessions=recent_out,
     )
+
+
+@router.delete("/sessions/{session_id}", response_model=None)
+async def delete_session(
+    session_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> None:
+    session = await db.get(ConversationSession, session_id)
+    if not session or session.user_id != user.id:
+        raise HTTPException(status_code=404, detail="Session not found")
+    await db.delete(session)
+    await db.commit()
