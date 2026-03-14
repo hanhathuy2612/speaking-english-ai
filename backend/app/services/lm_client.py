@@ -4,7 +4,7 @@ from typing import Any
 
 import httpx
 
-from app.config import get_settings
+from app.core.config import get_settings
 
 # Default system prompt acting as an English conversation tutor
 _DEFAULT_SYSTEM = (
@@ -21,7 +21,11 @@ class LMStudioClient:
 
     def __init__(self) -> None:
         settings = get_settings()
-        self._base_url = str(settings.lmstudio_base_url).rstrip("/") if settings.lmstudio_base_url else "http://localhost:1234"
+        self._base_url = (
+            str(settings.lmstudio_base_url).rstrip("/")
+            if settings.lmstudio_base_url
+            else "http://localhost:1234"
+        )
         self._api_key = settings.lmstudio_api_key
         self._model = settings.lmstudio_model
 
@@ -74,9 +78,7 @@ class LMStudioClient:
                     except json.JSONDecodeError:
                         continue
                     delta = (
-                        chunk.get("choices", [{}])[0]
-                        .get("delta", {})
-                        .get("content")
+                        chunk.get("choices", [{}])[0].get("delta", {}).get("content")
                     )
                     if delta:
                         yield delta

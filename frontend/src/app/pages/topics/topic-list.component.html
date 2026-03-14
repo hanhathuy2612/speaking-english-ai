@@ -1,0 +1,52 @@
+<div class="page">
+  <div class="container">
+    <header class="hero">
+      <h1>Choose a topic</h1>
+      <p>Pick a conversation topic and start speaking with your AI tutor.</p>
+    </header>
+
+    @if (loading()) {
+      <div class="loading">
+        <div class="spinner"></div>
+        <span class="loading-text">Loading topics…</span>
+      </div>
+    }
+
+    @if (!loading()) {
+      <div class="grid">
+        @for (t of topics(); track t.id) {
+          <article
+            class="topic-card"
+            (click)="start(t)"
+            tabindex="0"
+            (keydown.enter)="start(t)"
+            (keydown.space)="$event.preventDefault(); start(t)"
+          >
+            <div class="topic-card__body">
+              <h2 class="topic-title">{{ t.title }}</h2>
+              <p class="topic-desc">{{ t.description }}</p>
+              <span
+                class="badge"
+                [class.badge--a1]="(t.level ?? '').toLowerCase() === 'a1'"
+                [class.badge--a2]="(t.level ?? '').toLowerCase() === 'a2'"
+                [class.badge--b1]="(t.level ?? '').toLowerCase() === 'b1'"
+                [class.badge--b2]="(t.level ?? '').toLowerCase() === 'b2'"
+                [class.badge--c1]="(t.level ?? '').toLowerCase() === 'c1'"
+                [class.badge--default]="
+                  !t.level ||
+                  !['a1', 'a2', 'b1', 'b2', 'c1'].includes((t.level || '').toLowerCase())
+                "
+              >
+                {{ t.level ?? 'General' }}
+              </span>
+            </div>
+            <div class="topic-card__action">
+              <span class="topic-card__cta">Start conversation</span>
+              <span class="topic-card__arrow">→</span>
+            </div>
+          </article>
+        }
+      </div>
+    }
+  </div>
+</div>

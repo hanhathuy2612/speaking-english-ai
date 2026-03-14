@@ -1,0 +1,56 @@
+<div class="auth-page">
+  <div class="auth-box">
+    <h1 class="auth-logo">🎙 SpeakAI</h1>
+    <p class="auth-sub">Practice English speaking with AI</p>
+    <div class="auth-card">
+      <form (submit)="onSubmit($event)">
+        <div class="form-fields">
+          <div class="field">
+            <label for="login-email">Email</label>
+            <input
+              id="login-email"
+              type="email"
+              [formField]="loginForm.email"
+              placeholder="you@example.com"
+              autocomplete="email"
+            />
+            @if (loginForm.email().touched() && loginForm.email().invalid()) {
+              <ul class="field-errors">
+                @for (err of loginForm.email().errors(); track err.message) {
+                  <li>{{ err.message }}</li>
+                }
+              </ul>
+            }
+          </div>
+          <div class="field">
+            <label for="login-password">Password</label>
+            <input
+              id="login-password"
+              type="password"
+              [formField]="loginForm.password"
+              placeholder="••••••••"
+              autocomplete="current-password"
+            />
+            @if (loginForm.password().touched() && loginForm.password().invalid()) {
+              <ul class="field-errors">
+                @for (err of loginForm.password().errors(); track err.message) {
+                  <li>{{ err.message }}</li>
+                }
+              </ul>
+            }
+          </div>
+          <button type="submit" class="btn btn--primary submit-btn" [disabled]="loading()">
+            @if (loading()) {
+              <span class="spinner" style="width: 18px; height: 18px; border-width: 2px"></span>
+            }
+            {{ loading() ? 'Signing in…' : 'Sign in' }}
+          </button>
+        </div>
+      </form>
+      @if (error()) {
+        <p class="err">{{ error() }}</p>
+      }
+      <p class="alt-link">Don't have an account? <a routerLink="/auth/register">Sign up</a></p>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,134 @@
+<div class="conv-layout">
+  @if (errorMessage()) {
+    <div class="conv-error">
+      <span class="conv-error__icon">⚠</span>
+      {{ errorMessage() }}
+    </div>
+  }
+
+  <header class="conv-header">
+    <a routerLink="/topics" class="btn btn--ghost conv-header__back">
+      <span class="conv-header__back-arrow">←</span>
+      Back
+    </a>
+    <h1 class="conv-title">{{ topicTitle() }}</h1>
+    <span class="conv-status" [class.connected]="connected()">
+      <span class="conv-status__dot"></span>
+      {{ connected() ? 'Connected' : 'Connecting…' }}
+    </span>
+    <button
+      type="button"
+      class="btn btn--ghost conv-header__tts"
+      (click)="toggleTts()"
+      [title]="ttsEnabled() ? 'Turn off speech' : 'Turn on speech'"
+    >
+      {{ ttsEnabled() ? '🔊 Sound on' : '🔇 Sound off' }}
+    </button>
+  </header>
+
+  <div class="chat-area" #chatArea>
+    @if (messages().length === 0) {
+      <div class="empty-state">
+        <div class="empty-state__icon">🎙</div>
+        <h2 class="empty-state__title">Ready when you are</h2>
+        <p class="empty-state__text">
+          Hold the button below to speak. Release when you're done to get a response from your AI
+          tutor.
+        </p>
+      </div>
+    }
+
+    @for (m of messages(); track $index) {
+      <div class="msg" [class.msg--user]="m.role === 'user'">
+        <span class="msg-label">{{ m.role === 'user' ? 'You' : 'AI Tutor' }}</span>
+        <div
+          class="bubble"
+          [class.bubble--user]="m.role === 'user'"
+          [class.bubble--ai]="m.role === 'ai'"
+        >
+          @if (!m.partial) {
+            <span>{{ m.text }}</span>
+          } @else {
+            <span>{{ m.text }}</span>
+            <span class="typing" aria-hidden="true"> <span></span><span></span><span></span> </span>
+          }
+        </div>
+        <div class="msg-actions">
+          @if (m.role === 'user' && m.userAudio) {
+            <button
+              type="button"
+              class="btn btn--ghost btn--icon"
+              [class.playing]="playingMessageIndex() === $index"
+              (click)="playMessageAudio(m, $index, 'user')"
+              title="Play my recording"
+              aria-label="Play my recording"
+            >
+              {{ playingMessageIndex() === $index ? '⏹' : '🔊' }}
+            </button>
+          }
+          @if (m.role === 'ai' && m.aiAudio) {
+            <button
+              type="button"
+              class="btn btn--ghost btn--icon"
+              [class.playing]="playingMessageIndex() === $index"
+              (click)="playMessageAudio(m, $index, 'ai')"
+              title="Play AI response"
+              aria-label="Play AI response"
+            >
+              {{ playingMessageIndex() === $index ? '⏹' : '🔊' }}
+            </button>
+          }
+        </div>
+      </div>
+
+      @if (m.role === 'user' && scores()[$index]) {
+        <div class="score-panel">
+          <div class="score-row">
+            <span class="score-item"
+              >Fluency <b class="score-val">{{ scores()[$index].fluency }}/10</b></span
+            >
+            <span class="score-item"
+              >Vocab <b class="score-val">{{ scores()[$index].vocabulary }}/10</b></span
+            >
+            <span class="score-item"
+              >Grammar <b class="score-val">{{ scores()[$index].grammar }}/10</b></span
+            >
+            <span class="score-item"
+              >Overall <b class="score-val">{{ scores()[$index].overall }}/10</b></span
+            >
+          </div>
+          <p class="score-feedback">💬 {{ scores()[$index].feedback }}</p>
+        </div>
+      }
+    }
+  </div>
+
+  <div class="controls">
+    <div class="vu-bar" aria-hidden="true">
+      <div class="vu-fill" [style.width.%]="vuLevel()"></div>
+    </div>
+    <button
+      type="button"
+      class="btn-record"
+      [class.recording]="recording()"
+      [class.speaking]="aiSpeaking()"
+      (mousedown)="startRecording()"
+      (mouseup)="stopRecording()"
+      (touchstart)="startRecording()"
+      (touchend)="stopRecording()"
+      [disabled]="!connected() || aiSpeaking()"
+      [attr.aria-label]="recording() ? 'Recording… release to send' : 'Hold to speak'"
+    >
+      <span class="btn-record__icon">{{ recording() ? '⏹' : '🎙' }}</span>
+    </button>
+    <span class="controls-tip">
+      @if (recording()) {
+        <span class="controls-tip--recording">Recording…</span>
+      } @else if (aiSpeaking()) {
+        <span class="controls-tip--speaking">AI speaking…</span>
+      } @else {
+        Hold to speak
+      }
+    </span>
+  </div>
+</div>

@@ -1,0 +1,10 @@
+/* Auth layout in styles.scss; only component-specific here */
+.err {
+  margin-top: 12px;
+  text-align: center;
+  color: var(--clr-danger);
+  font-size: 0.875rem;
+  padding: 10px 12px;
+  background: var(--clr-danger-bg-soft);
+  border-radius: var(--radius-sm);
+}

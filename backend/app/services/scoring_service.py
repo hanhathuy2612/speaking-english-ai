@@ -4,21 +4,22 @@ import time
 
 from app.services.lm_client import LMStudioClient
 
-_SCORING_PROMPT = """You are an English language evaluator. Evaluate the following learner's spoken response.
+_SCORING_PROMPT = """You are a friendly English tutor giving feedback on a learner's spoken response.
 
 Topic: {topic}
 Learner's speech (transcribed): {transcript}
 Duration (seconds): {duration:.1f}
 
 Score each dimension from 0 to 10:
-- fluency: How smoothly and quickly they spoke (estimate from word count vs duration).
-- vocabulary: Range and accuracy of vocabulary.
+- fluency: How smoothly and naturally they spoke (consider word count vs duration).
+- vocabulary: Range and accuracy of word choice.
 - grammar: Grammatical correctness.
 - overall: Holistic score.
-Also provide a short constructive feedback in 1-2 sentences.
 
-Respond ONLY with valid JSON in exactly this format:
-{{"fluency": 7.0, "vocabulary": 6.5, "grammar": 8.0, "overall": 7.2, "feedback": "Your sentence."}}"""
+Write "feedback" in 2–4 short sentences: (1) one thing they did well, (2) one specific thing to improve, (3) if there was a grammar/vocab mistake, suggest a natural correction (e.g. "You could say: ..."). Keep the tone encouraging and clear.
+
+Respond ONLY with valid JSON in exactly this format (no extra text):
+{{"fluency": 7.0, "vocabulary": 6.5, "grammar": 8.0, "overall": 7.2, "feedback": "Your 2-4 sentences here."}}"""
 
 
 class ScoringService:
@@ -69,12 +70,13 @@ class ScoringService:
         ]
         try:
             raw = await self._lm.generate_text(
-                messages, temperature=0.1, max_tokens=200
+                messages, temperature=0.2, max_tokens=320
             )
-            # Extract JSON from response
-            match = re.search(r"\{.*?\}", raw, re.DOTALL)
-            if match:
-                return json.loads(match.group())
+            # Extract JSON: find first { and last } (feedback string may contain commas/quotes)
+            start = raw.find("{")
+            end = raw.rfind("}")
+            if start != -1 and end != -1 and end > start:
+                return json.loads(raw[start : end + 1])
         except Exception:
             pass
 
@@ -87,5 +89,5 @@ class ScoringService:
             "vocabulary": vocab,
             "grammar": 6.0,
             "overall": overall,
-            "feedback": "Keep practicing! Focus on speaking more smoothly.",
+            "feedback": "Good attempt! Keep practicing—try to speak a bit more smoothly and check the grammar of your main verb. You're making progress.",
         }

@@ -1,0 +1,86 @@
+<div class="page">
+  <div class="container dash">
+    <header class="dash-header">
+      <h1>Your progress</h1>
+      <p class="dash-sub">Track your practice and improvement over time.</p>
+    </header>
+
+    @if (loading()) {
+      <div class="dash-loading">
+        <div class="spinner" style="width: 40px; height: 40px; border-width: 3px"></div>
+        <span>Loading…</span>
+      </div>
+    }
+
+    @if (!loading() && data()) {
+      <section class="stats">
+        <div class="stat-card">
+          <span class="stat-label">Total sessions</span>
+          <span class="stat-value">{{ data()?.total_sessions }}</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Total turns</span>
+          <span class="stat-value">{{ data()?.total_turns }}</span>
+        </div>
+        @if (data()?.avg_scores) {
+          <div class="stat-card">
+            <span class="stat-label">Avg overall score</span>
+            <span class="stat-value">{{ data()?.avg_scores?.overall | number: '1.1-1' }}</span>
+          </div>
+        }
+        <div class="stat-card">
+          <span class="stat-label">Days practiced</span>
+          <span class="stat-value">{{ data()?.daily_minutes?.length }}</span>
+        </div>
+      </section>
+
+      <section class="charts">
+        <div class="chart-card">
+          <h2 class="chart-title">Daily practice (minutes)</h2>
+          <div class="chart-wrap">
+            <canvas #lineChart height="200"></canvas>
+          </div>
+        </div>
+        <div class="chart-card">
+          <h2 class="chart-title">Skill scores</h2>
+          <div class="chart-wrap">
+            <canvas #radarChart height="200"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <section class="sessions-section">
+        <div class="sessions-card">
+          <h2 class="sessions-title">Recent sessions</h2>
+          <div class="sessions-wrap">
+            <table class="sessions-table">
+              <thead>
+                <tr>
+                  <th>Topic</th>
+                  <th>Date</th>
+                  <th>Turns</th>
+                  <th>Avg score</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (s of data()?.recent_sessions; track s.id) {
+                  <tr>
+                    <td>{{ s.topic_title }}</td>
+                    <td>{{ s.started_at | date: 'MMM d, y' }}</td>
+                    <td>{{ s.turn_count }}</td>
+                    <td>{{ s.avg_overall != null ? (s.avg_overall | number: '1.1-1') : '—' }}</td>
+                  </tr>
+                }
+                @if (data()?.recent_sessions?.length === 0) {
+                  <tr class="sessions-empty">
+                    <td colspan="4">No sessions yet. Start a conversation from Topics.</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    }
+  </div>
+</div>

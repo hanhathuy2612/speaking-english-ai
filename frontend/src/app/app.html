@@ -1,0 +1,28 @@
+<main class="app-main">
+  @if (auth.isLoggedIn()) {
+    <nav class="app-nav">
+      <div>
+        <a routerLink="/topics" class="app-nav__logo" routerLinkActive="active">
+          <span class="app-nav__logo-icon">🎙</span>
+          <span>SpeakAI</span>
+        </a>
+      </div>
+      <div class="app-nav__links">
+        <a routerLink="/topics" routerLinkActive="active">Topics</a>
+        <a routerLink="/progress" routerLinkActive="active">Progress</a>
+      </div>
+      <div class="app-nav__user">
+        <span class="app-nav__username">{{ auth.getUsername() }}</span>
+        <button type="button" class="btn btn--ghost btn--sm" (click)="auth.logout()">Logout</button>
+      </div>
+    </nav>
+  }
+
+  <router-outlet></router-outlet>
+
+  <footer class="app-footer">
+    <div class="app-footer__content">
+      <p>SpeakAI - Practice English with AI</p>
+    </div>
+  </footer>
+</main>
