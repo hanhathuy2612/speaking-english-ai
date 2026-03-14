@@ -1,4 +1,5 @@
 import { CommonModule } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import {
   AfterViewInit,
   Component,
@@ -16,7 +17,7 @@ declare const Chart: any;
 @Component({
   selector: 'app-progress-dashboard',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, RouterLink],
   styleUrls: ['./progress-dashboard.component.scss'],
   templateUrl: './progress-dashboard.component.html',
 })

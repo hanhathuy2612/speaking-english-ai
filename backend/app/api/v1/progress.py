@@ -103,6 +103,7 @@ async def get_summary(
         recent_out.append(
             RecentSession(
                 id=s.id,
+                topic_id=s.topic_id,
                 topic_title=s.topic.title if s.topic else "Unknown",
                 started_at=s.started_at,
                 ended_at=s.ended_at,

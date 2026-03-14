@@ -60,20 +60,26 @@
                   <th>Date</th>
                   <th>Turns</th>
                   <th>Avg score</th>
+                  <th></th>
                 </tr>
               </thead>
               <tbody>
                 @for (s of data()?.recent_sessions; track s.id) {
                   <tr>
-                    <td>{{ s.topic_title }}</td>
+                    <td>
+                      <a [routerLink]="['/conversation']" [queryParams]="{ topicId: s.topic_id, title: s.topic_title, sessionId: s.id }">{{ s.topic_title }}</a>
+                    </td>
                     <td>{{ s.started_at | date: 'MMM d, y' }}</td>
                     <td>{{ s.turn_count }}</td>
                     <td>{{ s.avg_overall != null ? (s.avg_overall | number: '1.1-1') : '—' }}</td>
+                    <td>
+                      <a [routerLink]="['/conversation']" [queryParams]="{ topicId: s.topic_id, title: s.topic_title, sessionId: s.id }" class="btn btn--ghost btn--sm">Resume</a>
+                    </td>
                   </tr>
                 }
                 @if (data()?.recent_sessions?.length === 0) {
                   <tr class="sessions-empty">
-                    <td colspan="4">No sessions yet. Start a conversation from Topics.</td>
+                    <td colspan="5">No sessions yet. Start a conversation from Topics.</td>
                   </tr>
                 }
               </tbody>

@@ -13,6 +13,10 @@ class Settings(BaseSettings):
     lmstudio_base_url: AnyHttpUrl | None = None
     lmstudio_api_key: str | None = None
     lmstudio_model: str = "local-model"
+    # Style: max tokens per AI reply. Default 256 allows natural length.
+    lm_conversation_max_tokens: int = 256
+    # Optional: append this to the system prompt (e.g. "Use simple words only.")
+    lm_system_prompt_extra: str | None = None
 
     # Auth / JWT
     jwt_secret_key: str = "CHANGE_ME_SECRET_KEY"
@@ -27,6 +31,10 @@ class Settings(BaseSettings):
 
     # Optional path to ffmpeg (e.g. when winget installs it but PATH is not updated)
     ffmpeg_path: str | None = None
+
+    # TTS (edge-tts): speech rate. "+0%" = default; "-20%" = slower; "+20%" = faster.
+    tts_rate: str = "+0%"
+    tts_voice: str = "en-US-JennyNeural"
 
     class Config:
         env_file = ".env"

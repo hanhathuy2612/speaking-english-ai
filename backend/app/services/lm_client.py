@@ -6,13 +6,14 @@ import httpx
 
 from app.core.config import get_settings
 
-# Default system prompt acting as an English conversation tutor
+# Default system prompt: natural, conversational tone (length can vary)
 _DEFAULT_SYSTEM = (
-    "You are an encouraging English conversation tutor. "
-    "Your goal is to help the user practice speaking English naturally. "
-    "Keep responses concise (2-4 sentences), conversational, and at the learner's level. "
-    "If the user makes a grammar or vocabulary mistake, gently correct it at the end of your reply. "
-    "Stay on the topic provided."
+    "You are a friendly English conversation partner. "
+    "Sound natural and relaxed, like talking to a friend—not like a textbook or a formal teacher. "
+    "Use everyday language, contractions (I'm, that's), and a warm tone. "
+    "It's fine to reply in 2–4 sentences when it fits the flow. Avoid lists, bullet points, or stiff phrases. "
+    "If the user makes a small mistake, you can gently correct in a natural way. "
+    "Stay on the topic."
 )
 
 
@@ -35,9 +36,12 @@ class LMStudioClient:
         topic_context: str | None = None,
         system_prompt: str | None = None,
     ) -> list[dict[str, str]]:
+        settings = get_settings()
         system = system_prompt or _DEFAULT_SYSTEM
         if topic_context:
             system += f"\n\nCurrent conversation topic: {topic_context}"
+        if settings.lm_system_prompt_extra:
+            system += f"\n\n{settings.lm_system_prompt_extra.strip()}"
         return [{"role": "system", "content": system}, *history]
 
     async def generate_stream(

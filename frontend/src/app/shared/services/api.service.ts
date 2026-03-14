@@ -17,6 +17,7 @@ export interface ProgressSummary {
   daily_minutes: { date: string; minutes: number }[];
   recent_sessions: {
     id: number;
+    topic_id: number;
     topic_title: string;
     started_at: string;
     ended_at: string | null;
@@ -33,6 +34,18 @@ export class ApiService {
 
   getTopics(): Observable<Topic[]> {
     return this.http.get<Topic[]>(`${this.base}/topics`);
+  }
+
+  /** Create a new topic (saved to database). */
+  createTopic(payload: { title: string; description?: string | null; level?: string | null }): Observable<Topic> {
+    return this.http.post<Topic>(`${this.base}/topics`, payload);
+  }
+
+  /** List TTS voices for dropdown (id, name, gender, locale). */
+  getTtsVoices(): Observable<{ id: string; name: string; gender: string; locale: string }[]> {
+    return this.http.get<{ id: string; name: string; gender: string; locale: string }[]>(
+      `${this.base}/tts/voices`,
+    );
   }
 
   getProgressSummary(): Observable<ProgressSummary> {

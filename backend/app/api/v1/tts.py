@@ -1,0 +1,33 @@
+"""TTS API: list voices for UI dropdown."""
+
+import edge_tts
+from fastapi import APIRouter, Depends
+
+from app.core.deps import get_current_user
+from app.models.user import User
+
+router = APIRouter(prefix="/tts", tags=["tts"])
+
+
+@router.get("/voices")
+async def list_voices(_user: User = Depends(get_current_user)) -> list[dict]:
+    """Return available TTS voices (ShortName, Gender). English-first for dropdown."""
+    raw = await edge_tts.list_voices()
+    # Prefer English; include others
+    out = []
+    seen = set()
+    for v in raw:
+        name = v.get("ShortName") or v.get("Name") or ""
+        if not name or name in seen:
+            continue
+        seen.add(name)
+        locale = (v.get("Locale") or "")[:2].lower()
+        out.append({
+            "id": name,
+            "name": name,
+            "gender": (v.get("Gender") or "Unknown").lower(),
+            "locale": locale,
+        })
+    # Sort: en first, then by id
+    out.sort(key=lambda x: (0 if x["locale"] == "en" else 1, x["id"]))
+    return out

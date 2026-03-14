@@ -1,3 +1,4 @@
+import { ApiService } from '@/services/api.service';
 import { AudioService } from '@/services/audio.service';
 import { WsService, WsMessage } from '@/services/ws.service';
 import { CommonModule } from '@angular/common';
@@ -10,6 +11,7 @@ import {
   effect,
   ElementRef,
   inject,
+  OnInit,
   OnDestroy,
   signal,
   viewChild,
@@ -35,6 +37,8 @@ export interface TurnScore {
   feedback: string;
 }
 
+const TTS_RATE_OPTIONS = ['-30%', '-20%', '-10%', '+0%', '+10%', '+20%', '+30%'];
+
 @Component({
   selector: 'app-conversation',
   standalone: true,
@@ -43,11 +47,12 @@ export interface TurnScore {
   templateUrl: './conversation.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ConversationComponent implements OnDestroy, AfterViewChecked {
+export class ConversationComponent implements OnInit, OnDestroy, AfterViewChecked {
   private chatArea = viewChild<ElementRef<HTMLDivElement>>('chatArea');
 
   private ws = inject(WsService);
   private audio = inject(AudioService);
+  private api = inject(ApiService);
   private cdr = inject(ChangeDetectorRef);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
@@ -59,18 +64,32 @@ export class ConversationComponent implements OnDestroy, AfterViewChecked {
 
   topicId = computed(() => Number(this.queryParams()['topicId']) || 0);
   topicTitle = computed(() => this.queryParams()['title'] ?? 'Conversation');
+  /** When set, resume this session; otherwise start new. */
+  sessionId = computed(() => {
+    const s = this.queryParams()['sessionId'];
+    return s ? Number(s) : 0;
+  });
 
   connected = toSignal(this.ws.connected$, { initialValue: false });
+  reconnecting = toSignal(this.ws.reconnecting$, { initialValue: false });
   vuLevel = toSignal(this.audio.volume$, { initialValue: 0 });
+
+  /** Allow hold-to-speak only after first message (opening or history). */
+  canRecord = computed(() => this.connected() && !this.aiSpeaking() && this.messages().length > 0);
 
   recording = signal(false);
   aiSpeaking = signal(false);
   ttsEnabled = signal(true);
+  ttsRate = signal('+0%');
+  ttsVoice = signal('en-US-JennyNeural');
+  ttsVoices = signal<{ id: string; name: string }[]>([]);
   errorMessage = signal('');
   messages = signal<ChatMessage[]>([]);
   scores = signal<Record<number, TurnScore>>({});
   /** Index of message whose audio is currently playing (-1 = none) */
   playingMessageIndex = signal(-1);
+
+  readonly ttsRateOptions = TTS_RATE_OPTIONS;
 
   private pendingAiMsgIndex = -1;
   private audioQueue: ArrayBuffer[] = [];
@@ -81,21 +100,30 @@ export class ConversationComponent implements OnDestroy, AfterViewChecked {
   private lastAiMessageIndex = -1;
 
   constructor() {
-    // When route params change: navigate away if no topic, else connect
+    // When topic or session change: clear UI and connect
     effect(() => {
       const id = this.topicId();
+      const sid = this.sessionId();
       if (id <= 0) {
         this.router.navigate(['/topics']);
         return;
       }
+      this.messages.set([]);
+      this.scores.set({});
       this.ws.connect(id);
     });
 
-    // When connected and we have a topic, send start
+    // When connected, send start (with optional sessionId and TTS prefs)
     effect(() => {
-      if (this.connected() && this.topicId() > 0) {
-        this.ws.sendJson({ type: 'start', topicId: this.topicId() });
-      }
+      if (!this.connected() || this.topicId() <= 0) return;
+      const payload: Record<string, unknown> = {
+        type: 'start',
+        topicId: this.topicId(),
+        ttsRate: this.ttsRate(),
+        ttsVoice: this.ttsVoice(),
+      };
+      if (this.sessionId() > 0) payload.sessionId = this.sessionId();
+      this.ws.sendJson(payload);
     });
 
     // Process each WS message and update signals
@@ -103,6 +131,27 @@ export class ConversationComponent implements OnDestroy, AfterViewChecked {
       this._handleMessage(msg);
       this._scheduleDetectChanges(msg as WsMessage);
     });
+  }
+
+  ngOnInit(): void {
+    this.api.getTtsVoices().subscribe({
+      next: (list) => this.ttsVoices.set(list.map((v) => ({ id: v.id, name: v.name }))),
+      error: () => {},
+    });
+  }
+
+  onTtsRateChange(rate: string): void {
+    this.ttsRate.set(rate);
+    if (this.connected()) {
+      this.ws.sendJson({ type: 'tts_preferences', ttsRate: rate, ttsVoice: this.ttsVoice() });
+    }
+  }
+
+  onTtsVoiceChange(voiceId: string): void {
+    this.ttsVoice.set(voiceId);
+    if (this.connected()) {
+      this.ws.sendJson({ type: 'tts_preferences', ttsRate: this.ttsRate(), ttsVoice: voiceId });
+    }
   }
 
   ngAfterViewChecked(): void {
@@ -120,7 +169,7 @@ export class ConversationComponent implements OnDestroy, AfterViewChecked {
   }
 
   async startRecording(): Promise<void> {
-    if (this.recording() || !this.connected()) return;
+    if (this.recording() || !this.canRecord()) return;
     this.recording.set(true);
     await this.audio.startRecording((buf) => {
       this.lastUserRecording = buf;
@@ -140,6 +189,16 @@ export class ConversationComponent implements OnDestroy, AfterViewChecked {
       case 'status':
         this.errorMessage.set('');
         break;
+      case 'history': {
+        const list = (msg['messages'] as { role: string; text: string }[]) || [];
+        this.messages.set(
+          list.map((m) => ({
+            role: m.role === 'user' ? 'user' : 'ai',
+            text: m.text,
+          })),
+        );
+        break;
+      }
       case 'error':
         this.errorMessage.set((msg['message'] as string) || 'Something went wrong');
         break;
@@ -270,6 +329,15 @@ export class ConversationComponent implements OnDestroy, AfterViewChecked {
   async playMessageAudio(msg: ChatMessage, index: number, kind: 'user' | 'ai'): Promise<void> {
     const buf = kind === 'user' ? msg.userAudio : msg.aiAudio;
     if (!buf) return;
+    // Toggle off: if this message is already playing, stop and return
+    if (this.playingMessageIndex() === index) {
+      this.audioQueue.length = 0;
+      this.playingAudio = false;
+      this.audio.stopPlayback();
+      this.playingMessageIndex.set(-1);
+      this.cdr.detectChanges();
+      return;
+    }
     this.audioQueue.length = 0;
     this.playingAudio = false;
     this.audio.stopPlayback();

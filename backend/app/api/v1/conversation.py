@@ -97,7 +97,11 @@ async def conversation_ws(websocket: WebSocket) -> None:
 
                 if msg_type == "start":
                     if await handler.handle_start(db, data):
-                        await handler.send_opening_message()
+                        # Only send AI opening for new sessions, not when resuming
+                        if not data.get("sessionId"):
+                            await handler.send_opening_message()
+                elif msg_type == "tts_preferences":
+                    handler.handle_tts_preferences(data)
                 elif msg_type == "audio_end":
                     await handler.handle_audio_end(db)
                 elif msg_type == "stop":

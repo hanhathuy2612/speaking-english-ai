@@ -16,7 +16,9 @@ class Topic(Base):
     id: Mapped[int_pk]
     title: Mapped[str] = mapped_column(String(255), unique=True)
     description: Mapped[str | None] = mapped_column(Text(), nullable=True)
-    level: Mapped[str | None] = mapped_column(String(20), nullable=True)  # A1, A2, B1...
+    level: Mapped[str | None] = mapped_column(
+        String(20), nullable=True
+    )  # A1, A2, B1...
 
     sessions: Mapped[list["ConversationSession"]] = relationship(
         back_populates="topic", cascade="all, delete-orphan"
@@ -51,9 +53,7 @@ class Turn(Base):
     assistant_audio_path: Mapped[str | None] = mapped_column(String(512), nullable=True)
     created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
 
-    session: Mapped["ConversationSession"] = relationship(
-        back_populates="turns"
-    )
+    session: Mapped["ConversationSession"] = relationship(back_populates="turns")
     score: Mapped["TurnScore | None"] = relationship(
         back_populates="turn", uselist=False, cascade="all, delete-orphan"
     )
@@ -71,4 +71,3 @@ class TurnScore(Base):
     feedback: Mapped[str | None] = mapped_column(Text(), nullable=True)
 
     turn: Mapped["Turn"] = relationship(back_populates="score")
-

@@ -12,10 +12,52 @@
       Back
     </a>
     <h1 class="conv-title">{{ topicTitle() }}</h1>
-    <span class="conv-status" [class.connected]="connected()">
+    @if (sessionId() > 0) {
+      <a
+        [routerLink]="['/conversation']"
+        [queryParams]="{ topicId: topicId(), title: topicTitle() }"
+        class="btn btn--ghost conv-header__new"
+        title="Start a new conversation for this topic"
+      >
+        New conversation
+      </a>
+    }
+    <span class="conv-status" [class.connected]="connected()" [class.reconnecting]="reconnecting()">
       <span class="conv-status__dot"></span>
-      {{ connected() ? 'Connected' : 'Connecting…' }}
+      {{ reconnecting() ? 'Reconnecting…' : connected() ? 'Connected' : 'Connecting…' }}
     </span>
+    <div class="conv-header__tts-controls">
+      <label class="conv-header__label">
+        Speed
+        <select
+          class="conv-header__select"
+          [value]="ttsRate()"
+          (change)="onTtsRateChange($any($event.target).value)"
+          title="Speech speed"
+        >
+          @for (r of ttsRateOptions; track r) {
+            <option [value]="r">{{ r }}</option>
+          }
+        </select>
+      </label>
+      <label class="conv-header__label">
+        Voice
+        <select
+          class="conv-header__select conv-header__select--voice"
+          [value]="ttsVoice()"
+          (change)="onTtsVoiceChange($any($event.target).value)"
+          title="TTS voice"
+        >
+          @if (ttsVoices().length === 0) {
+            <option [value]="ttsVoice()">Loading…</option>
+          } @else {
+            @for (v of ttsVoices(); track v.id) {
+              <option [value]="v.id">{{ v.name }}</option>
+            }
+          }
+        </select>
+      </label>
+    </div>
     <button
       type="button"
       class="btn btn--ghost conv-header__tts"
@@ -30,10 +72,13 @@
     @if (messages().length === 0) {
       <div class="empty-state">
         <div class="empty-state__icon">🎙</div>
-        <h2 class="empty-state__title">Ready when you are</h2>
+        <h2 class="empty-state__title">{{ connected() ? 'Waiting for AI…' : 'Connecting…' }}</h2>
         <p class="empty-state__text">
-          Hold the button below to speak. Release when you're done to get a response from your AI
-          tutor.
+          {{
+            connected()
+              ? 'The AI will say hello first. Then you can hold the button to speak.'
+              : 'Connecting to your session.'
+          }}
         </p>
       </div>
     }
@@ -60,8 +105,10 @@
               class="btn btn--ghost btn--icon"
               [class.playing]="playingMessageIndex() === $index"
               (click)="playMessageAudio(m, $index, 'user')"
-              title="Play my recording"
-              aria-label="Play my recording"
+              [title]="playingMessageIndex() === $index ? 'Stop' : 'Play my recording'"
+              [attr.aria-label]="
+                playingMessageIndex() === $index ? 'Stop playback' : 'Play my recording'
+              "
             >
               {{ playingMessageIndex() === $index ? '⏹' : '🔊' }}
             </button>
@@ -72,8 +119,10 @@
               class="btn btn--ghost btn--icon"
               [class.playing]="playingMessageIndex() === $index"
               (click)="playMessageAudio(m, $index, 'ai')"
-              title="Play AI response"
-              aria-label="Play AI response"
+              [title]="playingMessageIndex() === $index ? 'Stop' : 'Play AI response'"
+              [attr.aria-label]="
+                playingMessageIndex() === $index ? 'Stop playback' : 'Play AI response'
+              "
             >
               {{ playingMessageIndex() === $index ? '⏹' : '🔊' }}
             </button>
@@ -116,8 +165,14 @@
       (mouseup)="stopRecording()"
       (touchstart)="startRecording()"
       (touchend)="stopRecording()"
-      [disabled]="!connected() || aiSpeaking()"
-      [attr.aria-label]="recording() ? 'Recording… release to send' : 'Hold to speak'"
+      [disabled]="!canRecord()"
+      [attr.aria-label]="
+        recording()
+          ? 'Recording… release to send'
+          : canRecord()
+            ? 'Hold to speak'
+            : 'Wait for AI to greet you first'
+      "
     >
       <span class="btn-record__icon">{{ recording() ? '⏹' : '🎙' }}</span>
     </button>

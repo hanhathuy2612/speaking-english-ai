@@ -14,7 +14,9 @@ from typing import Any, Callable
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
+from app.core.config import get_settings
 from app.models.conversation import ConversationSession, Topic, Turn, TurnScore
 from app.services.lm_client import LMStudioClient
 from app.services.scoring_service import ScoringService
@@ -70,13 +72,16 @@ async def stream_tts(
     send: Callable[[dict], Any],
     tts: TTSService,
     text: str,
+    *,
+    voice: str | None = None,
+    rate: str | None = None,
 ) -> bytes:
     """Stream TTS to client via assistant_audio_chunk; return full audio bytes."""
     out = bytearray()
     batch = bytearray()
     last_sent = time.monotonic()
     try:
-        async for chunk in tts.synthesize_stream(text):
+        async for chunk in tts.synthesize_stream(text, voice=voice, rate=rate):
             out.extend(chunk)
             batch.extend(chunk)
             now = time.monotonic()
@@ -128,6 +133,9 @@ class ConversationHandler:
         self._tts = tts
         self._scorer = scorer
         self._max_audio_bytes = max_audio_bytes
+        settings = get_settings()
+        self._tts_rate: str = settings.tts_rate
+        self._tts_voice: str = settings.tts_voice
         self.session_id: int | None = None
         self.topic: Topic | None = None
         self.history: list[dict[str, str]] = []
@@ -136,7 +144,11 @@ class ConversationHandler:
         self.utterance_start: float = 0.0
 
     async def handle_start(self, db: AsyncSession, data: dict) -> bool:
-        """Create session, send session_started, return True. On error send error and return False."""
+        """
+        Start or resume a session.
+        - If sessionId is provided and valid: load session, send history, return True (caller should NOT send opening).
+        - Else: create new session, return True (caller should send opening).
+        """
         try:
             topic_id = int(data.get("topicId", 0))
         except (TypeError, ValueError):
@@ -146,6 +158,67 @@ class ConversationHandler:
             await self._send({"type": "error", "message": "Invalid topicId"})
             return False
 
+        session_id_raw = data.get("sessionId")
+        if session_id_raw is not None:
+            try:
+                resume_id = int(session_id_raw)
+            except (TypeError, ValueError):
+                resume_id = 0
+        else:
+            resume_id = 0
+
+        if resume_id > 0:
+            # Resume existing session: must belong to user and match topic
+            sess_q = await db.execute(
+                select(ConversationSession)
+                .where(
+                    ConversationSession.id == resume_id,
+                    ConversationSession.user_id == self._user_id,
+                )
+                .options(selectinload(ConversationSession.topic))
+            )
+            sess = sess_q.scalar_one_or_none()
+            if not sess or sess.topic_id != topic_id:
+                await self._send({"type": "error", "message": "Session not found"})
+                return False
+            topic = sess.topic
+            turns_q = await db.execute(
+                select(Turn)
+                .where(Turn.session_id == sess.id)
+                .order_by(Turn.index_in_session)
+            )
+            turns = list(turns_q.scalars().all())
+            history = []
+            for t in turns:
+                history.append({"role": "user", "content": t.user_text})
+                history.append({"role": "assistant", "content": t.assistant_text})
+
+            self.session_id = sess.id
+            self.topic = topic
+            self.history = history
+            self.turn_index = len(turns)
+            self.audio_buffer = bytearray()
+
+            if data.get("ttsRate") is not None:
+                self._tts_rate = str(data["ttsRate"])
+            if data.get("ttsVoice"):
+                self._tts_voice = str(data["ttsVoice"])
+            await self._send(
+                {
+                    "type": "status",
+                    "message": "session_started",
+                    "topicId": topic_id,
+                    "sessionId": self.session_id,
+                }
+            )
+            history_payload = []
+            for t in turns:
+                history_payload.append({"role": "user", "text": t.user_text})
+                history_payload.append({"role": "assistant", "text": t.assistant_text})
+            await self._send({"type": "history", "messages": history_payload})
+            return True
+
+        # New session
         topic_q = await db.execute(select(Topic).where(Topic.id == topic_id))
         topic = topic_q.scalar_one_or_none()
         if not topic:
@@ -162,6 +235,10 @@ class ConversationHandler:
         self.history = []
         self.turn_index = 0
         self.audio_buffer = bytearray()
+        if data.get("ttsRate") is not None:
+            self._tts_rate = str(data["ttsRate"])
+        if data.get("ttsVoice"):
+            self._tts_voice = str(data["ttsVoice"])
 
         await self._send(
             {
@@ -172,6 +249,13 @@ class ConversationHandler:
             }
         )
         return True
+
+    def handle_tts_preferences(self, data: dict) -> None:
+        """Update TTS rate/voice from client (takes effect on next speech)."""
+        if data.get("ttsRate") is not None:
+            self._tts_rate = str(data["ttsRate"])
+        if data.get("ttsVoice"):
+            self._tts_voice = str(data["ttsVoice"])
 
     async def send_opening_message(self) -> None:
         """Generate and stream AI opening (greeting/question); append to history and stream TTS."""
@@ -204,7 +288,13 @@ class ConversationHandler:
             )
         self.history.append({"role": "assistant", "content": opening_text})
         if opening_text:
-            await stream_tts(self._send, self._tts, opening_text)
+            await stream_tts(
+                self._send,
+                self._tts,
+                opening_text,
+                voice=self._tts_voice,
+                rate=self._tts_rate,
+            )
 
     async def handle_audio_end(self, db: AsyncSession) -> bool:
         """Transcribe, get AI reply, TTS, score, persist turn. Return True on success."""
@@ -233,9 +323,16 @@ class ConversationHandler:
         await self._send({"type": "user_transcript", "text": user_text})
         self.history.append({"role": "user", "content": user_text})
         messages = self._lm.build_messages(self.history, topic_context=self.topic.title)
+        settings = get_settings()
 
         try:
-            assistant_text = await stream_llm(self._send, self._lm, messages)
+            assistant_text = await stream_llm(
+                self._send,
+                self._lm,
+                messages,
+                temperature=0.7,
+                max_tokens=settings.lm_conversation_max_tokens,
+            )
         except Exception:
             logger.exception("LM generate failed")
             await self._send({"type": "error", "message": "AI unavailable"})
@@ -244,7 +341,13 @@ class ConversationHandler:
         self.history.append({"role": "assistant", "content": assistant_text})
 
         tts_path = user_dir / f"turn_{self.turn_index}_ai.mp3"
-        tts_bytes = await stream_tts(self._send, self._tts, assistant_text)
+        tts_bytes = await stream_tts(
+            self._send,
+            self._tts,
+            assistant_text,
+            voice=self._tts_voice,
+            rate=self._tts_rate,
+        )
         if tts_bytes:
             tts_path.write_bytes(tts_bytes)
 

@@ -1,9 +1,67 @@
 <div class="page">
   <div class="container">
-    <header class="hero">
-      <h1>Choose a topic</h1>
-      <p>Pick a conversation topic and start speaking with your AI tutor.</p>
+    <header class="hero hero--row">
+      <div>
+        <h1>Choose a topic</h1>
+        <p>Pick a conversation topic and start speaking with your AI tutor.</p>
+      </div>
+      <button type="button" class="btn btn--primary" (click)="openCreateForm()" [hidden]="showCreateForm()">
+        + New topic
+      </button>
     </header>
+
+    @if (showCreateForm()) {
+      <div class="topic-create card">
+        <h2 class="topic-create__title">Create new topic</h2>
+        <form (ngSubmit)="submitCreate()" class="topic-create__form">
+          <div class="field">
+            <label for="new-topic-title">Title</label>
+            <input
+              id="new-topic-title"
+              type="text"
+              [value]="newTitle()"
+              (input)="newTitle.set($any($event.target).value)"
+              placeholder="e.g. Shopping & Markets"
+              maxlength="255"
+            />
+          </div>
+          <div class="field">
+            <label for="new-topic-desc">Description (optional)</label>
+            <textarea
+              id="new-topic-desc"
+              [value]="newDescription()"
+              (input)="newDescription.set($any($event.target).value)"
+              placeholder="Short description for this topic"
+              rows="2"
+           ></textarea>
+          </div>
+          <div class="field">
+            <label for="new-topic-level">Level (optional)</label>
+            <select
+              id="new-topic-level"
+              [value]="newLevel()"
+              (change)="newLevel.set($any($event.target).value)"
+            >
+              <option value="">General</option>
+              @for (lv of levels; track lv) {
+                <option [value]="lv">{{ lv }}</option>
+              }
+            </select>
+          </div>
+          @if (createError()) {
+            <p class="topic-create__error">{{ createError() }}</p>
+          }
+          <div class="topic-create__actions">
+            <button type="button" class="btn btn--ghost" (click)="cancelCreate()" [disabled]="creating()">
+              Cancel
+            </button>
+            <button type="submit" class="btn btn--primary" [disabled]="creating() || !newTitle().trim()">
+              {{ creating() ? 'Creating…' : 'Create topic' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    }
 
     @if (loading()) {
       <div class="loading">

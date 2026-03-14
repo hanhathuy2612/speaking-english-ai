@@ -17,6 +17,7 @@ class DailyMinutes(BaseModel):
 
 class RecentSession(BaseModel):
     id: int
+    topic_id: int
     topic_title: str
     started_at: datetime
     ended_at: datetime | None
