@@ -15,15 +15,6 @@ export interface ProgressSummary {
   total_turns: number;
   avg_scores: { fluency: number; vocabulary: number; grammar: number; overall: number } | null;
   daily_minutes: { date: string; minutes: number }[];
-  recent_sessions: {
-    id: number;
-    topic_id: number;
-    topic_title: string;
-    started_at: string;
-    ended_at: string | null;
-    turn_count: number;
-    avg_overall: number | null;
-  }[];
 }
 
 @Injectable({ providedIn: 'root' })

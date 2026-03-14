@@ -52,40 +52,87 @@
       <section class="sessions-section">
         <div class="sessions-card">
           <h2 class="sessions-title">Recent sessions</h2>
-          <div class="sessions-wrap">
-            <table class="sessions-table">
-              <thead>
-                <tr>
-                  <th>Topic</th>
-                  <th>Date</th>
-                  <th>Turns</th>
-                  <th>Avg score</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (s of data()?.recent_sessions; track s.id) {
+          @if (loadingSessions()) {
+            <div class="sessions-loading">
+              <div class="spinner" style="width: 24px; height: 24px; border-width: 2px"></div>
+              <span>Loading…</span>
+            </div>
+          } @else {
+            <div class="sessions-wrap">
+              <table class="sessions-table">
+                <thead>
                   <tr>
-                    <td>
-                      <a [routerLink]="['/conversation']" [queryParams]="{ topicId: s.topic_id, title: s.topic_title, sessionId: s.id }">{{ s.topic_title }}</a>
-                    </td>
-                    <td>{{ s.started_at | date: 'MMM d, y' }}</td>
-                    <td>{{ s.turn_count }}</td>
-                    <td>{{ s.avg_overall != null ? (s.avg_overall | number: '1.1-1') : '—' }}</td>
-                    <td>
-                      <a [routerLink]="['/conversation']" [queryParams]="{ topicId: s.topic_id, title: s.topic_title, sessionId: s.id }" class="btn btn--ghost btn--sm">Resume</a>
-                      <button type="button" class="btn btn--ghost btn--icon btn--sm" (click)="deleteSession(s.id)"></button>
-                    </td>
+                    <th>Topic</th>
+                    <th>Date</th>
+                    <th>Turns</th>
+                    <th>Avg score</th>
+                    <th></th>
                   </tr>
-                }
-                @if (data()?.recent_sessions?.length === 0) {
-                  <tr class="sessions-empty">
-                    <td colspan="5">No sessions yet. Start a conversation from Topics.</td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  @for (s of sessionsData()?.items; track s.id) {
+                    <tr>
+                      <td>
+                        <a
+                          [routerLink]="['/conversation']"
+                          [queryParams]="{
+                            topicId: s.topic_id,
+                            title: s.topic_title,
+                            sessionId: s.id,
+                          }"
+                          >{{ s.topic_title }}</a
+                        >
+                      </td>
+                      <td>{{ s.started_at | date: 'MMM d, y' }}</td>
+                      <td>{{ s.turn_count }}</td>
+                      <td>{{ s.avg_overall != null ? (s.avg_overall | number: '1.1-1') : '—' }}</td>
+                      <td>
+                        <a
+                          [routerLink]="['/conversation']"
+                          [queryParams]="{
+                            topicId: s.topic_id,
+                            title: s.topic_title,
+                            sessionId: s.id,
+                          }"
+                          class="btn btn--ghost btn--sm"
+                          >Resume</a
+                        >
+                        <button
+                          type="button"
+                          class="btn btn--ghost btn--icon btn--sm"
+                          (click)="deleteSession(s.id)"
+                        >
+                          <i class="bi bi-trash"></i>
+                        </button>
+                      </td>
+                    </tr>
+                  }
+                  @if ((sessionsData()?.items?.length ?? 0) === 0) {
+                    <tr class="sessions-empty">
+                      <td colspan="5">No sessions yet. Start a conversation from Topics.</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+            @if ((sessionsData()?.total ?? 0) > pageSize) {
+              <div class="sessions-pagination">
+                <span class="sessions-pagination-info">
+                  Showing {{ paginationRange().start }}–{{ paginationRange().end }} of
+                  {{ paginationRange().total }}
+                </span>
+                <ngb-pagination
+                  [collectionSize]="sessionsData()?.total ?? 0"
+                  [page]="currentPage()"
+                  [pageSize]="pageSize"
+                  [maxSize]="5"
+                  [boundaryLinks]="true"
+                  (pageChange)="goToPage($event)"
+                  class="d-flex justify-content-end mb-0"
+                />
+              </div>
+            }
+          }
         </div>
       </section>
     }

@@ -1,8 +1,9 @@
-import { ProgressService } from '@/app/shared/services/progress.service';
+import { ProgressService, SessionsPageResponse } from '@/app/shared/services/progress.service';
 import { CommonModule } from '@angular/common';
 import {
   AfterViewInit,
   Component,
+  computed,
   ElementRef,
   inject,
   OnInit,
@@ -10,15 +11,18 @@ import {
   viewChild,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { NgbPaginationModule } from '@ng-bootstrap/ng-bootstrap';
 import { finalize } from 'rxjs';
 import { ProgressSummary } from '../../shared/services/api.service';
 
 declare const Chart: any;
 
+const PAGE_SIZE = 10;
+
 @Component({
   selector: 'app-progress-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, NgbPaginationModule],
   styleUrls: ['./progress-dashboard.component.scss'],
   templateUrl: './progress-dashboard.component.html',
 })
@@ -29,28 +33,65 @@ export class ProgressDashboardComponent implements OnInit, AfterViewInit {
   data = signal<ProgressSummary | undefined>(undefined);
   loading = signal(false);
 
+  sessionsData = signal<SessionsPageResponse | null>(null);
+  loadingSessions = signal(false);
+  currentPage = signal(1);
+  readonly pageSize = PAGE_SIZE;
+
+  readonly totalPages = computed(() => {
+    const total = this.sessionsData()?.total ?? 0;
+    return total === 0 ? 1 : Math.ceil(total / this.pageSize);
+  });
+
+  readonly paginationRange = computed(() => {
+    const total = this.sessionsData()?.total ?? 0;
+    const page = this.currentPage();
+    const start = total === 0 ? 0 : (page - 1) * this.pageSize + 1;
+    const end = Math.min(page * this.pageSize, total);
+    return { start, end, total };
+  });
+
   readonly progressService = inject(ProgressService);
 
   ngOnInit(): void {
+    this.loading.set(true);
     this.progressService
       .getProgressSummary()
       .pipe(finalize(() => this.loading.set(false)))
       .subscribe({
-        next: (d) => {
-          this.data.set(d);
-        },
-        error: () => {
-          this.loading.set(false);
+        next: (d) => this.data.set(d),
+        error: () => this.loading.set(false),
+      });
+
+    this.loadSessions(1);
+  }
+
+  loadSessions(page: number): void {
+    this.loadingSessions.set(true);
+    this.progressService
+      .getSessions(page, this.pageSize)
+      .pipe(finalize(() => this.loadingSessions.set(false)))
+      .subscribe({
+        next: (res) => {
+          this.sessionsData.set(res);
+          this.currentPage.set(page);
         },
       });
   }
 
+  goToPage(page: number): void {
+    const totalP = this.totalPages();
+    if (page < 1 || page > totalP) return;
+    this.currentPage.set(page);
+    this.loadSessions(page);
+  }
+
   ngAfterViewInit(): void {
-    // Chart.js is loaded via CDN in index.html; render once data is available
     const check = setInterval(() => {
       if (this.data() && typeof Chart !== 'undefined') {
         clearInterval(check);
-        this._renderCharts();
+        // Defer so canvas refs are available after @if renders
+        setTimeout(() => this._renderCharts(), 0);
       }
     }, 200);
   }
@@ -58,20 +99,24 @@ export class ProgressDashboardComponent implements OnInit, AfterViewInit {
   deleteSession(sessionId: number): void {
     this.progressService.deleteSession(sessionId).subscribe({
       next: () => {
-        this.data.update((d) =>
-          d
-            ? { ...d, recent_sessions: d.recent_sessions?.filter((s) => s.id !== sessionId) }
-            : undefined,
-        );
+        const items = this.sessionsData()?.items ?? [];
+        const page = this.currentPage();
+        if (items.length <= 1 && page > 1) {
+          this.goToPage(page - 1);
+        } else {
+          this.loadSessions(page);
+        }
       },
     });
   }
 
   private _renderCharts(): void {
-    if (!this.data) return;
+    const lineEl = this.lineChartRef()?.nativeElement;
+    const radarEl = this.radarChartRef()?.nativeElement;
+    if (!this.data() || !lineEl || !radarEl) return;
 
     // Line chart – daily minutes
-    new Chart(this.lineChartRef()?.nativeElement, {
+    new Chart(lineEl, {
       type: 'line',
       data: {
         labels: this.data()?.daily_minutes.map((d) => d.date),
@@ -102,7 +147,7 @@ export class ProgressDashboardComponent implements OnInit, AfterViewInit {
 
     // Radar chart – skill scores
     const avg = this.data()?.avg_scores;
-    new Chart(this.radarChartRef()?.nativeElement, {
+    new Chart(radarEl, {
       type: 'radar',
       data: {
         labels: ['Fluency', 'Vocabulary', 'Grammar', 'Overall'],

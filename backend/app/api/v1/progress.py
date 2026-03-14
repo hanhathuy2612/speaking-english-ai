@@ -14,6 +14,7 @@ from app.schemas.progress import (
     ProgressSummary,
     RecentSession,
     ScoreAvg,
+    SessionsPage,
 )
 
 router = APIRouter()
@@ -86,23 +87,51 @@ async def get_summary(
         DailyMinutes(date=d, minutes=round(m, 1)) for d, m in sorted(daily.items())
     ]
 
-    # Recent sessions with selectinload to avoid N+1
+    return ProgressSummary(
+        total_sessions=total_sessions,
+        total_turns=total_turns,
+        avg_scores=avg_scores,
+        daily_minutes=daily_minutes,
+    )
+
+
+@router.get("/sessions", response_model=SessionsPage)
+async def list_sessions(
+    page: int = 1,
+    limit: int = 10,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> SessionsPage:
+    """Paginated list of recent sessions. page is 1-based; limit default 10."""
+    if page < 1:
+        page = 1
+    if limit < 1 or limit > 50:
+        limit = 10
+    offset = (page - 1) * limit
+
+    total_q = await db.execute(
+        select(func.count())
+        .select_from(ConversationSession)
+        .where(ConversationSession.user_id == user.id)
+    )
+    total = total_q.scalar() or 0
+
     recent_q = await db.execute(
         select(ConversationSession)
         .options(selectinload(ConversationSession.topic))
         .where(ConversationSession.user_id == user.id)
         .order_by(ConversationSession.started_at.desc())
-        .limit(10)
+        .offset(offset)
+        .limit(limit)
     )
     recent_sessions_db = recent_q.scalars().all()
 
-    recent_out: list[RecentSession] = []
+    recent_out = []
     for s in recent_sessions_db:
         turns_q = await db.execute(
             select(func.count()).select_from(Turn).where(Turn.session_id == s.id)
         )
         tc = turns_q.scalar() or 0
-
         avg_q = await db.execute(
             select(func.avg(TurnScore.overall))
             .join(Turn, TurnScore.turn_id == Turn.id)
@@ -121,13 +150,7 @@ async def get_summary(
             )
         )
 
-    return ProgressSummary(
-        total_sessions=total_sessions,
-        total_turns=total_turns,
-        avg_scores=avg_scores,
-        daily_minutes=daily_minutes,
-        recent_sessions=recent_out,
-    )
+    return SessionsPage(items=recent_out, total=total)
 
 
 @router.delete("/sessions/{session_id}", response_model=None)

@@ -25,9 +25,13 @@ class RecentSession(BaseModel):
     avg_overall: float | None
 
 
+class SessionsPage(BaseModel):
+    items: list[RecentSession]
+    total: int
+
+
 class ProgressSummary(BaseModel):
     total_sessions: int
     total_turns: int
     avg_scores: ScoreAvg | None
     daily_minutes: list[DailyMinutes]
-    recent_sessions: list[RecentSession]
