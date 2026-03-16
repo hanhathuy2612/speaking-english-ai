@@ -222,44 +222,75 @@
       </div>
 
       <div class="controls">
-        <div class="vu-bar" aria-hidden="true">
-          <div class="vu-fill" [style.width.%]="vuLevel()"></div>
+        <div class="controls-left">
+          <div class="vu-bar" aria-hidden="true">
+            <div class="vu-fill" [style.width.%]="vuLevel()"></div>
+          </div>
+          <button
+            type="button"
+            class="btn-record"
+            [class.recording]="recording()"
+            [class.speaking]="aiSpeaking()"
+            (mousedown)="startRecording()"
+            (mouseup)="stopRecording()"
+            (touchstart)="startRecording()"
+            (touchend)="stopRecording()"
+            [disabled]="!canRecord()"
+            [attr.aria-label]="
+              recording()
+                ? 'Recording… release to send'
+                : canRecord()
+                  ? 'Hold to speak'
+                  : 'Wait for AI to greet you first'
+            "
+          >
+            <span class="btn-record__icon">
+              @if (recording()) {
+                <i class="bi bi-stop-fill" aria-hidden="true"></i>
+              } @else {
+                <i class="bi bi-mic-fill" aria-hidden="true"></i>
+              }
+            </span>
+          </button>
+          <span class="controls-tip">
+            @if (recording()) {
+              <span class="controls-tip--recording">Recording…</span>
+            } @else if (aiSpeaking()) {
+              <span class="controls-tip--speaking">AI speaking…</span>
+            } @else {
+              Hold to speak
+            }
+          </span>
         </div>
-        <button
-          type="button"
-          class="btn-record"
-          [class.recording]="recording()"
-          [class.speaking]="aiSpeaking()"
-          (mousedown)="startRecording()"
-          (mouseup)="stopRecording()"
-          (touchstart)="startRecording()"
-          (touchend)="stopRecording()"
-          [disabled]="!canRecord()"
-          [attr.aria-label]="
-            recording()
-              ? 'Recording… release to send'
-              : canRecord()
-                ? 'Hold to speak'
-                : 'Wait for AI to greet you first'
-          "
-        >
-          <span class="btn-record__icon">
-          @if (recording()) {
-            <i class="bi bi-stop-fill" aria-hidden="true"></i>
-          } @else {
-            <i class="bi bi-mic-fill" aria-hidden="true"></i>
-          }
-        </span>
-        </button>
-        <span class="controls-tip">
-          @if (recording()) {
-            <span class="controls-tip--recording">Recording…</span>
-          } @else if (aiSpeaking()) {
-            <span class="controls-tip--speaking">AI speaking…</span>
-          } @else {
-            Hold to speak
-          }
-        </span>
+        <div class="controls-right">
+          <input
+            type="text"
+            class="chat-input"
+            [ngModel]="chatInput()"
+            (ngModelChange)="chatInput.set($event)"
+            (keyup.enter)="sendText()"
+            [placeholder]="
+              messages().length === 0
+                ? 'Wait for AI to say hello…'
+                : 'Type your reply…'
+            "
+            [disabled]="!connected() || messages().length === 0 || aiSpeaking()"
+          />
+          <button
+            type="button"
+            class="btn btn--primary btn--sm chat-send"
+            (click)="sendText()"
+            [disabled]="
+              !connected() ||
+              messages().length === 0 ||
+              !chatInput().trim().length ||
+              aiSpeaking()
+            "
+            title="Send message"
+          >
+            <i class="bi bi-send-fill" aria-hidden="true"></i>
+          </button>
+        </div>
       </div>
     </div>
 

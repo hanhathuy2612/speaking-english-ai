@@ -131,6 +131,7 @@ export class ConversationComponent implements OnInit, OnDestroy, AfterViewChecke
   readonly levelOptions = LEVEL_OPTIONS;
 
   // Private state
+  chatInput = signal('');
   private pendingAiMsgIndex = -1;
   private lastAiMessageIndex = -1;
   private currentAiAudioChunks: ArrayBuffer[] = [];
@@ -335,6 +336,16 @@ export class ConversationComponent implements OnInit, OnDestroy, AfterViewChecke
     this.recording.set(false);
     await this.audio.stopRecording();
     this.ws.sendJson({ type: 'audio_end' });
+  }
+
+  // ─── Text chat ─────────────────────────────────────────────────────────────
+
+  sendText(): void {
+    const text = this.chatInput().trim();
+    if (!text) return;
+    if (!this.connected() || this.messages().length === 0) return;
+    this.ws.sendJson({ type: 'user_text', text });
+    this.chatInput.set('');
   }
 
   // ─── Playback ────────────────────────────────────────────────────────────

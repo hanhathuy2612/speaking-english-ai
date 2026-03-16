@@ -6,10 +6,12 @@ Message protocol
 Client → Server (JSON):
   {"type": "start",       "topicId": int, ...}
   {"type": "set_level",   "level": "A1"|"A2"|"B1"|"B2"|"C1"|""}  -- real-time level override
-  {"type": "audio_end"}   -- after binary audio frames
+  {"type": "tts_preferences", "ttsRate": str, "ttsVoice": str}
+  {"type": "audio_end"}   -- after binary audio frames (voice turn)
+  {"type": "user_text",   "text": str}                           -- text-only turn
   {"type": "stop"}        -- end session
 
-Server → Client: status, user_transcript, assistant_partial, assistant_audio_chunk,
+Server → Client: status, history, user_transcript, assistant_partial, assistant_audio_chunk,
   assistant_audio_end, turn_score, error.
 """
 
@@ -107,6 +109,8 @@ async def conversation_ws(websocket: WebSocket) -> None:
                     handler.handle_tts_preferences(data)
                 elif msg_type == "audio_end":
                     await handler.handle_audio_end(db)
+                elif msg_type == "user_text":
+                    await handler.handle_user_text(db, data)
                 elif msg_type == "stop":
                     await handler.handle_stop(db)
                     break

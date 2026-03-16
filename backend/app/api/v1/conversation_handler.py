@@ -424,6 +424,101 @@ class ConversationHandler:
         self.turn_index += 1
         return True
 
+    async def handle_user_text(self, db: AsyncSession, data: dict) -> bool:
+        """Handle a text message from the user (no audio)."""
+        if not self.session_id or not self.topic:
+            await self._send({"type": "error", "message": "Send 'start' first"})
+            return False
+
+        raw = str(data.get("text") or "").strip()
+        if not raw:
+            await self._send({"type": "error", "message": "Empty message"})
+            return False
+
+        user_text = raw
+        await self._send({"type": "user_transcript", "text": user_text})
+        self.history.append({"role": "user", "content": user_text})
+
+        effective = self._effective_level() or ""
+        messages = self._lm.build_messages(
+            self.history,
+            topic_context=self.topic.title,
+            topic_level=effective or None,
+        )
+        settings = get_settings()
+        level_key = effective.strip().lower()
+        max_tokens = settings.lm_conversation_max_tokens
+        if level_key == "a1":
+            max_tokens = min(max_tokens, 80)
+        elif level_key == "a2":
+            max_tokens = min(max_tokens, 120)
+
+        try:
+            assistant_text = await stream_llm(
+                self._send,
+                self._lm,
+                messages,
+                temperature=0.7,
+                max_tokens=max_tokens,
+            )
+        except Exception:
+            logger.exception("LM generate failed (text turn)")
+            await self._send({"type": "error", "message": "AI unavailable"})
+            return False
+
+        self.history.append({"role": "assistant", "content": assistant_text})
+
+        user_dir = AUDIO_DIR / str(self._user_id) / str(self.session_id)
+        user_dir.mkdir(parents=True, exist_ok=True)
+        tts_path = user_dir / f"turn_{self.turn_index}_ai.mp3"
+        tts_bytes = await stream_tts(
+            self._send,
+            self._tts,
+            assistant_text,
+            voice=self._tts_voice,
+            rate=self._tts_rate,
+        )
+        if tts_bytes:
+            tts_path.write_bytes(tts_bytes)
+
+        # Duration is unknown for text-only; pass 0 so scorer can still work.
+        score = await self._scorer.score(user_text, self.topic.title, 0.0)
+        turn = Turn(
+            session_id=self.session_id,
+            index_in_session=self.turn_index,
+            user_text=user_text,
+            assistant_text=assistant_text,
+            user_audio_path=None,
+            assistant_audio_path=str(tts_path) if tts_bytes else None,
+        )
+        db.add(turn)
+        await db.commit()
+        await db.refresh(turn)
+        db.add(
+            TurnScore(
+                turn_id=turn.id,
+                fluency=score.get("fluency", 5),
+                vocabulary=score.get("vocabulary", 5),
+                grammar=score.get("grammar", 5),
+                overall=score.get("overall", 5),
+                feedback=score.get("feedback"),
+            )
+        )
+        await db.commit()
+        await self._send(
+            {
+                "type": "turn_score",
+                "turnId": turn.id,
+                "fluency": score.get("fluency", 5),
+                "vocabulary": score.get("vocabulary", 5),
+                "grammar": score.get("grammar", 5),
+                "overall": score.get("overall", 5),
+                "feedback": score.get("feedback", ""),
+            }
+        )
+        self.turn_index += 1
+        return True
+
     async def handle_stop(self, db: AsyncSession) -> None:
         """Mark session ended and send session_stopped."""
         if self.session_id:

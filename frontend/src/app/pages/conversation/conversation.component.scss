@@ -411,11 +411,24 @@
 .controls {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
   gap: 24px;
   padding: 20px 24px;
   background: var(--clr-bg-elevated);
   border-top: 1px solid var(--clr-border);
+}
+
+.controls-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.controls-right {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .vu-bar {
@@ -498,6 +511,28 @@
 
 .controls-tip--speaking {
   color: var(--clr-accent);
+}
+
+.chat-input {
+  flex: 1;
+  padding: 8px 10px;
+  border-radius: var(--radius);
+  border: 1px solid var(--clr-border);
+  background: var(--clr-surface);
+  color: var(--clr-text);
+  font-size: 0.9375rem;
+
+  &:focus-visible {
+    outline: 2px solid var(--clr-border-focus);
+    outline-offset: 1px;
+  }
+}
+
+.chat-send {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
 }
 
 /* Right-side guidance panel (click on AI question) */
