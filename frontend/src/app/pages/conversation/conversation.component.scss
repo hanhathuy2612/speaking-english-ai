@@ -206,6 +206,12 @@
   font-size: 0.75rem;
 }
 
+.conv-header__voice-dropdown {
+  width: 200px;
+  text-align: left;
+  appearance: none;
+}
+
 /* ng-select voice option template (dropdown items) */
 :host ::ng-deep .ng-option .conv-header__voice-option-name {
   flex: 1;
@@ -509,8 +515,23 @@
   color: var(--clr-danger);
 }
 
+.controls-tip--transcribing {
+  color: var(--clr-warning, #e0a800);
+  animation: pulse-opacity 1.2s ease-in-out infinite;
+}
+
 .controls-tip--speaking {
   color: var(--clr-accent);
+}
+
+@keyframes pulse-opacity {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
 }
 
 .chat-input {

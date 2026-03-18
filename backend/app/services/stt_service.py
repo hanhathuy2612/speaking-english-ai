@@ -1,21 +1,22 @@
+from __future__ import annotations
+
+import logging
 import shutil
 import subprocess
 import tempfile
+import time
 from pathlib import Path
 from typing import Any
 
-import logging
+from app.core.config import get_settings
 
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 
-# faster_whisper / PyAV expect 16kHz mono; browser WebM (Opus) often fails
-WHISPER_SAMPLE_RATE = 16000
+_WHISPER_SAMPLE_RATE = 16000
 
 
 def _get_ffmpeg_exe() -> str:
     """Path to ffmpeg: from FFMPEG_PATH env/config, or from PATH."""
-    from app.core.config import get_settings
-
     settings = get_settings()
     if settings.ffmpeg_path and Path(settings.ffmpeg_path).exists():
         return str(Path(settings.ffmpeg_path).resolve())
@@ -41,6 +42,7 @@ def _webm_to_wav(webm_path: Path) -> Path:
     out.close()
     wav_path = Path(out.name)
     try:
+        t0 = time.monotonic()
         result = subprocess.run(
             [
                 ffmpeg_exe,
@@ -50,7 +52,7 @@ def _webm_to_wav(webm_path: Path) -> Path:
                 "-i",
                 str(path),
                 "-ar",
-                str(WHISPER_SAMPLE_RATE),
+                str(_WHISPER_SAMPLE_RATE),
                 "-ac",
                 "1",
                 "-f",
@@ -60,15 +62,16 @@ def _webm_to_wav(webm_path: Path) -> Path:
             capture_output=True,
             timeout=30,
         )
+        log.debug("ffmpeg convert %.1fs", time.monotonic() - t0)
         if result.returncode != 0:
             err = (result.stderr or b"").decode("utf-8", errors="replace").strip()
-            logger.warning("ffmpeg stderr: %s", err or "(no message)")
+            log.warning("ffmpeg stderr: %s", err or "(no message)")
             raise ValueError(
                 "Audio conversion failed. The recording may be too short or in an unsupported format."
             ) from None
         return wav_path
     except (FileNotFoundError, subprocess.TimeoutExpired) as e:
-        logger.warning("ffmpeg WebM->WAV failed: %s", e)
+        log.warning("ffmpeg WebM->WAV failed: %s", e)
         raise ValueError(
             "Audio conversion failed. Ensure ffmpeg is installed and on PATH."
         ) from e
@@ -80,23 +83,38 @@ class STTService:
     Converts browser WebM to WAV before transcribing when needed.
     """
 
-    def __init__(self, model_size: str = "base") -> None:
-        self._model_size = model_size
+    def __init__(self) -> None:
+        settings = get_settings()
+        self._model_size = settings.stt_model_size
+        self._beam_size = settings.stt_beam_size
+        self._device = settings.stt_device
+        self._compute_type = settings.stt_compute_type
         self._model = None  # Lazy init
 
     def _get_model(self):
         if self._model is None:
             from faster_whisper import WhisperModel
 
-            self._model = WhisperModel(
-                self._model_size, device="cpu", compute_type="int8"
+            log.info(
+                "Loading Whisper model=%s device=%s compute=%s",
+                self._model_size,
+                self._device,
+                self._compute_type,
             )
+            t0 = time.monotonic()
+            self._model = WhisperModel(
+                self._model_size,
+                device=self._device,
+                compute_type=self._compute_type,
+            )
+            log.info("Whisper model loaded in %.1fs", time.monotonic() - t0)
         return self._model
 
     def transcribe(self, audio_path: Path) -> dict[str, Any]:
         """
         Transcribe audio file. For .webm (browser), converts to WAV first via ffmpeg.
         """
+        t_total = time.monotonic()
         path = Path(audio_path)
         use_temp = path.suffix.lower() == ".webm"
         wav_path = path
@@ -106,8 +124,17 @@ class STTService:
 
         try:
             model = self._get_model()
-            segments, info = model.transcribe(str(wav_path), beam_size=5)
+            t_infer = time.monotonic()
+            segments, info = model.transcribe(
+                str(wav_path), beam_size=self._beam_size
+            )
             text = " ".join(seg.text.strip() for seg in segments)
+            log.debug(
+                "Whisper transcribe %.1fs (total pipeline %.1fs, beam=%d)",
+                time.monotonic() - t_infer,
+                time.monotonic() - t_total,
+                self._beam_size,
+            )
             return {
                 "text": text.strip(),
                 "language": info.language,

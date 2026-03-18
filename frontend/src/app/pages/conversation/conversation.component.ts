@@ -5,7 +5,6 @@ import { NgOptionTemplateDirective, NgSelectComponent } from '@ng-select/ng-sele
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
-  AfterViewChecked,
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
@@ -69,7 +68,7 @@ const NOOP = { next: () => {}, error: () => {} };
   templateUrl: './conversation.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ConversationComponent implements OnInit, OnDestroy, AfterViewChecked {
+export class ConversationComponent implements OnInit, OnDestroy {
   // Injectables & view refs
   private readonly ws = inject(WsService);
   private readonly audio = inject(AudioService);
@@ -105,6 +104,7 @@ export class ConversationComponent implements OnInit, OnDestroy, AfterViewChecke
   canRecord = computed(() => this.connected() && !this.aiSpeaking() && this.messages().length > 0);
 
   recording = signal(false);
+  transcribing = signal(false);
   aiSpeaking = signal(false);
   messages = signal<ChatMessage[]>([]);
   scores = signal<Record<number, TurnScore>>({});
@@ -143,6 +143,7 @@ export class ConversationComponent implements OnInit, OnDestroy, AfterViewChecke
   constructor() {
     this._effectLoadPrefsAndConnect();
     this._effectSendStartWhenReady();
+    this._effectAutoScroll();
     this.ws.messages$.pipe(takeUntilDestroyed()).subscribe((msg) => {
       this._handleMessage(msg as Record<string, unknown> & { type: string });
       this._scheduleDetectChanges(msg as WsMessage);
@@ -209,10 +210,6 @@ export class ConversationComponent implements OnInit, OnDestroy, AfterViewChecke
       next: (list) => this.ttsVoices.set(list.map((v) => ({ id: v.id, name: v.name }))),
       error: () => {},
     });
-  }
-
-  ngAfterViewChecked(): void {
-    this._scrollToBottom();
   }
 
   ngOnDestroy(): void {
@@ -402,6 +399,8 @@ export class ConversationComponent implements OnInit, OnDestroy, AfterViewChecke
             const normalized = topicLevel.trim();
             this.conversationLevel.set(normalized);
           }
+        } else if (message === 'transcribing') {
+          this.transcribing.set(true);
         }
         break;
       }
@@ -426,9 +425,11 @@ export class ConversationComponent implements OnInit, OnDestroy, AfterViewChecke
         break;
       }
       case 'error':
+        this.transcribing.set(false);
         this.errorMessage.set((msg['message'] as string) || 'Something went wrong');
         break;
       case 'user_transcript': {
+        this.transcribing.set(false);
         const text = msg['text'] as string;
         const userMsg: ChatMessage = { role: 'user', text };
         if (this.lastUserRecording) {
@@ -561,13 +562,30 @@ export class ConversationComponent implements OnInit, OnDestroy, AfterViewChecke
   }
 
   scrollToBottom(): void {
-    this._scrollToBottom();
+    this._scrollToBottom(true);
   }
 
-  private _scrollToBottom(): void {
+  private _isNearBottom(): boolean {
+    const el = this.chatArea()?.nativeElement;
+    if (!el) return true;
+    const threshold = 150;
+    return el.scrollHeight - el.scrollTop - el.clientHeight < threshold;
+  }
+
+  private _effectAutoScroll(): void {
+    effect(() => {
+      this.messages();
+      this.transcribing();
+      requestAnimationFrame(() => this._scrollToBottom());
+    });
+  }
+
+  private _scrollToBottom(force = false): void {
     try {
       const el = this.chatArea()?.nativeElement;
-      if (el) el.scrollTop = el.scrollHeight;
+      if (!el) return;
+      if (!force && !this._isNearBottom()) return;
+      el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
     } catch {
       // ignore
     }

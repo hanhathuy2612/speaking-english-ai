@@ -138,7 +138,9 @@ class ConversationHandler:
         self._tts_voice: str = settings.tts_voice
         self.session_id: int | None = None
         self.topic: Topic | None = None
-        self.level_override: str | None = None  # real-time override from client; None = use topic.level
+        self.level_override: str | None = (
+            None  # real-time override from client; None = use topic.level
+        )
         self.history: list[dict[str, str]] = []
         self.turn_index = 0
         self.audio_buffer = bytearray()
@@ -229,12 +231,14 @@ class ConversationHandler:
             history_payload = []
             for t in turns:
                 history_payload.append({"role": "user", "text": t.user_text})
-                history_payload.append({
-                    "role": "assistant",
-                    "text": t.assistant_text,
-                    "turnId": t.id,
-                    "guideline": t.guideline,
-                })
+                history_payload.append(
+                    {
+                        "role": "assistant",
+                        "text": t.assistant_text,
+                        "turnId": t.id,
+                        "guideline": t.guideline,
+                    }
+                )
             await self._send({"type": "history", "messages": history_payload})
             return True
 
@@ -297,7 +301,11 @@ class ConversationHandler:
         max_open_tokens = 80 if level_key in ("a1", "a2") else 120
         try:
             opening_text = await stream_llm(
-                self._send, self._lm, messages, temperature=0.7, max_tokens=max_open_tokens
+                self._send,
+                self._lm,
+                messages,
+                temperature=0.7,
+                max_tokens=max_open_tokens,
             )
         except Exception as e:
             logger.warning("Opening message failed: %s", e)
@@ -337,6 +345,7 @@ class ConversationHandler:
         audio_path.write_bytes(bytes(self.audio_buffer))
         self.audio_buffer = bytearray()
 
+        await self._send({"type": "status", "message": "transcribing"})
         try:
             stt_result = await asyncio.to_thread(self._stt.transcribe, audio_path)
             user_text: str = stt_result["text"] or "(inaudible)"

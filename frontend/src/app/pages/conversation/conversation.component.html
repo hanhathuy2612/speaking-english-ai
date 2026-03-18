@@ -64,6 +64,7 @@
       <label class="conv-header__label">
         <span class="conv-header__voice-label">Voice</span>
         <ng-select
+          class="conv-header__voice-dropdown"
           [items]="ttsVoices()"
           bindLabel="name"
           bindValue="id"
@@ -215,7 +216,10 @@
                   >Overall <b class="score-val">{{ scores()[$index].overall }}/10</b></span
                 >
               </div>
-              <p class="score-feedback"><i class="bi bi-chat-left-text" aria-hidden="true"></i> {{ scores()[$index].feedback }}</p>
+              <p class="score-feedback">
+                <i class="bi bi-chat-left-text" aria-hidden="true"></i>
+                {{ scores()[$index].feedback }}
+              </p>
             </div>
           }
         }
@@ -255,6 +259,8 @@
           <span class="controls-tip">
             @if (recording()) {
               <span class="controls-tip--recording">Recording…</span>
+            } @else if (transcribing()) {
+              <span class="controls-tip--transcribing">Transcribing…</span>
             } @else if (aiSpeaking()) {
               <span class="controls-tip--speaking">AI speaking…</span>
             } @else {
@@ -270,9 +276,7 @@
             (ngModelChange)="chatInput.set($event)"
             (keyup.enter)="sendText()"
             [placeholder]="
-              messages().length === 0
-                ? 'Wait for AI to say hello…'
-                : 'Type your reply…'
+              messages().length === 0 ? 'Wait for AI to say hello…' : 'Type your reply…'
             "
             [disabled]="!connected() || messages().length === 0 || aiSpeaking()"
           />
@@ -281,10 +285,7 @@
             class="btn btn--primary btn--sm chat-send"
             (click)="sendText()"
             [disabled]="
-              !connected() ||
-              messages().length === 0 ||
-              !chatInput().trim().length ||
-              aiSpeaking()
+              !connected() || messages().length === 0 || !chatInput().trim().length || aiSpeaking()
             "
             title="Send message"
           >

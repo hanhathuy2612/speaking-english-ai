@@ -28,12 +28,21 @@ class Settings(BaseSettings):
     database_url: str = (
         "postgresql+asyncpg://postgres:postgres@localhost:5432/speaking_english"
     )
-    cors_allowed_origins: list[str] = ["http://localhost:4200"]
+    cors_allowed_origins: list[str] = [
+        "http://localhost:4200",
+        "http://192.168.1.44:4200",
+    ]
     max_audio_upload_mb: int = 10
     request_timeout_seconds: int = 60
 
     # Optional path to ffmpeg (e.g. when winget installs it but PATH is not updated)
     ffmpeg_path: str | None = None
+
+    # STT (faster-whisper)
+    stt_model_size: str = "base"
+    stt_beam_size: int = 1
+    stt_device: str = "cpu"
+    stt_compute_type: str = "int8"
 
     # TTS (edge-tts): speech rate. "+0%" = default; "-20%" = slower; "+20%" = faster.
     tts_rate: str = "+0%"

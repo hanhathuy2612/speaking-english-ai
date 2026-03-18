@@ -1,4 +1,8 @@
+from __future__ import annotations
+
 import json
+import logging
+import time
 from collections.abc import AsyncIterator
 from typing import Any
 
@@ -6,18 +10,27 @@ import httpx
 
 from app.core.config import get_settings
 
-# Default system prompt: natural, conversational tone (length can vary)
-_DEFAULT_SYSTEM = (
-    "You are a friendly English conversation partner. "
-    "Sound natural and relaxed, like talking to a friend—not like a textbook or a formal teacher. "
-    "Use everyday language, contractions (I'm, that's), and a warm tone. "
-    "It's fine to reply in 2–4 sentences when it fits the flow. Avoid lists, bullet points, or stiff phrases. "
-    "If the user makes a small mistake, you can gently correct in a natural way. "
-    "Stay on the topic. "
-    "If the user speaks in Vietnamese or mixes Vietnamese with English, still understand what they mean and respond only in English; kindly encourage them to try saying it in English for practice (e.g. 'I get what you mean! Try saying that in English—even a simple sentence is great practice.')."
-)
+log = logging.getLogger(__name__)
 
-# Guidelines for different topic levels
+_DEFAULT_SYSTEM = """You are a friendly English conversation partner.
+
+Sound natural and relaxed, like talking to a friend—not like a textbook or a formal teacher.
+Use everyday language, contractions (I'm, that's), and a warm tone.
+
+Keep your replies short and natural (usually 2–4 sentences). Avoid lists, bullet points, or over-explaining.
+
+Always stay focused on the current topic and respond directly to what the user just said.
+Use the conversation history so your replies feel connected and not random.
+
+Keep the conversation going by asking a simple follow-up question when it feels natural.
+
+If the user makes a mistake, gently correct only the important part in a natural way, without interrupting the flow.
+
+If the user switches topics suddenly, briefly respond and then guide the conversation back.
+
+If the user uses Vietnamese (or mixes Vietnamese and English), understand it but always reply in English.
+Encourage them to try saying it in English in a simple way."""
+
 _LEVEL_INSTRUCTIONS: dict[str, str] = {
     "a1": (
         "Level A1: Reply in ONE very short sentence only (about 5–12 words). "
@@ -54,6 +67,19 @@ class LMStudioClient:
         )
         self._api_key = settings.lmstudio_api_key
         self._model = settings.lmstudio_model
+        self._extra_system = settings.lm_system_prompt_extra
+        self._timeout = float(settings.request_timeout_seconds)
+        self._http = httpx.AsyncClient(timeout=self._timeout)
+
+    async def aclose(self) -> None:
+        """Close the underlying HTTP client. Safe to call multiple times."""
+        await self._http.aclose()
+
+    async def __aenter__(self) -> LMStudioClient:
+        return self
+
+    async def __aexit__(self, *exc: object) -> None:
+        await self.aclose()
 
     def build_messages(
         self,
@@ -62,16 +88,25 @@ class LMStudioClient:
         topic_level: str | None = None,
         system_prompt: str | None = None,
     ) -> list[dict[str, str]]:
-        settings = get_settings()
         system = system_prompt or _DEFAULT_SYSTEM
         if topic_context:
-            system += f"\n\nCurrent conversation topic: {topic_context}"
+            system += (
+                f"\n\nCurrent conversation topic: {topic_context}. "
+                "Keep your replies closely related to this topic and to the user's last message. "
+                "Ask short follow-up questions about what the user just said, instead of changing the subject."
+            )
         level_key = (topic_level or "").strip().lower()
         if level_key in _LEVEL_INSTRUCTIONS:
             system += f"\n\n{_LEVEL_INSTRUCTIONS[level_key]}"
-        if settings.lm_system_prompt_extra:
-            system += f"\n\n{settings.lm_system_prompt_extra.strip()}"
+        if self._extra_system:
+            system += f"\n\n{self._extra_system.strip()}"
         return [{"role": "system", "content": system}, *history]
+
+    def _headers(self) -> dict[str, str]:
+        headers: dict[str, str] = {"Content-Type": "application/json"}
+        if self._api_key:
+            headers["Authorization"] = f"Bearer {self._api_key}"
+        return headers
 
     async def generate_stream(
         self,
@@ -80,10 +115,6 @@ class LMStudioClient:
         max_tokens: int = 256,
     ) -> AsyncIterator[str]:
         """Call LM Studio in streaming mode and yield text chunks."""
-        headers: dict[str, str] = {"Content-Type": "application/json"}
-        if self._api_key:
-            headers["Authorization"] = f"Bearer {self._api_key}"
-
         payload: dict[str, Any] = {
             "model": self._model,
             "messages": messages,
@@ -91,12 +122,13 @@ class LMStudioClient:
             "max_tokens": max_tokens,
             "stream": True,
         }
-
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            async with client.stream(
+        t0 = time.monotonic()
+        token_count = 0
+        try:
+            async with self._http.stream(
                 "POST",
                 f"{self._base_url}/v1/chat/completions",
-                headers=headers,
+                headers=self._headers(),
                 json=payload,
             ) as response:
                 response.raise_for_status()
@@ -114,7 +146,28 @@ class LMStudioClient:
                         chunk.get("choices", [{}])[0].get("delta", {}).get("content")
                     )
                     if delta:
+                        token_count += 1
                         yield delta
+        except httpx.HTTPStatusError:
+            log.exception(
+                "LM Studio returned error (elapsed=%.1fs)",
+                time.monotonic() - t0,
+            )
+            raise
+        except httpx.RequestError:
+            log.exception(
+                "LM Studio request failed (elapsed=%.1fs)",
+                time.monotonic() - t0,
+            )
+            raise
+        else:
+            elapsed = time.monotonic() - t0
+            log.debug(
+                "LM stream done: %d chunks in %.1fs (%.0f chunks/s)",
+                token_count,
+                elapsed,
+                token_count / elapsed if elapsed > 0 else 0,
+            )
 
     async def generate_text(
         self,
@@ -122,8 +175,8 @@ class LMStudioClient:
         temperature: float = 0.3,
         max_tokens: int = 512,
     ) -> str:
-        """Non-streaming version - returns full text (used for scoring)."""
-        full = ""
+        """Non-streaming version — returns full text (used for scoring)."""
+        chunks: list[str] = []
         async for chunk in self.generate_stream(messages, temperature, max_tokens):
-            full += chunk
-        return full
+            chunks.append(chunk)
+        return "".join(chunks)

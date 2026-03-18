@@ -19,8 +19,8 @@ interface LoginData {
 })
 export class LoginComponent {
   loginModel = signal<LoginData>({
-    email: 'user@example.com',
-    password: 'string',
+    email: 'withuwe021@gmail.com',
+    password: 'withuwe021@gmail.com',
   });
 
   loginForm = form(this.loginModel, (schemaPath) => {
