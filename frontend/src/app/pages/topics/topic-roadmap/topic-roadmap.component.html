@@ -48,7 +48,10 @@
                 @if (item.unit.min_turns_to_complete != null || item.unit.min_avg_overall != null) {
                   <p class="step__meta">
                     @if (item.unit.min_turns_to_complete != null) {
-                      <span>Auto-complete after {{ item.unit.min_turns_to_complete }} scored turns</span>
+                      <span
+                        >Auto-complete after {{ item.unit.min_turns_to_complete }} scored
+                        turns</span
+                      >
                     }
                     @if (item.unit.min_avg_overall != null) {
                       <span>

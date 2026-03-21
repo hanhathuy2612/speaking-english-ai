@@ -62,8 +62,14 @@
   font-size: 1.25rem;
   line-height: 1;
   cursor: pointer;
-  opacity: 0.6;
+  color: var(--clr-text-muted);
+  opacity: 0.85;
   &:hover {
+    color: var(--clr-text);
     opacity: 1;
+  }
+
+  .bi {
+    display: block;
   }
 }

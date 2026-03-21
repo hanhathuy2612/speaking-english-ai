@@ -46,4 +46,13 @@ button,
       color: var(--clr-text);
     }
   }
+
+  &.btn--secondary {
+    background: var(--clr-surface-2);
+    color: var(--clr-text);
+
+    &:hover:not(:disabled) {
+      background: var(--clr-surface-3);
+    }
+  }
 }
