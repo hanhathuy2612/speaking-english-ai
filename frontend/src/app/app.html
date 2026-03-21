@@ -10,6 +10,9 @@
       <div class="app-nav__links">
         <a routerLink="/topics" routerLinkActive="active">Topics</a>
         <a routerLink="/progress" routerLinkActive="active">Progress</a>
+        @if (account.isAdmin()) {
+          <a routerLink="/admin" routerLinkActive="active">Admin</a>
+        }
       </div>
       <div class="app-nav__user">
         <span class="app-nav__username">{{ auth.getUsername() }}</span>

@@ -66,6 +66,9 @@ class Settings(BaseSettings):
     tts_rate: str = "+0%"
     tts_voice: str = "en-US-JennyNeural"
 
+    # Comma-separated emails that receive the "admin" role on app startup (must match registered users).
+    bootstrap_admin_emails: str = ""
+
     model_config = SettingsConfigDict(
         env_file=_resolve_env_files(),
         env_file_encoding="utf-8",

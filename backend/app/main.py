@@ -6,7 +6,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.v1 import router as api_router
 from app.core.config import get_settings
 from app.db.session import AsyncSessionLocal, Base, engine
-from app.db.seed import seed_topics
+import app.models.role  # noqa: F401 — register Role / UserRole on Base.metadata
+
+from app.db.seed import seed_roles_and_bootstrap, seed_topic_units, seed_topics
 
 
 @asynccontextmanager
@@ -15,6 +17,8 @@ async def lifespan(app: FastAPI):
         await conn.run_sync(Base.metadata.create_all)
     async with AsyncSessionLocal() as session:
         await seed_topics(session)
+        await seed_topic_units(session)
+        await seed_roles_and_bootstrap(session)
     yield
     # Shutdown: nothing to do
 

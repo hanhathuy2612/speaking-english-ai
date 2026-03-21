@@ -1,9 +1,12 @@
 from datetime import datetime, timezone
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated
 
 from app.db.session import Base
 from sqlalchemy import DateTime, ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+if TYPE_CHECKING:
+    from app.models.user import User
 
 int_pk = Annotated[int, mapped_column(primary_key=True, index=True)]
 
@@ -25,6 +28,49 @@ class Topic(Base):
     sessions: Mapped[list["ConversationSession"]] = relationship(
         back_populates="topic", cascade="all, delete-orphan"
     )
+    units: Mapped[list["TopicUnit"]] = relationship(
+        back_populates="topic", cascade="all, delete-orphan", order_by="TopicUnit.sort_order"
+    )
+
+
+class TopicUnit(Base):
+    __tablename__ = "topic_units"
+
+    id: Mapped[int_pk]
+    topic_id: Mapped[int] = mapped_column(ForeignKey("topics.id", ondelete="CASCADE"))
+    sort_order: Mapped[int]
+    title: Mapped[str] = mapped_column(String(255))
+    objective: Mapped[str] = mapped_column(Text())
+    prompt_hint: Mapped[str] = mapped_column(Text())
+    min_turns_to_complete: Mapped[int | None] = mapped_column(nullable=True)
+    min_avg_overall: Mapped[float | None] = mapped_column(nullable=True)
+
+    topic: Mapped["Topic"] = relationship(back_populates="units")
+    progress_rows: Mapped[list["UserTopicUnitProgress"]] = relationship(
+        back_populates="topic_unit", cascade="all, delete-orphan"
+    )
+    sessions: Mapped[list["ConversationSession"]] = relationship(
+        back_populates="topic_unit",
+    )
+
+
+class UserTopicUnitProgress(Base):
+    __tablename__ = "user_topic_unit_progress"
+
+    id: Mapped[int_pk]
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    topic_unit_id: Mapped[int] = mapped_column(
+        ForeignKey("topic_units.id", ondelete="CASCADE")
+    )
+    started_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    completed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+    user: Mapped["User"] = relationship(back_populates="topic_unit_progress_rows")
+    topic_unit: Mapped["TopicUnit"] = relationship(back_populates="progress_rows")
 
 
 class ConversationSession(Base):
@@ -33,6 +79,9 @@ class ConversationSession(Base):
     id: Mapped[int_pk]
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     topic_id: Mapped[int] = mapped_column(ForeignKey("topics.id"))
+    topic_unit_id: Mapped[int | None] = mapped_column(
+        ForeignKey("topic_units.id", ondelete="SET NULL"), nullable=True
+    )
     started_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_utc_now
     )
@@ -42,6 +91,9 @@ class ConversationSession(Base):
 
     user = relationship("User", back_populates="sessions")
     topic = relationship("Topic", back_populates="sessions")
+    topic_unit: Mapped["TopicUnit | None"] = relationship(
+        back_populates="sessions",
+    )
     turns: Mapped[list["Turn"]] = relationship(
         back_populates="session", cascade="all, delete-orphan"
     )

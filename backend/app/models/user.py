@@ -1,10 +1,14 @@
 from datetime import datetime, timezone
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated
 
 from app.db.session import Base
 from app.models.conversation import ConversationSession
 from sqlalchemy import DateTime, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+if TYPE_CHECKING:
+    from app.models.conversation import UserTopicUnitProgress
+    from app.models.role import UserRole
 
 int_pk = Annotated[int, mapped_column(primary_key=True, index=True)]
 
@@ -30,4 +34,10 @@ class User(Base):
 
     sessions: Mapped[list["ConversationSession"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
+    )
+    topic_unit_progress_rows: Mapped[list["UserTopicUnitProgress"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
+    role_memberships: Mapped[list["UserRole"]] = relationship(
+        "UserRole", back_populates="user", cascade="all, delete-orphan"
     )

@@ -50,6 +50,7 @@ interface StartPayload {
   ttsRate: string;
   ttsVoice: string;
   sessionId?: number;
+  unitId?: number;
 }
 
 const TTS_RATE_OPTIONS = ['-30%', '-20%', '-10%', '+0%', '+10%', '+20%', '+30%'];
@@ -99,6 +100,15 @@ export class ConversationComponent implements OnInit, OnDestroy {
   sessionId = computed(() => {
     const s = this.queryParams()['sessionId'] ?? this.route.snapshot.queryParams['sessionId'];
     return s ? Number(s) : 0;
+  });
+
+  /** Guided roadmap step (optional). Omitted for free conversation. */
+  unitId = computed(() => {
+    const q = this.queryParams();
+    const snap = this.route.snapshot.queryParams;
+    const raw = q['unitId'] ?? snap['unitId'];
+    const n = raw != null && raw !== '' ? Number(raw) : 0;
+    return Number.isFinite(n) && n > 0 ? n : 0;
   });
 
   // Connection & UI state
@@ -160,10 +170,14 @@ export class ConversationComponent implements OnInit, OnDestroy {
   private _effectLoadPrefsAndConnect(): void {
     effect(() => {
       const id = this.topicId();
+      const uid = this.unitId();
+      const sid = this.sessionId();
       if (id <= 0) {
         this.router.navigate(['/topics']);
         return;
       }
+      void uid;
+      void sid;
       this.messages.set([]);
       this.scores.set({});
       this.startSentForConnection = false;
@@ -192,6 +206,7 @@ export class ConversationComponent implements OnInit, OnDestroy {
       const prefsApplied = this.userPrefsApplied();
       const topicId = this.topicId();
       const sessionId = this.sessionId();
+      const unitId = this.unitId();
       if (!conn || !prefsApplied || topicId <= 0) {
         if (!conn) this.startSentForConnection = false;
         return;
@@ -205,6 +220,7 @@ export class ConversationComponent implements OnInit, OnDestroy {
         ttsVoice: this.ttsVoice(),
       };
       if (sessionId > 0) payload.sessionId = sessionId;
+      else if (unitId > 0) payload.unitId = unitId;
       this.ws.sendJson(payload);
     });
   }

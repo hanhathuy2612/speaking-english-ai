@@ -1,0 +1,90 @@
+<div class="page">
+  <div class="container">
+    <nav class="breadcrumb">
+      <a routerLink="/topics">Topics</a>
+      <span class="sep" aria-hidden="true">/</span>
+      <span class="current">{{ roadmap()?.topic_title ?? topicMeta()?.title ?? 'Roadmap' }}</span>
+    </nav>
+
+    <header class="hero">
+      <h1>{{ roadmap()?.topic_title ?? topicMeta()?.title ?? 'Roadmap' }}</h1>
+      <p class="muted">
+        Follow the steps in order. Practice each step with the AI, or use free conversation anytime.
+      </p>
+      <div class="hero-actions">
+        @if (account.isAdmin()) {
+          <button type="button" class="btn btn--primary" (click)="openCreateUnitModal()">
+            Add step
+          </button>
+        }
+        <button type="button" class="btn btn--secondary" (click)="freeConversation()">
+          Free conversation
+        </button>
+      </div>
+    </header>
+
+    @if (loading()) {
+      <div class="loading">
+        <div class="spinner"></div>
+        <span class="loading-text">Loading roadmap…</span>
+      </div>
+    }
+
+    @if (!loading() && roadmap(); as r) {
+      @if (r.units.length === 0) {
+        <p class="empty">
+          No guided steps for this topic yet. Use <strong>Free conversation</strong> to practice.
+        </p>
+      } @else {
+        <ol class="steps">
+          @for (item of r.units; track item.unit.id) {
+            <li class="step" [class.step--locked]="item.status === 'locked'">
+              <div class="step__main">
+                <span class="step__badge" [attr.data-status]="item.status">{{
+                  statusLabel(item.status)
+                }}</span>
+                <h2 class="step__title">{{ item.unit.title }}</h2>
+                <p class="step__objective">{{ item.unit.objective }}</p>
+                @if (item.unit.min_turns_to_complete != null || item.unit.min_avg_overall != null) {
+                  <p class="step__meta">
+                    @if (item.unit.min_turns_to_complete != null) {
+                      <span>Auto-complete after {{ item.unit.min_turns_to_complete }} scored turns</span>
+                    }
+                    @if (item.unit.min_avg_overall != null) {
+                      <span>
+                        @if (item.unit.min_turns_to_complete != null) {
+                          <span> · </span>
+                        }
+                        Avg score ≥ {{ item.unit.min_avg_overall }}
+                      </span>
+                    }
+                  </p>
+                }
+              </div>
+              <div class="step__actions">
+                <button
+                  type="button"
+                  class="btn btn--primary"
+                  [disabled]="item.status === 'locked'"
+                  (click)="practiceUnit(item)"
+                >
+                  Practice
+                </button>
+                @if (item.status === 'available' || item.status === 'in_progress') {
+                  <button
+                    type="button"
+                    class="btn btn--ghost"
+                    [disabled]="actionUnitId() === item.unit.id"
+                    (click)="markComplete(item)"
+                  >
+                    Mark complete
+                  </button>
+                }
+              </div>
+            </li>
+          }
+        </ol>
+      }
+    }
+  </div>
+</div>

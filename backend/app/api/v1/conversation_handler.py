@@ -17,7 +17,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.config import get_settings
-from app.models.conversation import ConversationSession, Topic, Turn, TurnScore
+from app.models.conversation import (
+    ConversationSession,
+    Topic,
+    TopicUnit,
+    Turn,
+    TurnScore,
+)
+import app.services.topic_roadmap_service as roadmap_svc
 from app.services.lm_client import LMStudioClient
 from app.services.scoring_service import ScoringService
 from app.services.stt_service import STTService
@@ -138,6 +145,7 @@ class ConversationHandler:
         self._tts_voice: str = settings.tts_voice
         self.session_id: int | None = None
         self.topic: Topic | None = None
+        self.topic_unit: TopicUnit | None = None
         self.level_override: str | None = (
             None  # real-time override from client; None = use topic.level
         )
@@ -158,6 +166,17 @@ class ConversationHandler:
         """Set real-time level override (e.g. from client dropdown). '' or None = use topic level."""
         s = (level or "").strip()
         self.level_override = s if s else None
+
+    def _topic_context_for_llm(self) -> str | None:
+        if not self.topic:
+            return None
+        parts: list[str] = [self.topic.title]
+        u = self.topic_unit
+        if u is not None:
+            parts.append(f"Step: {u.title}. Learner goal: {u.objective}")
+            if (u.prompt_hint or "").strip():
+                parts.append(f"Tutor focus: {u.prompt_hint.strip()}")
+        return " ".join(parts)
 
     async def handle_start(self, db: AsyncSession, data: dict) -> bool:
         """
@@ -191,7 +210,10 @@ class ConversationHandler:
                     ConversationSession.id == resume_id,
                     ConversationSession.user_id == self._user_id,
                 )
-                .options(selectinload(ConversationSession.topic))
+                .options(
+                    selectinload(ConversationSession.topic),
+                    selectinload(ConversationSession.topic_unit),
+                )
             )
             sess = sess_q.scalar_one_or_none()
             if not sess or sess.topic_id != topic_id:
@@ -211,6 +233,7 @@ class ConversationHandler:
 
             self.session_id = sess.id
             self.topic = topic
+            self.topic_unit = sess.topic_unit
             self.history = history
             self.turn_index = len(turns)
             self.audio_buffer = bytearray()
@@ -219,15 +242,16 @@ class ConversationHandler:
                 self._tts_rate = str(data["ttsRate"])
             if data.get("ttsVoice"):
                 self._tts_voice = str(data["ttsVoice"])
-            await self._send(
-                {
-                    "type": "status",
-                    "message": "session_started",
-                    "topicId": topic_id,
-                    "sessionId": self.session_id,
-                    "topicLevel": topic.level,
-                }
-            )
+            status_payload: dict = {
+                "type": "status",
+                "message": "session_started",
+                "topicId": topic_id,
+                "sessionId": self.session_id,
+                "topicLevel": topic.level,
+            }
+            if sess.topic_unit_id is not None:
+                status_payload["topicUnitId"] = sess.topic_unit_id
+            await self._send(status_payload)
             history_payload = []
             for t in turns:
                 history_payload.append({"role": "user", "text": t.user_text})
@@ -249,13 +273,39 @@ class ConversationHandler:
             await self._send({"type": "error", "message": "Topic not found"})
             return False
 
-        sess = ConversationSession(user_id=self._user_id, topic_id=topic_id)
+        topic_unit_id: int | None = None
+        unit: TopicUnit | None = None
+        raw_uid = data.get("unitId")
+        if raw_uid is not None:
+            try:
+                uid = int(raw_uid)
+            except (TypeError, ValueError):
+                uid = 0
+            if uid <= 0:
+                await self._send({"type": "error", "message": "Invalid unitId"})
+                return False
+            unit = await db.get(TopicUnit, uid)
+            if not unit or unit.topic_id != topic_id:
+                await self._send({"type": "error", "message": "Topic unit not found"})
+                return False
+            if not await roadmap_svc.is_unit_unlocked_for_user(db, self._user_id, unit):
+                await self._send({"type": "error", "message": "This step is locked"})
+                return False
+            await roadmap_svc.ensure_unit_started(db, self._user_id, uid)
+            topic_unit_id = uid
+
+        sess = ConversationSession(
+            user_id=self._user_id,
+            topic_id=topic_id,
+            topic_unit_id=topic_unit_id,
+        )
         db.add(sess)
         await db.commit()
         await db.refresh(sess)
 
         self.session_id = sess.id
         self.topic = topic
+        self.topic_unit = unit
         self.history = []
         self.turn_index = 0
         self.audio_buffer = bytearray()
@@ -264,15 +314,16 @@ class ConversationHandler:
         if data.get("ttsVoice"):
             self._tts_voice = str(data["ttsVoice"])
 
-        await self._send(
-            {
-                "type": "status",
-                "message": "session_started",
-                "topicId": topic_id,
-                "sessionId": self.session_id,
-                "topicLevel": topic.level,
-            }
-        )
+        status_payload: dict = {
+            "type": "status",
+            "message": "session_started",
+            "topicId": topic_id,
+            "sessionId": self.session_id,
+            "topicLevel": topic.level,
+        }
+        if topic_unit_id is not None:
+            status_payload["topicUnitId"] = topic_unit_id
+        await self._send(status_payload)
         return True
 
     def handle_tts_preferences(self, data: dict) -> None:
@@ -288,14 +339,24 @@ class ConversationHandler:
             return
         effective = self._effective_level() or ""
         level_key = effective.strip().lower()
-        prompt = (
-            f"[Start the conversation about: {self.topic.title}. "
-            "Say a short greeting or one opening question to get the learner to speak. "
-            "One or two sentences only, in English.]"
-        )
+        ctx = self._topic_context_for_llm()
+        if self.topic_unit is not None:
+            u = self.topic_unit
+            prompt = (
+                f"[Start a guided speaking step titled \"{u.title}\". "
+                f"Learner goal: {u.objective} "
+                "Give a short greeting or one opening question that fits this goal. "
+                "One or two sentences only, in English.]"
+            )
+        else:
+            prompt = (
+                f"[Start the conversation about: {self.topic.title}. "
+                "Say a short greeting or one opening question to get the learner to speak. "
+                "One or two sentences only, in English.]"
+            )
         messages = self._lm.build_messages(
             [{"role": "user", "content": prompt}],
-            topic_context=self.topic.title,
+            topic_context=ctx,
             topic_level=effective or None,
         )
         max_open_tokens = 80 if level_key in ("a1", "a2") else 120
@@ -310,7 +371,9 @@ class ConversationHandler:
         except Exception as e:
             logger.warning("Opening message failed: %s", e)
             opening_text = (
-                f"Hi! Let's talk about {self.topic.title}. What would you like to say?"
+                f"Hi! Let's work on {self.topic_unit.title}. What would you like to say?"
+                if self.topic_unit
+                else f"Hi! Let's talk about {self.topic.title}. What would you like to say?"
             )
             await self._send(
                 {
@@ -357,9 +420,10 @@ class ConversationHandler:
         await self._send({"type": "user_transcript", "text": user_text})
         self.history.append({"role": "user", "content": user_text})
         effective = self._effective_level() or ""
+        ctx = self._topic_context_for_llm()
         messages = self._lm.build_messages(
             self.history,
-            topic_context=self.topic.title,
+            topic_context=ctx,
             topic_level=effective or None,
         )
         settings = get_settings()
@@ -396,7 +460,8 @@ class ConversationHandler:
         if tts_bytes:
             tts_path.write_bytes(tts_bytes)
 
-        score = await self._scorer.score(user_text, self.topic.title, duration)
+        score_topic = ctx or self.topic.title
+        score = await self._scorer.score(user_text, score_topic, duration)
 
         turn = Turn(
             session_id=self.session_id,
@@ -432,6 +497,18 @@ class ConversationHandler:
                 "feedback": score.get("feedback", ""),
             }
         )
+        if await roadmap_svc.try_auto_complete_unit_for_session(
+            db, self.session_id, self._user_id
+        ):
+            uid = self.topic_unit.id if self.topic_unit else None
+            if uid is not None:
+                await self._send(
+                    {
+                        "type": "status",
+                        "message": "roadmap_unit_completed",
+                        "topicUnitId": uid,
+                    }
+                )
         self.turn_index += 1
         return True
 
@@ -451,9 +528,10 @@ class ConversationHandler:
         self.history.append({"role": "user", "content": user_text})
 
         effective = self._effective_level() or ""
+        ctx = self._topic_context_for_llm()
         messages = self._lm.build_messages(
             self.history,
-            topic_context=self.topic.title,
+            topic_context=ctx,
             topic_level=effective or None,
         )
         settings = get_settings()
@@ -493,7 +571,8 @@ class ConversationHandler:
             tts_path.write_bytes(tts_bytes)
 
         # Duration is unknown for text-only; pass 0 so scorer can still work.
-        score = await self._scorer.score(user_text, self.topic.title, 0.0)
+        score_topic = ctx or self.topic.title
+        score = await self._scorer.score(user_text, score_topic, 0.0)
         turn = Turn(
             session_id=self.session_id,
             index_in_session=self.turn_index,
@@ -527,6 +606,18 @@ class ConversationHandler:
                 "feedback": score.get("feedback", ""),
             }
         )
+        if await roadmap_svc.try_auto_complete_unit_for_session(
+            db, self.session_id, self._user_id
+        ):
+            uid = self.topic_unit.id if self.topic_unit else None
+            if uid is not None:
+                await self._send(
+                    {
+                        "type": "status",
+                        "message": "roadmap_unit_completed",
+                        "topicUnitId": uid,
+                    }
+                )
         self.turn_index += 1
         return True
 

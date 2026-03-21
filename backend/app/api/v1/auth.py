@@ -2,8 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
+from app.core.deps import role_slugs_for_user
 from app.core.security import create_access_token, hash_password, verify_password
 from app.db.session import get_db
+from app.models.role import ROLE_USER, Role, UserRole
 from app.models.user import User
 from app.schemas.auth import LoginRequest, RegisterRequest, TokenResponse
 
@@ -37,8 +39,20 @@ async def register(
     await db.commit()
     await db.refresh(user)
 
+    role_row = await db.execute(select(Role).where(Role.name == ROLE_USER))
+    r_user = role_row.scalar_one_or_none()
+    if r_user is not None:
+        db.add(UserRole(user_id=user.id, role_id=r_user.id))
+        await db.commit()
+
+    roles = await role_slugs_for_user(db, user.id)
     token = create_access_token({"sub": str(user.id)})
-    return TokenResponse(access_token=token, user_id=user.id, username=user.username)
+    return TokenResponse(
+        access_token=token,
+        user_id=user.id,
+        username=user.username,
+        roles=roles,
+    )
 
 
 @router.post("/login", response_model=TokenResponse)
@@ -52,5 +66,11 @@ async def login(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials"
         )
 
+    roles = await role_slugs_for_user(db, user.id)
     token = create_access_token({"sub": str(user.id)})
-    return TokenResponse(access_token=token, user_id=user.id, username=user.username)
+    return TokenResponse(
+        access_token=token,
+        user_id=user.id,
+        username=user.username,
+        roles=roles,
+    )

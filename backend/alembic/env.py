@@ -9,6 +9,8 @@ from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 from app.core.config import get_settings
 from app.db.session import Base
 
+import app.models.role  # noqa: F401 — metadata for autogenerate / consistency
+
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config

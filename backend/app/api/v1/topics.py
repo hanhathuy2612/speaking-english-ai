@@ -4,9 +4,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import get_current_user
 from app.db.session import get_db
-from app.models.conversation import Topic
+from app.models.conversation import Topic, TopicUnit
 from app.models.user import User
+from app.schemas.roadmap import (
+    RoadmapOut,
+    RoadmapProgressIn,
+    RoadmapProgressOut,
+    RoadmapUnitItem,
+    TopicUnitOut,
+)
 from app.schemas.topic import TopicIn, TopicOut, TopicUpdate
+import app.services.topic_roadmap_service as roadmap_svc
 
 router = APIRouter()
 
@@ -42,6 +50,51 @@ async def create_topic(
     await db.commit()
     await db.refresh(topic)
     return TopicOut.model_validate(topic)
+
+
+@router.get("/{topic_id:int}/roadmap", response_model=RoadmapOut)
+async def get_topic_roadmap(
+    topic_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> RoadmapOut:
+    r = await db.execute(select(Topic).where(Topic.id == topic_id))
+    topic = r.scalar_one_or_none()
+    if not topic:
+        raise HTTPException(status_code=404, detail="Topic not found")
+    units, statuses, _ = await roadmap_svc.get_roadmap_payload(db, topic_id, user.id)
+    items = [
+        RoadmapUnitItem(unit=TopicUnitOut.model_validate(u), status=s)
+        for u, s in zip(units, statuses, strict=True)
+    ]
+    return RoadmapOut(topic_id=topic.id, topic_title=topic.title, units=items)
+
+
+@router.post("/{topic_id:int}/roadmap/progress", response_model=RoadmapProgressOut)
+async def post_roadmap_progress(
+    topic_id: int,
+    payload: RoadmapProgressIn,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> RoadmapProgressOut:
+    r = await db.execute(select(Topic).where(Topic.id == topic_id))
+    topic = r.scalar_one_or_none()
+    if not topic:
+        raise HTTPException(status_code=404, detail="Topic not found")
+    if payload.action != "complete":
+        raise HTTPException(status_code=400, detail="Unsupported action")
+    unit = await db.get(TopicUnit, payload.topic_unit_id)
+    if not unit or unit.topic_id != topic_id:
+        raise HTTPException(status_code=404, detail="Topic unit not found for this topic")
+    row = await roadmap_svc.mark_unit_complete(db, user.id, payload.topic_unit_id)
+    if row is None:
+        raise HTTPException(status_code=403, detail="Step is locked or invalid")
+    ca = row.completed_at
+    return RoadmapProgressOut(
+        ok=True,
+        topic_unit_id=payload.topic_unit_id,
+        completed_at=ca.isoformat() if ca else None,
+    )
 
 
 @router.patch("/{topic_id:int}", response_model=TopicOut)

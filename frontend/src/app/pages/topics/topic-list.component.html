@@ -5,9 +5,11 @@
         <h1>Choose a topic</h1>
         <p>Pick a conversation topic and start speaking with your AI tutor.</p>
       </div>
-      <button type="button" class="btn btn--primary" (click)="openCreateForm()">
-        <i class="bi bi-plus-lg" aria-hidden="true"></i> New topic
-      </button>
+      @if (account.isAdmin()) {
+        <button type="button" class="btn btn--primary" (click)="openCreateForm()">
+          <i class="bi bi-plus-lg" aria-hidden="true"></i> New topic
+        </button>
+      }
     </header>
 
     @if (loading()) {
@@ -22,10 +24,10 @@
         @for (t of topics(); track t.id) {
           <article
             class="topic-card"
-            (click)="start(t)"
+            (click)="openRoadmap(t)"
             tabindex="0"
-            (keydown.enter)="start(t)"
-            (keydown.space)="$event.preventDefault(); start(t)"
+            (keydown.enter)="openRoadmap(t)"
+            (keydown.space)="$event.preventDefault(); openRoadmap(t)"
           >
             <div class="topic-card__body">
               <div class="topic-card__header">
@@ -57,7 +59,7 @@
               </span>
             </div>
             <div class="topic-card__action">
-              <span class="topic-card__cta">Start conversation</span>
+              <span class="topic-card__cta">Roadmap &amp; practice</span>
               <i class="bi bi-arrow-right topic-card__arrow" aria-hidden="true"></i>
             </div>
           </article>

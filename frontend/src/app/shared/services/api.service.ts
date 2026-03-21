@@ -10,6 +10,34 @@ export interface Topic {
   level: string | null;
 }
 
+export interface TopicUnitDto {
+  id: number;
+  topic_id: number;
+  sort_order: number;
+  title: string;
+  objective: string;
+  prompt_hint: string;
+  min_turns_to_complete: number | null;
+  min_avg_overall: number | null;
+}
+
+export interface RoadmapUnitItem {
+  unit: TopicUnitDto;
+  status: 'locked' | 'available' | 'in_progress' | 'completed';
+}
+
+export interface RoadmapOut {
+  topic_id: number;
+  topic_title: string;
+  units: RoadmapUnitItem[];
+}
+
+export interface RoadmapProgressOut {
+  ok: boolean;
+  topic_unit_id: number;
+  completed_at: string | null;
+}
+
 export interface ProgressSummary {
   total_sessions: number;
   total_turns: number;
@@ -26,6 +54,20 @@ export interface TtsVoice {
 
 export interface GuidanceResponse {
   suggestions: string[];
+}
+
+export interface AdminUserOut {
+  id: number;
+  email: string;
+  username: string;
+  is_active: boolean;
+  roles: string[];
+  created_at: string;
+}
+
+export interface AdminUserListOut {
+  items: AdminUserOut[];
+  total: number;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -55,6 +97,18 @@ export class ApiService {
     return this.http.patch<Topic>(`${this.base}/topics/${id}`, payload);
   }
 
+  getTopicRoadmap(topicId: number): Observable<RoadmapOut> {
+    return this.http.get<RoadmapOut>(`${this.base}/topics/${topicId}/roadmap`);
+  }
+
+  /** Mark a roadmap step complete (unlock next step). */
+  postRoadmapProgress(topicId: number, topicUnitId: number): Observable<RoadmapProgressOut> {
+    return this.http.post<RoadmapProgressOut>(`${this.base}/topics/${topicId}/roadmap/progress`, {
+      topic_unit_id: topicUnitId,
+      action: 'complete',
+    });
+  }
+
   /** List TTS voices for dropdown (id, name, gender, locale). */
   getTtsVoices(): Observable<TtsVoice[]> {
     return this.http.get<TtsVoice[]>(`${this.base}/tts/voices`);
@@ -73,5 +127,34 @@ export class ApiService {
     const body: { question: string; turn_id?: number } = { question: question.trim() };
     if (turnId != null) body.turn_id = turnId;
     return this.http.post<GuidanceResponse>(`${this.base}/conversation/guidance`, body);
+  }
+
+  adminListUsers(page: number, limit: number): Observable<AdminUserListOut> {
+    const q = new URLSearchParams({
+      page: String(page),
+      limit: String(limit),
+    });
+    return this.http.get<AdminUserListOut>(`${this.base}/admin/users?${q}`);
+  }
+
+  adminPatchUser(
+    userId: number,
+    body: { is_active?: boolean; role_slugs?: string[] },
+  ): Observable<AdminUserOut> {
+    return this.http.patch<AdminUserOut>(`${this.base}/admin/users/${userId}`, body);
+  }
+
+  adminCreateTopicUnit(
+    topicId: number,
+    body: {
+      sort_order: number;
+      title: string;
+      objective: string;
+      prompt_hint: string;
+      min_turns_to_complete?: number | null;
+      min_avg_overall?: number | null;
+    },
+  ): Observable<TopicUnitDto> {
+    return this.http.post<TopicUnitDto>(`${this.base}/admin/topics/${topicId}/units`, body);
   }
 }

@@ -1,12 +1,13 @@
+import { AccountService } from '@/app/shared/services/account.service';
 import { CommonModule } from '@angular/common';
 import { Component, inject, Injector, OnInit, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { NgbModal, NgbModalRef, NgbModalModule } from '@ng-bootstrap/ng-bootstrap';
+import { NgbModal, NgbModalModule, NgbModalRef } from '@ng-bootstrap/ng-bootstrap';
 import { finalize } from 'rxjs';
 import { ApiService, Topic } from '../../shared/services/api.service';
 import {
-  TopicFormModalComponent,
   TOPIC_FORM_MODAL_DATA,
+  TopicFormModalComponent,
 } from './topic-form-modal/topic-form-modal.component';
 
 @Component({
@@ -19,6 +20,7 @@ import {
 export class TopicListComponent implements OnInit {
   topics = signal<Topic[]>([]);
   loading = signal(false);
+  account = inject(AccountService);
 
   readonly api = inject(ApiService);
   readonly router = inject(Router);
@@ -41,10 +43,8 @@ export class TopicListComponent implements OnInit {
       });
   }
 
-  start(topic: Topic): void {
-    this.router.navigate(['/conversation'], {
-      queryParams: { topicId: topic.id, title: topic.title },
-    });
+  openRoadmap(topic: Topic): void {
+    this.router.navigate(['/topics', topic.id, 'roadmap']);
   }
 
   openCreateForm(): void {
@@ -87,5 +87,4 @@ export class TopicListComponent implements OnInit {
       this.modalRef = null;
     });
   }
-
 }

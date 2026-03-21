@@ -1,0 +1,101 @@
+<div class="page">
+  <div class="container">
+    <nav class="breadcrumb">
+      <a routerLink="/topics">Topics</a>
+      <span class="sep" aria-hidden="true">/</span>
+      <span class="current">Admin</span>
+      <span class="sep" aria-hidden="true">/</span>
+      <span class="current">Users</span>
+    </nav>
+
+    <header class="hero">
+      <h1>Users</h1>
+      <p class="muted">Manage accounts and roles (user, admin).</p>
+    </header>
+
+    @if (error()) {
+      <p class="error">{{ error() }}</p>
+    }
+
+    @if (loading()) {
+      <div class="loading">
+        <div class="spinner"></div>
+        <span>Loading…</span>
+      </div>
+    }
+
+    @if (!loading() && users().length === 0 && !error()) {
+      <p class="muted">No users.</p>
+    }
+
+    @if (!loading() && users().length > 0) {
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Email</th>
+              <th>Username</th>
+              <th>Roles</th>
+              <th>Active</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (u of users(); track u.id) {
+              <tr [class.inactive]="!u.is_active">
+                <td>{{ u.id }}</td>
+                <td>{{ u.email }}</td>
+                <td>{{ u.username }}</td>
+                <td>
+                  @for (r of u.roles; track r) {
+                    <span class="badge">{{ r }}</span>
+                  }
+                </td>
+                <td>{{ u.is_active ? 'Yes' : 'No' }}</td>
+                <td class="actions">
+                  <button
+                    type="button"
+                    class="btn btn--ghost btn--sm"
+                    [disabled]="savingId() === u.id"
+                    (click)="toggleActive(u)"
+                  >
+                    {{ u.is_active ? 'Deactivate' : 'Activate' }}
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn--secondary btn--sm"
+                    [disabled]="savingId() === u.id"
+                    (click)="toggleAdmin(u)"
+                  >
+                    {{ u.roles.includes('admin') ? 'Remove admin' : 'Make admin' }}
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <div class="pager">
+        <button
+          type="button"
+          class="btn btn--ghost btn--sm"
+          [disabled]="page() <= 1"
+          (click)="prevPage()"
+        >
+          Previous
+        </button>
+        <span class="pager__meta">Page {{ page() }} · {{ total() }} users</span>
+        <button
+          type="button"
+          class="btn btn--ghost btn--sm"
+          [disabled]="page() * pageSize >= total()"
+          (click)="nextPage()"
+        >
+          Next
+        </button>
+      </div>
+    }
+  </div>
+</div>
