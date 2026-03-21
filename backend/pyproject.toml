@@ -29,6 +29,8 @@ psycopg2-binary = "^2.9.9"
 
 [tool.poe.tasks]
 dev = "uvicorn app.main:app --reload --host 0.0.0.0 --port 8000"
+# Same as dev but APP_ENV=production → merges .env then .env.production (if present).
+prod = { cmd = "uvicorn app.main:app --host 0.0.0.0 --port 8000", env = { APP_ENV = "production" } }
 lint = "ruff app"
 format = "black app"
 create-db = "python scripts/create_pg_db.py"

@@ -1,7 +1,7 @@
+import { environment } from '@/environments/environment';
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { environment } from '../../../environments/environment';
 
 export interface Topic {
   id: number;
@@ -15,6 +15,17 @@ export interface ProgressSummary {
   total_turns: number;
   avg_scores: { fluency: number; vocabulary: number; grammar: number; overall: number } | null;
   daily_minutes: { date: string; minutes: number }[];
+}
+
+export interface TtsVoice {
+  id: string;
+  name: string;
+  gender: string;
+  locale: string;
+}
+
+export interface GuidanceResponse {
+  suggestions: string[];
 }
 
 @Injectable({ providedIn: 'root' })
@@ -45,10 +56,8 @@ export class ApiService {
   }
 
   /** List TTS voices for dropdown (id, name, gender, locale). */
-  getTtsVoices(): Observable<{ id: string; name: string; gender: string; locale: string }[]> {
-    return this.http.get<{ id: string; name: string; gender: string; locale: string }[]>(
-      `${this.base}/tts/voices`,
-    );
+  getTtsVoices(): Observable<TtsVoice[]> {
+    return this.http.get<TtsVoice[]>(`${this.base}/tts/voices`);
   }
 
   /** Short TTS sample for a voice (to try before selecting). */
@@ -59,36 +68,10 @@ export class ApiService {
     });
   }
 
-  /** Current user profile and saved TTS preferences. */
-  getMe(): Observable<{
-    user_id: number;
-    username: string;
-    tts_voice: string | null;
-    tts_rate: string | null;
-  }> {
-    return this.http.get<{
-      user_id: number;
-      username: string;
-      tts_voice: string | null;
-      tts_rate: string | null;
-    }>(`${this.base}/users/me`);
-  }
-
-  /** Update current user TTS preferences. */
-  patchMe(prefs: {
-    tts_voice?: string;
-    tts_rate?: string;
-  }): Observable<{ tts_voice: string | null; tts_rate: string | null }> {
-    return this.http.patch<{ tts_voice: string | null; tts_rate: string | null }>(
-      `${this.base}/users/me`,
-      prefs,
-    );
-  }
-
   /** Get answer suggestions for a question (for the guide panel). Optionally pass turnId to save guideline to that turn. */
-  getGuidance(question: string, turnId?: number): Observable<{ suggestions: string[] }> {
+  getGuidance(question: string, turnId?: number): Observable<GuidanceResponse> {
     const body: { question: string; turn_id?: number } = { question: question.trim() };
     if (turnId != null) body.turn_id = turnId;
-    return this.http.post<{ suggestions: string[] }>(`${this.base}/conversation/guidance`, body);
+    return this.http.post<GuidanceResponse>(`${this.base}/conversation/guidance`, body);
   }
 }

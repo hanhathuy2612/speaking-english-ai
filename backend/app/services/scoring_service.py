@@ -118,16 +118,24 @@ class ScoringService:
     @staticmethod
     def _parse_lm_response(raw: str) -> ScoreResult | None:
         """Extract and validate the JSON score object from raw LM output."""
-        start = raw.find("{")
-        end = raw.rfind("}")
-        if start == -1 or end == -1 or end <= start:
+        text = raw.strip()
+        if text.startswith("```"):
+            text = re.sub(r"^```(?:json)?\s*", "", text, flags=re.IGNORECASE)
+            text = re.sub(r"\s*```\s*$", "", text)
+
+        start = text.find("{")
+        if start == -1:
             log.warning("No JSON object found in LM response")
             return None
 
         try:
-            data: dict = json.loads(raw[start : end + 1])
+            data, _end = json.JSONDecoder().raw_decode(text, start)
         except json.JSONDecodeError as exc:
             log.warning("Invalid JSON in LM response: %s", exc)
+            return None
+
+        if not isinstance(data, dict):
+            log.warning("LM response JSON was not an object")
             return None
 
         missing = [k for k in (*_SCORE_KEYS, "feedback") if k not in data]

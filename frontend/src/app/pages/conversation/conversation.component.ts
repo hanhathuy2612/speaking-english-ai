@@ -1,9 +1,8 @@
+import { AccountService } from '@/app/shared/services/account.service';
 import { ApiService } from '@/services/api.service';
 import { AudioService } from '@/services/audio.service';
-import { WsService, WsMessage } from '@/services/ws.service';
-import { NgOptionTemplateDirective, NgSelectComponent } from '@ng-select/ng-select';
+import { WsMessage, WsService } from '@/services/ws.service';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
 import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
@@ -18,7 +17,9 @@ import {
   viewChild,
 } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { NgOptionTemplateDirective, NgSelectComponent } from '@ng-select/ng-select';
 import { firstValueFrom } from 'rxjs';
 
 // ─── Types ─────────────────────────────────────────────────────────────────
@@ -76,6 +77,7 @@ export class ConversationComponent implements OnInit, OnDestroy {
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly accountService = inject(AccountService);
 
   private readonly chatArea = viewChild<ElementRef<HTMLDivElement>>('chatArea');
 
@@ -89,9 +91,11 @@ export class ConversationComponent implements OnInit, OnDestroy {
     const snap = this.route.snapshot.queryParams;
     return Number(q['topicId']) || Number(snap['topicId']) || 0;
   });
+
   topicTitle = computed(
     () => this.queryParams()['title'] ?? this.route.snapshot.queryParams['title'] ?? 'Conversation',
   );
+
   sessionId = computed(() => {
     const s = this.queryParams()['sessionId'] ?? this.route.snapshot.queryParams['sessionId'];
     return s ? Number(s) : 0;
@@ -164,10 +168,10 @@ export class ConversationComponent implements OnInit, OnDestroy {
       this.scores.set({});
       this.startSentForConnection = false;
       this.userPrefsApplied.set(false);
-      this.api.getMe().subscribe({
+      this.accountService.getMe().subscribe({
         next: (me) => {
-          const voice = me.tts_voice ?? (me as Record<string, unknown>)['ttsVoice'];
-          const rate = me.tts_rate ?? (me as Record<string, unknown>)['ttsRate'];
+          const voice = me.tts_voice;
+          const rate = me.tts_rate;
           if (voice != null && String(voice).trim() !== '') this.ttsVoice.set(String(voice));
           if (rate != null && String(rate).trim() !== '') this.ttsRate.set(String(rate));
           this.userPrefsApplied.set(true);
@@ -223,13 +227,13 @@ export class ConversationComponent implements OnInit, OnDestroy {
 
   onTtsRateChange(rate: string): void {
     this.ttsRate.set(rate);
-    this.api.patchMe({ tts_rate: rate }).subscribe(NOOP);
+    this.accountService.patchMe({ tts_rate: rate }).subscribe(NOOP);
     this._sendTtsPreferences(rate, this.ttsVoice());
   }
 
   onTtsVoiceChange(voiceId: string): void {
     this.ttsVoice.set(voiceId);
-    this.api.patchMe({ tts_voice: voiceId }).subscribe(NOOP);
+    this.accountService.patchMe({ tts_voice: voiceId }).subscribe(NOOP);
     this._sendTtsPreferences(this.ttsRate(), voiceId);
   }
 

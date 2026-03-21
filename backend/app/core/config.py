@@ -1,7 +1,25 @@
+import os
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic import AnyHttpUrl
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+def _resolve_env_files() -> tuple[str, ...] | None:
+    """
+    Load env files from backend/ (next to app/).
+    Order: .env → .env.{APP_ENV} → .env.local (later overrides earlier).
+    APP_ENV defaults to development. Set APP_ENV=production for prod-specific file.
+    """
+    root = Path(__file__).resolve().parent.parent.parent
+    app_env = (os.getenv("APP_ENV") or "development").strip().lower()
+    paths: list[str] = []
+    for name in (".env", f".env.{app_env}", ".env.local"):
+        p = root / name
+        if p.is_file():
+            paths.append(str(p))
+    return tuple(paths) if paths else None
 
 
 class Settings(BaseSettings):
@@ -38,9 +56,9 @@ class Settings(BaseSettings):
     # Optional path to ffmpeg (e.g. when winget installs it but PATH is not updated)
     ffmpeg_path: str | None = None
 
-    # STT (faster-whisper)
-    stt_model_size: str = "base"
-    stt_beam_size: int = 1
+    # STT (faster-whisper) — defaults favor accuracy over speed (override in .env).
+    stt_model_size: str = "small"
+    stt_beam_size: int = 5
     stt_device: str = "cpu"
     stt_compute_type: str = "int8"
 
@@ -48,9 +66,10 @@ class Settings(BaseSettings):
     tts_rate: str = "+0%"
     tts_voice: str = "en-US-JennyNeural"
 
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
+    model_config = SettingsConfigDict(
+        env_file=_resolve_env_files(),
+        env_file_encoding="utf-8",
+    )
 
 
 @lru_cache

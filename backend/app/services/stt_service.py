@@ -4,7 +4,6 @@ import logging
 import shutil
 import subprocess
 import tempfile
-import time
 from pathlib import Path
 from typing import Any
 
@@ -42,7 +41,6 @@ def _webm_to_wav(webm_path: Path) -> Path:
     out.close()
     wav_path = Path(out.name)
     try:
-        t0 = time.monotonic()
         result = subprocess.run(
             [
                 ffmpeg_exe,
@@ -62,7 +60,6 @@ def _webm_to_wav(webm_path: Path) -> Path:
             capture_output=True,
             timeout=30,
         )
-        log.debug("ffmpeg convert %.1fs", time.monotonic() - t0)
         if result.returncode != 0:
             err = (result.stderr or b"").decode("utf-8", errors="replace").strip()
             log.warning("ffmpeg stderr: %s", err or "(no message)")
@@ -95,26 +92,17 @@ class STTService:
         if self._model is None:
             from faster_whisper import WhisperModel
 
-            log.info(
-                "Loading Whisper model=%s device=%s compute=%s",
-                self._model_size,
-                self._device,
-                self._compute_type,
-            )
-            t0 = time.monotonic()
             self._model = WhisperModel(
                 self._model_size,
                 device=self._device,
                 compute_type=self._compute_type,
             )
-            log.info("Whisper model loaded in %.1fs", time.monotonic() - t0)
         return self._model
 
     def transcribe(self, audio_path: Path) -> dict[str, Any]:
         """
         Transcribe audio file. For .webm (browser), converts to WAV first via ffmpeg.
         """
-        t_total = time.monotonic()
         path = Path(audio_path)
         use_temp = path.suffix.lower() == ".webm"
         wav_path = path
@@ -124,17 +112,8 @@ class STTService:
 
         try:
             model = self._get_model()
-            t_infer = time.monotonic()
-            segments, info = model.transcribe(
-                str(wav_path), beam_size=self._beam_size
-            )
+            segments, info = model.transcribe(str(wav_path), beam_size=self._beam_size)
             text = " ".join(seg.text.strip() for seg in segments)
-            log.debug(
-                "Whisper transcribe %.1fs (total pipeline %.1fs, beam=%d)",
-                time.monotonic() - t_infer,
-                time.monotonic() - t_total,
-                self._beam_size,
-            )
             return {
                 "text": text.strip(),
                 "language": info.language,

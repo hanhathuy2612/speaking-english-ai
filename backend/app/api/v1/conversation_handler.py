@@ -397,6 +397,7 @@ class ConversationHandler:
             tts_path.write_bytes(tts_bytes)
 
         score = await self._scorer.score(user_text, self.topic.title, duration)
+
         turn = Turn(
             session_id=self.session_id,
             index_in_session=self.turn_index,
@@ -408,6 +409,7 @@ class ConversationHandler:
         db.add(turn)
         await db.commit()
         await db.refresh(turn)
+
         db.add(
             TurnScore(
                 turn_id=turn.id,
