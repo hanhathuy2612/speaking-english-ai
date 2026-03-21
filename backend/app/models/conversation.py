@@ -44,6 +44,7 @@ class TopicUnit(Base):
     prompt_hint: Mapped[str] = mapped_column(Text())
     min_turns_to_complete: Mapped[int | None] = mapped_column(nullable=True)
     min_avg_overall: Mapped[float | None] = mapped_column(nullable=True)
+    max_scored_turns: Mapped[int | None] = mapped_column(nullable=True)
 
     topic: Mapped["Topic"] = relationship(back_populates="units")
     progress_rows: Mapped[list["UserTopicUnitProgress"]] = relationship(

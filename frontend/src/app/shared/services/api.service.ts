@@ -19,6 +19,23 @@ export interface TopicUnitDto {
   prompt_hint: string;
   min_turns_to_complete: number | null;
   min_avg_overall: number | null;
+  max_scored_turns: number | null;
+}
+
+export interface UnitStepSummary {
+  session_id: number;
+  topic_id: number;
+  topic_title: string;
+  topic_unit: { id: number; title: string; objective: string } | null;
+  scored_turns: number;
+  avg_fluency: number | null;
+  avg_vocabulary: number | null;
+  avg_grammar: number | null;
+  avg_overall: number | null;
+  min_turns_to_complete: number | null;
+  min_avg_overall: number | null;
+  max_scored_turns: number | null;
+  thresholds_met: boolean;
 }
 
 export interface RoadmapUnitItem {
@@ -129,6 +146,13 @@ export class ApiService {
     return this.http.post<GuidanceResponse>(`${this.base}/conversation/guidance`, body);
   }
 
+  /** Session aggregates for roadmap unit completion / recap. */
+  getUnitStepSummary(sessionId: number): Observable<UnitStepSummary> {
+    return this.http.get<UnitStepSummary>(
+      `${this.base}/conversation/sessions/${sessionId}/unit-step-summary`,
+    );
+  }
+
   adminListUsers(page: number, limit: number): Observable<AdminUserListOut> {
     const q = new URLSearchParams({
       page: String(page),
@@ -153,6 +177,7 @@ export class ApiService {
       prompt_hint: string;
       min_turns_to_complete?: number | null;
       min_avg_overall?: number | null;
+      max_scored_turns?: number | null;
     },
   ): Observable<TopicUnitDto> {
     return this.http.post<TopicUnitDto>(`${this.base}/admin/topics/${topicId}/units`, body);

@@ -12,13 +12,12 @@ Client → Server (JSON):
   {"type": "stop"}        -- end session
 
 Server → Client: status, history, user_transcript, assistant_partial, assistant_audio_chunk,
-  assistant_audio_end, turn_score, error.
+  assistant_audio_end, session_scores (when session ends), error.
 """
 
 import asyncio
 import json
 import logging
-import time
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
@@ -90,8 +89,6 @@ async def conversation_ws(websocket: WebSocket) -> None:
                         await send({"type": "error", "message": "Audio too long"})
                         handler.audio_buffer.clear()
                         continue
-                    if not handler.audio_buffer:
-                        handler.utterance_start = time.time()
                     handler.audio_buffer.extend(raw["bytes"])
                     continue
 
@@ -102,7 +99,7 @@ async def conversation_ws(websocket: WebSocket) -> None:
                     if await handler.handle_start(db, data):
                         # Only send AI opening for new sessions, not when resuming
                         if not data.get("sessionId"):
-                            await handler.send_opening_message()
+                            await handler.send_opening_message(db)
                 elif msg_type == "set_level":
                     handler.set_level(data.get("level"))
                 elif msg_type == "tts_preferences":

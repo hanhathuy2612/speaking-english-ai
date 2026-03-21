@@ -27,6 +27,9 @@
   <label class="field">
     <span>Min scored turns to auto-complete (optional)</span>
     <input type="number" class="input" [(ngModel)]="minTurns" min="1" placeholder="e.g. 3" />
+    <small class="field-hint"
+      >Each turn is one of your spoken (or typed) lines that gets a score—not “AI questions.”</small
+    >
   </label>
   <label class="field">
     <span>Min average overall score (optional, 0–10)</span>
@@ -38,6 +41,16 @@
       max="10"
       step="0.1"
       placeholder="e.g. 6"
+    />
+  </label>
+  <label class="field">
+    <span>Max scored turns per session (optional)</span>
+    <input
+      type="number"
+      class="input"
+      [(ngModel)]="maxScoredTurns"
+      min="1"
+      placeholder="e.g. 12 — block more practice in one sitting"
     />
   </label>
 </div>

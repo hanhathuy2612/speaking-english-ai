@@ -32,3 +32,27 @@ class SessionDetailOut(BaseModel):
     started_at: datetime
     ended_at: datetime | None
     turns: list[TurnOut]
+
+
+class TopicUnitSummarySnippet(BaseModel):
+    id: int
+    title: str
+    objective: str
+
+
+class UnitStepSummaryOut(BaseModel):
+    """Aggregated scores for a session tied to a roadmap unit (or any session)."""
+
+    session_id: int
+    topic_id: int
+    topic_title: str
+    topic_unit: TopicUnitSummarySnippet | None
+    scored_turns: int
+    avg_fluency: float | None
+    avg_vocabulary: float | None
+    avg_grammar: float | None
+    avg_overall: float | None
+    min_turns_to_complete: int | None
+    min_avg_overall: float | None
+    max_scored_turns: int | None
+    thresholds_met: bool

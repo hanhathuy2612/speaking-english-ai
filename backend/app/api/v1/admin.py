@@ -167,6 +167,7 @@ async def admin_create_topic_unit(
         prompt_hint=body.prompt_hint.strip(),
         min_turns_to_complete=body.min_turns_to_complete,
         min_avg_overall=body.min_avg_overall,
+        max_scored_turns=body.max_scored_turns,
     )
     db.add(unit)
     await db.commit()
@@ -200,6 +201,9 @@ async def admin_update_topic_unit(
         unit.min_turns_to_complete = body.min_turns_to_complete
     if body.min_avg_overall is not None:
         unit.min_avg_overall = body.min_avg_overall
+    patch_data = body.model_dump(exclude_unset=True)
+    if "max_scored_turns" in patch_data:
+        unit.max_scored_turns = patch_data["max_scored_turns"]
     await db.commit()
     await db.refresh(unit)
     return TopicUnitOut.model_validate(unit)

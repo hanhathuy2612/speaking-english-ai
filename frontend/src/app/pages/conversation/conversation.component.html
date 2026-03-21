@@ -110,6 +110,118 @@
     </button>
   </header>
 
+  @if (sessionScoreSummary(); as sm) {
+    <div class="conv-session-summary" role="region" aria-label="Session evaluation summary">
+      <div class="conv-session-summary__inner">
+        <span class="conv-session-summary__label">Session evaluation</span>
+        <span class="conv-session-summary__stats">
+          Overall <strong>{{ sm.overall.toFixed(1) }}</strong> · Fluency
+          {{ sm.fluency.toFixed(1) }} · Vocab {{ sm.vocabulary.toFixed(1) }} · Grammar
+          {{ sm.grammar.toFixed(1) }}
+        </span>
+        <button
+          type="button"
+          class="btn btn--ghost btn--icon conv-session-summary__dismiss"
+          (click)="dismissSessionScoreSummary()"
+          aria-label="Dismiss summary"
+        >
+          <i class="bi bi-x-lg" aria-hidden="true"></i>
+        </button>
+      </div>
+    </div>
+  }
+
+  @if (unitStepMeta(); as step) {
+    <div class="conv-unit-banner" role="status">
+      <div class="conv-unit-banner__inner">
+        <strong class="conv-unit-banner__title">{{ step.title }}</strong>
+        <p class="conv-unit-banner__objective">{{ step.objective }}</p>
+        <p class="conv-unit-banner__progress">
+          <span
+            >Your practice turns this session:
+            <strong>{{ step.scoredTurnsSoFar }}</strong></span
+          >
+          @if (step.minTurnsToComplete != null) {
+            <span class="conv-unit-banner__sep">·</span>
+            <span
+              >Target to auto-complete:
+              <strong>{{ step.minTurnsToComplete }}</strong> practice turns (scored when you end the
+              chat)</span
+            >
+          }
+          @if (step.minAvgOverall != null) {
+            <span class="conv-unit-banner__sep">·</span>
+            <span
+              >Avg overall needed:
+              <strong>≥ {{ step.minAvgOverall }}</strong></span
+            >
+          }
+          @if (step.maxScoredTurns != null) {
+            <span class="conv-unit-banner__sep">·</span>
+            <span
+              >Max this session:
+              <strong>{{ step.maxScoredTurns }}</strong></span
+            >
+          }
+        </p>
+        <p class="conv-unit-banner__hint">
+          Detailed scores appear after you end this conversation (same as leaving the page). They are not
+          a fixed number of AI questions.
+        </p>
+      </div>
+    </div>
+  }
+
+  @if (unitCompleteSummary(); as sum) {
+    <div
+      class="conv-unit-modal-backdrop"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="unit-complete-title"
+    >
+      <div class="conv-unit-modal">
+        <h2 id="unit-complete-title" class="conv-unit-modal__title">Step complete</h2>
+        @if (sum.topic_unit) {
+          <p class="conv-unit-modal__step">{{ sum.topic_unit.title }}</p>
+          <p class="conv-unit-modal__objective">{{ sum.topic_unit.objective }}</p>
+        }
+        <dl class="conv-unit-modal__stats">
+          <div>
+            <dt>Scored turns</dt>
+            <dd>{{ sum.scored_turns }}</dd>
+          </div>
+          <div>
+            <dt>Avg overall</dt>
+            <dd>{{ formatAvg(sum.avg_overall) }}</dd>
+          </div>
+          <div>
+            <dt>Fluency</dt>
+            <dd>{{ formatAvg(sum.avg_fluency) }}</dd>
+          </div>
+          <div>
+            <dt>Vocabulary</dt>
+            <dd>{{ formatAvg(sum.avg_vocabulary) }}</dd>
+          </div>
+          <div>
+            <dt>Grammar</dt>
+            <dd>{{ formatAvg(sum.avg_grammar) }}</dd>
+          </div>
+        </dl>
+        @if (sum.thresholds_met) {
+          <p class="conv-unit-modal__ok">You met this step’s auto-complete rules in this session.</p>
+        }
+        <div class="conv-unit-modal__actions">
+          <button type="button" class="btn btn--primary" (click)="goToRoadmapAfterUnit()">
+            Back to roadmap
+          </button>
+          <button type="button" class="btn btn--ghost" (click)="closeUnitCompleteModal()">
+            Stay here
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
   <div class="conv-body">
     <div class="conv-main">
       <div class="chat-area" #chatArea>
@@ -122,7 +234,7 @@
             <p class="empty-state__text">
               {{
                 connected()
-                  ? 'The AI will say hello first. Then you can hold the button to speak.'
+                  ? 'The AI will say hello first. Then you can hold the button to speak. Detailed scores are shown when you end this chat.'
                   : 'Connecting to your session.'
               }}
             </p>
@@ -202,6 +314,7 @@
 
           @if (m.role === 'user' && scores()[$index]) {
             <div class="score-panel">
+              <p class="score-panel__caption">Per-turn feedback (from end of session)</p>
               <div class="score-row">
                 <span class="score-item"
                   >Fluency <b class="score-val">{{ scores()[$index].fluency }}/10</b></span

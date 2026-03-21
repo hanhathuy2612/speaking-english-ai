@@ -7,7 +7,14 @@ from app.core.deps import get_current_user
 from app.db.session import get_db
 from app.models.conversation import ConversationSession, Turn
 from app.models.user import User
-from app.schemas.conversation import SessionDetailOut, SessionOut, TurnOut
+import app.services.topic_roadmap_service as roadmap_svc
+from app.schemas.conversation import (
+    SessionDetailOut,
+    SessionOut,
+    TopicUnitSummarySnippet,
+    TurnOut,
+    UnitStepSummaryOut,
+)
 
 router = APIRouter(prefix="/conversation", tags=["conversation"])
 
@@ -43,6 +50,63 @@ async def list_sessions(
             )
         )
     return out
+
+
+@router.get(
+    "/sessions/{session_id}/unit-step-summary",
+    response_model=UnitStepSummaryOut,
+)
+async def get_unit_step_summary(
+    session_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> UnitStepSummaryOut:
+    """Averages and roadmap thresholds for one session (e.g. after unit auto-complete)."""
+    result = await db.execute(
+        select(ConversationSession)
+        .options(
+            selectinload(ConversationSession.topic),
+            selectinload(ConversationSession.topic_unit),
+        )
+        .where(ConversationSession.id == session_id, ConversationSession.user_id == user.id)
+    )
+    session = result.scalar_one_or_none()
+    if not session:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
+
+    cnt, avg_o, avg_f, avg_v, avg_g = await roadmap_svc.scored_turn_averages_for_session(
+        db, session_id
+    )
+    unit = session.topic_unit
+    thresholds_met = False
+    unit_out: TopicUnitSummarySnippet | None = None
+    min_turns = min_avg = max_turns = None
+    if unit is not None:
+        min_turns = unit.min_turns_to_complete
+        min_avg = unit.min_avg_overall
+        max_turns = unit.max_scored_turns
+        thresholds_met = roadmap_svc.unit_auto_complete_thresholds_met(unit, cnt, avg_o)
+        unit_out = TopicUnitSummarySnippet(
+            id=unit.id,
+            title=unit.title,
+            objective=unit.objective,
+        )
+
+    return UnitStepSummaryOut(
+        session_id=session.id,
+        topic_id=session.topic_id,
+        topic_title=session.topic.title if session.topic else "Unknown",
+        topic_unit=unit_out,
+        scored_turns=cnt,
+        avg_fluency=avg_f,
+        avg_vocabulary=avg_v,
+        avg_grammar=avg_g,
+        avg_overall=avg_o,
+        min_turns_to_complete=min_turns,
+        min_avg_overall=min_avg,
+        max_scored_turns=max_turns,
+        thresholds_met=thresholds_met,
+    )
 
 
 @router.get("/sessions/{session_id}", response_model=SessionDetailOut)

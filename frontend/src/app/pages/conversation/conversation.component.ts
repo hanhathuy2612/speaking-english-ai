@@ -1,5 +1,5 @@
 import { AccountService } from '@/app/shared/services/account.service';
-import { ApiService } from '@/services/api.service';
+import { ApiService, UnitStepSummary } from '@/services/api.service';
 import { AudioService } from '@/services/audio.service';
 import { WsMessage, WsService } from '@/services/ws.service';
 import { CommonModule } from '@angular/common';
@@ -59,6 +59,17 @@ const LEVEL_OPTIONS = [
   ...['A1', 'A2', 'B1', 'B2', 'C1'].map((l) => ({ value: l, label: l })),
 ];
 const NOOP = { next: () => {}, error: () => {} };
+
+/** Roadmap step meta from WebSocket session_started (camelCase from server). */
+export interface TopicUnitWsMeta {
+  id: number;
+  title: string;
+  objective: string;
+  minTurnsToComplete: number | null;
+  minAvgOverall: number | null;
+  maxScoredTurns: number | null;
+  scoredTurnsSoFar: number;
+}
 
 // ─── Component ─────────────────────────────────────────────────────────────
 
@@ -154,6 +165,20 @@ export class ConversationComponent implements OnInit, OnDestroy {
   private userPrefsApplied = signal(false);
   private startSentForConnection = false;
 
+  /** Server session id (from WebSocket); used for unit summary API. */
+  liveSessionId = signal(0);
+  /** Active roadmap step context while practicing a unit. */
+  unitStepMeta = signal<TopicUnitWsMeta | null>(null);
+  /** Shown after roadmap_unit_completed; load via HTTP. */
+  unitCompleteSummary = signal<UnitStepSummary | null>(null);
+  /** Session-wide averages from WebSocket when conversation ends. */
+  sessionScoreSummary = signal<{
+    fluency: number;
+    vocabulary: number;
+    grammar: number;
+    overall: number;
+  } | null>(null);
+
   constructor() {
     this._effectLoadPrefsAndConnect();
     this._effectSendStartWhenReady();
@@ -182,6 +207,10 @@ export class ConversationComponent implements OnInit, OnDestroy {
       this.scores.set({});
       this.startSentForConnection = false;
       this.userPrefsApplied.set(false);
+      this.liveSessionId.set(0);
+      this.unitStepMeta.set(null);
+      this.unitCompleteSummary.set(null);
+      this.sessionScoreSummary.set(null);
       this.accountService.getMe().subscribe({
         next: (me) => {
           const voice = me.tts_voice;
@@ -419,6 +448,40 @@ export class ConversationComponent implements OnInit, OnDestroy {
             const normalized = topicLevel.trim();
             this.conversationLevel.set(normalized);
           }
+          const sid = msg['sessionId'] as number | undefined;
+          if (sid != null && Number.isFinite(sid) && sid > 0) {
+            this.liveSessionId.set(sid);
+          }
+          const tu = msg['topicUnit'] as Record<string, unknown> | undefined;
+          if (tu != null && typeof tu === 'object' && typeof tu['id'] === 'number') {
+            this.unitStepMeta.set({
+              id: tu['id'] as number,
+              title: String(tu['title'] ?? ''),
+              objective: String(tu['objective'] ?? ''),
+              minTurnsToComplete: (tu['minTurnsToComplete'] as number | null) ?? null,
+              minAvgOverall: (tu['minAvgOverall'] as number | null) ?? null,
+              maxScoredTurns: (tu['maxScoredTurns'] as number | null) ?? null,
+              scoredTurnsSoFar: Number(tu['scoredTurnsSoFar'] ?? 0) || 0,
+            });
+          } else {
+            this.unitStepMeta.set(null);
+          }
+        } else if (message === 'roadmap_unit_completed') {
+          const sid =
+            (msg['sessionId'] as number | undefined) ??
+            (this.liveSessionId() > 0 ? this.liveSessionId() : undefined);
+          if (sid != null && sid > 0) {
+            this.api.getUnitStepSummary(sid).subscribe({
+              next: (s: UnitStepSummary) => {
+                this.unitCompleteSummary.set(s);
+                this.cdr.detectChanges();
+              },
+              error: () => {
+                this.unitCompleteSummary.set(null);
+                this.cdr.detectChanges();
+              },
+            });
+          }
         } else if (message === 'transcribing') {
           this.transcribing.set(true);
         }
@@ -446,7 +509,16 @@ export class ConversationComponent implements OnInit, OnDestroy {
       }
       case 'error':
         this.transcribing.set(false);
-        this.errorMessage.set((msg['message'] as string) || 'Something went wrong');
+        {
+          const code = msg['message'] as string;
+          if (code === 'max_unit_turns_reached') {
+            this.errorMessage.set(
+              'You reached the maximum practice turns for this step in this session. Open the roadmap to continue or start again later.',
+            );
+          } else {
+            this.errorMessage.set(code || 'Something went wrong');
+          }
+        }
         break;
       case 'user_transcript': {
         this.transcribing.set(false);
@@ -458,6 +530,11 @@ export class ConversationComponent implements OnInit, OnDestroy {
         }
         this.messages.update((m) => [...m, userMsg]);
         this.pendingAiMsgIndex = -1;
+        if (this.unitStepMeta()) {
+          this.unitStepMeta.update((meta) =>
+            meta ? { ...meta, scoredTurnsSoFar: meta.scoredTurnsSoFar + 1 } : null,
+          );
+        }
         break;
       }
       case 'assistant_partial':
@@ -484,8 +561,8 @@ export class ConversationComponent implements OnInit, OnDestroy {
         }
         break;
       }
-      case 'turn_score':
-        this._handleTurnScore(msg);
+      case 'session_scores':
+        this._handleSessionScores(msg);
         break;
     }
   }
@@ -534,29 +611,73 @@ export class ConversationComponent implements OnInit, OnDestroy {
     });
   }
 
-  private _handleTurnScore(msg: Record<string, unknown>): void {
-    const list = this.messages();
-    const lastUserIdx = [...list].reverse().findIndex((m) => m.role === 'user');
-    if (lastUserIdx === -1) return;
-    const idx = list.length - 1 - lastUserIdx;
-    this.scores.update((s) => ({
-      ...s,
-      [idx]: {
-        fluency: msg['fluency'] as number,
-        vocabulary: msg['vocabulary'] as number,
-        grammar: msg['grammar'] as number,
-        overall: msg['overall'] as number,
-        feedback: msg['feedback'] as string,
-      },
-    }));
-    const turnId = msg['turnId'] as number | undefined;
-    if (turnId != null && idx + 1 < list.length) {
-      this.messages.update((m) => {
-        const next = [...m];
-        next[idx + 1] = { ...next[idx + 1], turnId };
-        return next;
+  private _handleSessionScores(msg: Record<string, unknown>): void {
+    const av = msg['averages'] as Record<string, number> | undefined;
+    if (
+      av &&
+      typeof av['overall'] === 'number' &&
+      typeof av['fluency'] === 'number' &&
+      typeof av['vocabulary'] === 'number' &&
+      typeof av['grammar'] === 'number'
+    ) {
+      this.sessionScoreSummary.set({
+        fluency: av['fluency'],
+        vocabulary: av['vocabulary'],
+        grammar: av['grammar'],
+        overall: av['overall'],
       });
     }
+    const turns =
+      (msg['turns'] as Array<{
+        turnId: number;
+        fluency: number;
+        vocabulary: number;
+        grammar: number;
+        overall: number;
+        feedback: string;
+      }>) ?? [];
+    if (turns.length === 0) return;
+
+    const list = [...this.messages()];
+    let ti = 0;
+    const nextScores: Record<number, TurnScore> = { ...this.scores() };
+    for (let i = 0; i < list.length && ti < turns.length; i++) {
+      if (list[i].role !== 'user') continue;
+      const sc = turns[ti++];
+      nextScores[i] = {
+        fluency: sc.fluency,
+        vocabulary: sc.vocabulary,
+        grammar: sc.grammar,
+        overall: sc.overall,
+        feedback: sc.feedback ?? '',
+      };
+      if (i + 1 < list.length && list[i + 1].role === 'ai') {
+        list[i + 1] = { ...list[i + 1], turnId: sc.turnId };
+      }
+    }
+    this.scores.set(nextScores);
+    this.messages.set(list);
+  }
+
+  dismissSessionScoreSummary(): void {
+    this.sessionScoreSummary.set(null);
+  }
+
+  closeUnitCompleteModal(): void {
+    this.unitCompleteSummary.set(null);
+    this.cdr.detectChanges();
+  }
+
+  goToRoadmapAfterUnit(): void {
+    const s = this.unitCompleteSummary();
+    const tid = s?.topic_id ?? this.topicId();
+    this.unitCompleteSummary.set(null);
+    void this.router.navigate(['/topics', tid, 'roadmap']);
+  }
+
+  formatAvg(n: number | null | undefined): string {
+    if (n == null || Number.isNaN(n)) return '—';
+    return n.toFixed(1);
   }
 
   private _scheduleDetectChanges(msg: WsMessage): void {

@@ -152,7 +152,6 @@ class ConversationHandler:
         self.history: list[dict[str, str]] = []
         self.turn_index = 0
         self.audio_buffer = bytearray()
-        self.utterance_start: float = 0.0
 
     def _effective_level(self) -> str | None:
         """Level for next reply: override if set, else topic level."""
@@ -167,7 +166,7 @@ class ConversationHandler:
         s = (level or "").strip()
         self.level_override = s if s else None
 
-    def _topic_context_for_llm(self) -> str | None:
+    async def _topic_context_for_llm(self, db: AsyncSession) -> str | None:
         if not self.topic:
             return None
         parts: list[str] = [self.topic.title]
@@ -176,7 +175,58 @@ class ConversationHandler:
             parts.append(f"Step: {u.title}. Learner goal: {u.objective}")
             if (u.prompt_hint or "").strip():
                 parts.append(f"Tutor focus: {u.prompt_hint.strip()}")
+            if self.session_id is not None:
+                n = await roadmap_svc.count_turns_in_session(db, self.session_id)
+                prog_bits: list[str] = [
+                    f"Learner practice turns so far in this session: {n}. "
+                    "(Each turn is one learner utterance plus your reply; scoring runs when the session ends.)"
+                ]
+                if u.min_turns_to_complete is not None:
+                    prog_bits.append(
+                        f"The step auto-completes after at least {u.min_turns_to_complete} "
+                        "such turns in this session once scores are computed (and any average-score rule below)."
+                    )
+                if u.min_avg_overall is not None:
+                    prog_bits.append(
+                        f"When the turn count is met, average overall score for the session "
+                        f"must be at least {u.min_avg_overall}."
+                    )
+                parts.append(" ".join(prog_bits))
+                parts.append(
+                    "Stay focused on the learner goal; keep replies concise. "
+                    "If the learner is close to finishing the required practice, end naturally with brief encouragement."
+                )
         return " ".join(parts)
+
+    async def _attach_topic_unit_ws_meta(
+        self, db: AsyncSession, status_payload: dict[str, Any]
+    ) -> None:
+        if self.topic_unit is None or self.session_id is None:
+            return
+        u = self.topic_unit
+        n = await roadmap_svc.count_scored_turns_in_session(db, self.session_id)
+        status_payload["topicUnit"] = {
+            "id": u.id,
+            "title": u.title,
+            "objective": u.objective,
+            "minTurnsToComplete": u.min_turns_to_complete,
+            "minAvgOverall": u.min_avg_overall,
+            "maxScoredTurns": u.max_scored_turns,
+            "scoredTurnsSoFar": n,
+        }
+
+    async def _reject_if_max_scored_turns(self, db: AsyncSession) -> bool:
+        """True if we should abort the new turn (limit reached)."""
+        if not self.session_id or not self.topic_unit:
+            return False
+        cap = self.topic_unit.max_scored_turns
+        if cap is None:
+            return False
+        n = await roadmap_svc.count_turns_in_session(db, self.session_id)
+        if n < cap:
+            return False
+        await self._send({"type": "error", "message": "max_unit_turns_reached"})
+        return True
 
     async def handle_start(self, db: AsyncSession, data: dict) -> bool:
         """
@@ -251,6 +301,7 @@ class ConversationHandler:
             }
             if sess.topic_unit_id is not None:
                 status_payload["topicUnitId"] = sess.topic_unit_id
+            await self._attach_topic_unit_ws_meta(db, status_payload)
             await self._send(status_payload)
             history_payload = []
             for t in turns:
@@ -323,6 +374,7 @@ class ConversationHandler:
         }
         if topic_unit_id is not None:
             status_payload["topicUnitId"] = topic_unit_id
+        await self._attach_topic_unit_ws_meta(db, status_payload)
         await self._send(status_payload)
         return True
 
@@ -333,18 +385,19 @@ class ConversationHandler:
         if data.get("ttsVoice"):
             self._tts_voice = str(data["ttsVoice"])
 
-    async def send_opening_message(self) -> None:
+    async def send_opening_message(self, db: AsyncSession) -> None:
         """Generate and stream AI opening (greeting/question); append to history and stream TTS."""
         if not self.topic:
             return
         effective = self._effective_level() or ""
         level_key = effective.strip().lower()
-        ctx = self._topic_context_for_llm()
+        ctx = await self._topic_context_for_llm(db)
         if self.topic_unit is not None:
             u = self.topic_unit
             prompt = (
                 f"[Start a guided speaking step titled \"{u.title}\". "
                 f"Learner goal: {u.objective} "
+                "The learner will have several scored speaking turns in this session toward this step. "
                 "Give a short greeting or one opening question that fits this goal. "
                 "One or two sentences only, in English.]"
             )
@@ -393,7 +446,7 @@ class ConversationHandler:
             )
 
     async def handle_audio_end(self, db: AsyncSession) -> bool:
-        """Transcribe, get AI reply, TTS, score, persist turn. Return True on success."""
+        """Transcribe, get AI reply, TTS, persist turn (scoring runs at session end). Return True on success."""
         if not self.session_id or not self.topic:
             await self._send({"type": "error", "message": "Send 'start' first"})
             return False
@@ -401,7 +454,10 @@ class ConversationHandler:
             await self._send({"type": "error", "message": "No audio received"})
             return False
 
-        duration = time.time() - self.utterance_start
+        if await self._reject_if_max_scored_turns(db):
+            self.audio_buffer.clear()
+            return False
+
         user_dir = AUDIO_DIR / str(self._user_id) / str(self.session_id)
         user_dir.mkdir(parents=True, exist_ok=True)
         audio_path = user_dir / f"turn_{self.turn_index}_user.webm"
@@ -420,7 +476,7 @@ class ConversationHandler:
         await self._send({"type": "user_transcript", "text": user_text})
         self.history.append({"role": "user", "content": user_text})
         effective = self._effective_level() or ""
-        ctx = self._topic_context_for_llm()
+        ctx = await self._topic_context_for_llm(db)
         messages = self._lm.build_messages(
             self.history,
             topic_context=ctx,
@@ -460,9 +516,6 @@ class ConversationHandler:
         if tts_bytes:
             tts_path.write_bytes(tts_bytes)
 
-        score_topic = ctx or self.topic.title
-        score = await self._scorer.score(user_text, score_topic, duration)
-
         turn = Turn(
             session_id=self.session_id,
             index_in_session=self.turn_index,
@@ -473,42 +526,6 @@ class ConversationHandler:
         )
         db.add(turn)
         await db.commit()
-        await db.refresh(turn)
-
-        db.add(
-            TurnScore(
-                turn_id=turn.id,
-                fluency=score.get("fluency", 5),
-                vocabulary=score.get("vocabulary", 5),
-                grammar=score.get("grammar", 5),
-                overall=score.get("overall", 5),
-                feedback=score.get("feedback"),
-            )
-        )
-        await db.commit()
-        await self._send(
-            {
-                "type": "turn_score",
-                "turnId": turn.id,
-                "fluency": score.get("fluency", 5),
-                "vocabulary": score.get("vocabulary", 5),
-                "grammar": score.get("grammar", 5),
-                "overall": score.get("overall", 5),
-                "feedback": score.get("feedback", ""),
-            }
-        )
-        if await roadmap_svc.try_auto_complete_unit_for_session(
-            db, self.session_id, self._user_id
-        ):
-            uid = self.topic_unit.id if self.topic_unit else None
-            if uid is not None:
-                await self._send(
-                    {
-                        "type": "status",
-                        "message": "roadmap_unit_completed",
-                        "topicUnitId": uid,
-                    }
-                )
         self.turn_index += 1
         return True
 
@@ -523,12 +540,15 @@ class ConversationHandler:
             await self._send({"type": "error", "message": "Empty message"})
             return False
 
+        if await self._reject_if_max_scored_turns(db):
+            return False
+
         user_text = raw
         await self._send({"type": "user_transcript", "text": user_text})
         self.history.append({"role": "user", "content": user_text})
 
         effective = self._effective_level() or ""
-        ctx = self._topic_context_for_llm()
+        ctx = await self._topic_context_for_llm(db)
         messages = self._lm.build_messages(
             self.history,
             topic_context=ctx,
@@ -570,9 +590,6 @@ class ConversationHandler:
         if tts_bytes:
             tts_path.write_bytes(tts_bytes)
 
-        # Duration is unknown for text-only; pass 0 so scorer can still work.
-        score_topic = ctx or self.topic.title
-        score = await self._scorer.score(user_text, score_topic, 0.0)
         turn = Turn(
             session_id=self.session_id,
             index_in_session=self.turn_index,
@@ -583,29 +600,89 @@ class ConversationHandler:
         )
         db.add(turn)
         await db.commit()
-        await db.refresh(turn)
-        db.add(
-            TurnScore(
-                turn_id=turn.id,
-                fluency=score.get("fluency", 5),
-                vocabulary=score.get("vocabulary", 5),
-                grammar=score.get("grammar", 5),
-                overall=score.get("overall", 5),
-                feedback=score.get("feedback"),
+        self.turn_index += 1
+        return True
+
+    async def _score_pending_turns_and_send_summary(self, db: AsyncSession) -> None:
+        """After conversation ends: score turns missing scores, notify client, roadmap auto-complete."""
+        if not self.session_id or not self.topic:
+            return
+
+        ctx = await self._topic_context_for_llm(db)
+        score_topic = ctx or self.topic.title
+
+        r = await db.execute(
+            select(Turn)
+            .where(Turn.session_id == self.session_id)
+            .order_by(Turn.index_in_session)
+            .options(selectinload(Turn.score))
+        )
+        turns = list(r.scalars().all())
+
+        for t in turns:
+            if t.score is not None:
+                continue
+            sc = await self._scorer.score(t.user_text, score_topic, 0.0)
+            db.add(
+                TurnScore(
+                    turn_id=t.id,
+                    fluency=sc.get("fluency", 5),
+                    vocabulary=sc.get("vocabulary", 5),
+                    grammar=sc.get("grammar", 5),
+                    overall=sc.get("overall", 5),
+                    feedback=sc.get("feedback"),
+                )
             )
-        )
         await db.commit()
-        await self._send(
-            {
-                "type": "turn_score",
-                "turnId": turn.id,
-                "fluency": score.get("fluency", 5),
-                "vocabulary": score.get("vocabulary", 5),
-                "grammar": score.get("grammar", 5),
-                "overall": score.get("overall", 5),
-                "feedback": score.get("feedback", ""),
-            }
+
+        r2 = await db.execute(
+            select(Turn)
+            .where(Turn.session_id == self.session_id)
+            .order_by(Turn.index_in_session)
+            .options(selectinload(Turn.score))
         )
+        all_with_scores = [t for t in r2.scalars() if t.score is not None]
+
+        turns_out: list[dict[str, Any]] = []
+        flu: list[float] = []
+        voc: list[float] = []
+        gram: list[float] = []
+        ovl: list[float] = []
+        for t in all_with_scores:
+            ts = t.score
+            if ts is None:
+                continue
+            turns_out.append(
+                {
+                    "turnId": t.id,
+                    "fluency": ts.fluency,
+                    "vocabulary": ts.vocabulary,
+                    "grammar": ts.grammar,
+                    "overall": ts.overall,
+                    "feedback": ts.feedback or "",
+                }
+            )
+            flu.append(ts.fluency)
+            voc.append(ts.vocabulary)
+            gram.append(ts.grammar)
+            ovl.append(ts.overall)
+
+        if turns_out:
+            n = len(turns_out)
+            averages = {
+                "fluency": sum(flu) / n,
+                "vocabulary": sum(voc) / n,
+                "grammar": sum(gram) / n,
+                "overall": sum(ovl) / n,
+            }
+            await self._send(
+                {
+                    "type": "session_scores",
+                    "turns": turns_out,
+                    "averages": averages,
+                }
+            )
+
         if await roadmap_svc.try_auto_complete_unit_for_session(
             db, self.session_id, self._user_id
         ):
@@ -616,18 +693,18 @@ class ConversationHandler:
                         "type": "status",
                         "message": "roadmap_unit_completed",
                         "topicUnitId": uid,
+                        "sessionId": self.session_id,
                     }
                 )
-        self.turn_index += 1
-        return True
 
     async def handle_stop(self, db: AsyncSession) -> None:
-        """Mark session ended and send session_stopped."""
-        if self.session_id:
+        """Score any pending turns, then mark session ended and send session_stopped."""
+        sid = self.session_id
+        if sid and self.topic:
+            await self._score_pending_turns_and_send_summary(db)
+        if sid:
             sess_q = await db.execute(
-                select(ConversationSession).where(
-                    ConversationSession.id == self.session_id
-                )
+                select(ConversationSession).where(ConversationSession.id == sid)
             )
             sess = sess_q.scalar_one_or_none()
             if sess:

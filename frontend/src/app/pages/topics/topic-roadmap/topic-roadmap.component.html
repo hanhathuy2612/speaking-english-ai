@@ -9,7 +9,9 @@
     <header class="hero">
       <h1>{{ roadmap()?.topic_title ?? topicMeta()?.title ?? 'Roadmap' }}</h1>
       <p class="muted">
-        Follow the steps in order. Practice each step with the AI, or use free conversation anytime.
+        Follow the steps in order. Each step can require a number of <strong>your</strong> scored speaking
+        turns in one session (not a fixed count of AI questions). Your goal for the step is shown under the
+        title. Free conversation is always available without these rules.
       </p>
       <div class="hero-actions">
         @if (account.isAdmin()) {
@@ -45,12 +47,16 @@
                 }}</span>
                 <h2 class="step__title">{{ item.unit.title }}</h2>
                 <p class="step__objective">{{ item.unit.objective }}</p>
-                @if (item.unit.min_turns_to_complete != null || item.unit.min_avg_overall != null) {
+                @if (
+                  item.unit.min_turns_to_complete != null ||
+                  item.unit.min_avg_overall != null ||
+                  item.unit.max_scored_turns != null
+                ) {
                   <p class="step__meta">
                     @if (item.unit.min_turns_to_complete != null) {
                       <span
-                        >Auto-complete after {{ item.unit.min_turns_to_complete }} scored
-                        turns</span
+                        >Auto-complete after {{ item.unit.min_turns_to_complete }} of your scored turns in
+                        one session</span
                       >
                     }
                     @if (item.unit.min_avg_overall != null) {
@@ -58,7 +64,15 @@
                         @if (item.unit.min_turns_to_complete != null) {
                           <span> · </span>
                         }
-                        Avg score ≥ {{ item.unit.min_avg_overall }}
+                        Avg overall ≥ {{ item.unit.min_avg_overall }}
+                      </span>
+                    }
+                    @if (item.unit.max_scored_turns != null) {
+                      <span>
+                        @if (item.unit.min_turns_to_complete != null || item.unit.min_avg_overall != null) {
+                          <span> · </span>
+                        }
+                        Max {{ item.unit.max_scored_turns }} scored turns per session
                       </span>
                     }
                   </p>

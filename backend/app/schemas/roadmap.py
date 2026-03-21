@@ -10,6 +10,7 @@ class TopicUnitOut(BaseModel):
     prompt_hint: str
     min_turns_to_complete: int | None
     min_avg_overall: float | None
+    max_scored_turns: int | None
 
     model_config = {"from_attributes": True}
 

@@ -32,6 +32,7 @@ export class TopicUnitFormModalComponent {
   promptHint = '';
   minTurns: number | null = null;
   minAvg: number | null = null;
+  maxScoredTurns: number | null = null;
   saving = false;
   error = '';
 
@@ -57,6 +58,7 @@ export class TopicUnitFormModalComponent {
         prompt_hint: h,
         min_turns_to_complete: this.minTurns,
         min_avg_overall: this.minAvg,
+        max_scored_turns: this.maxScoredTurns,
       })
       .pipe(finalize(() => (this.saving = false)))
       .subscribe({

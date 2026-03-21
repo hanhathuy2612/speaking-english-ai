@@ -19,6 +19,63 @@ from app.models.conversation import (
 RoadmapUnitStatus = str  # locked | available | in_progress | completed
 
 
+def unit_auto_complete_thresholds_met(
+    unit: TopicUnit, scored_turns: int, avg_overall: float | None
+) -> bool:
+    min_turns = unit.min_turns_to_complete
+    min_avg = unit.min_avg_overall
+    turns_ok = min_turns is None or scored_turns >= min_turns
+    avg_ok = min_avg is None or (
+        avg_overall is not None and float(avg_overall) >= float(min_avg)
+    )
+    return turns_ok and avg_ok
+
+
+async def count_scored_turns_in_session(db: AsyncSession, session_id: int) -> int:
+    r = await db.execute(
+        select(func.count())
+        .select_from(Turn)
+        .join(TurnScore, TurnScore.turn_id == Turn.id)
+        .where(Turn.session_id == session_id)
+    )
+    return int(r.scalar() or 0)
+
+
+async def count_turns_in_session(db: AsyncSession, session_id: int) -> int:
+    """Practice turns (user+assistant rows) in the session, scored or not."""
+    r = await db.execute(
+        select(func.count()).select_from(Turn).where(Turn.session_id == session_id)
+    )
+    return int(r.scalar() or 0)
+
+
+async def scored_turn_averages_for_session(
+    db: AsyncSession, session_id: int
+) -> tuple[int, float | None, float | None, float | None, float | None]:
+    """Count of scored turns and avg overall / fluency / vocabulary / grammar."""
+    r = await db.execute(
+        select(
+            func.count(TurnScore.turn_id),
+            func.avg(TurnScore.overall),
+            func.avg(TurnScore.fluency),
+            func.avg(TurnScore.vocabulary),
+            func.avg(TurnScore.grammar),
+        )
+        .select_from(Turn)
+        .join(TurnScore, TurnScore.turn_id == Turn.id)
+        .where(Turn.session_id == session_id)
+    )
+    row = r.one()
+    cnt = int(row[0] or 0)
+    return (
+        cnt,
+        float(row[1]) if row[1] is not None else None,
+        float(row[2]) if row[2] is not None else None,
+        float(row[3]) if row[3] is not None else None,
+        float(row[4]) if row[4] is not None else None,
+    )
+
+
 def _utc_now() -> datetime:
     return datetime.now(timezone.utc)
 
@@ -176,30 +233,11 @@ async def try_auto_complete_unit_for_session(
     if prog and prog.completed_at is not None:
         return False
 
-    turns_q = await db.execute(
-        select(func.count())
-        .select_from(Turn)
-        .join(TurnScore, TurnScore.turn_id == Turn.id)
-        .where(Turn.session_id == session_id)
-    )
-    scored_turns = int(turns_q.scalar() or 0)
-
-    avg_q = await db.execute(
-        select(func.avg(TurnScore.overall))
-        .join(Turn, TurnScore.turn_id == Turn.id)
-        .where(Turn.session_id == session_id)
-    )
-    avg_overall = avg_q.scalar()
-
-    min_turns = unit.min_turns_to_complete
-    min_avg = unit.min_avg_overall
-
-    turns_ok = min_turns is None or scored_turns >= min_turns
-    avg_ok = min_avg is None or (
-        avg_overall is not None and float(avg_overall) >= float(min_avg)
+    scored_turns, avg_overall, _f, _v, _g = await scored_turn_averages_for_session(
+        db, session_id
     )
 
-    if not (turns_ok and avg_ok):
+    if not unit_auto_complete_thresholds_met(unit, scored_turns, avg_overall):
         return False
 
     now = _utc_now()
