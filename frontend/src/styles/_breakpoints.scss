@@ -1,0 +1,55 @@
+// Shared responsive breakpoints — @use in component/global SCSS: `@use 'path/to/breakpoints' as bp;`
+// Use max-* mixins for mobile-first overrides (max-width = just below the next tier).
+
+$bp-xxs: 380px; // very narrow: icon-only controls
+$bp-xs: 400px; // e.g. single-column stat grids
+$bp-auth-sm: 480px; // auth card / narrow forms
+$bp-sm: 576px; // container padding, stacked page sections
+$bp-md: 640px; // e.g. chart columns
+$bp-nav: 768px; // app nav drawer, conversation bottom sheet
+
+@function bp-down($min-width) {
+  @return $min-width - 0.02px;
+}
+
+@mixin max-xxs {
+  @media (max-width: bp-down($bp-xxs)) {
+    @content;
+  }
+}
+
+@mixin max-xs {
+  @media (max-width: bp-down($bp-xs)) {
+    @content;
+  }
+}
+
+@mixin max-auth-sm {
+  @media (max-width: bp-down($bp-auth-sm)) {
+    @content;
+  }
+}
+
+@mixin max-sm {
+  @media (max-width: bp-down($bp-sm)) {
+    @content;
+  }
+}
+
+@mixin max-md {
+  @media (max-width: bp-down($bp-md)) {
+    @content;
+  }
+}
+
+@mixin max-nav {
+  @media (max-width: bp-down($bp-nav)) {
+    @content;
+  }
+}
+
+@mixin min-nav {
+  @media (min-width: $bp-nav) {
+    @content;
+  }
+}

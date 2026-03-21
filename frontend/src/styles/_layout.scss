@@ -1,6 +1,8 @@
+@use './breakpoints' as bp;
+
 /* Page & container */
 .page {
-  min-height: calc(100vh - 56px);
+  min-height: calc(100dvh - var(--app-nav-offset) - var(--sab));
 }
 
 .container {
@@ -8,4 +10,8 @@
   max-width: 1100px;
   margin: 0 auto;
   padding: 0 24px;
+
+  @include bp.max-sm {
+    padding: 0 16px;
+  }
 }

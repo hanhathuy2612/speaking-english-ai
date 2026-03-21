@@ -49,6 +49,9 @@
     },
     {
       "path": "./tsconfig.spec.json"
+    },
+    {
+      "path": "./tsconfig.capacitor.json"
     }
   ]
 }

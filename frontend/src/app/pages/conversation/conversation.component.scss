@@ -1,7 +1,11 @@
+@use '../../../styles/breakpoints' as bp;
+
 .conv-layout {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 56px);
+  box-sizing: border-box;
+  min-height: 0;
+  height: calc(100dvh - var(--app-nav-offset) - var(--sab));
   background: var(--clr-bg);
 }
 
@@ -192,11 +196,25 @@
 
 .conv-header {
   display: flex;
-  align-items: center;
-  gap: 16px;
+  flex-direction: column;
+  gap: 10px;
   padding: 12px 24px;
   background: var(--clr-bg-elevated);
   border-bottom: 1px solid var(--clr-border);
+}
+
+.conv-header__row--primary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.conv-header__row--secondary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 12px;
 }
 
 .conv-header__back {
@@ -205,6 +223,7 @@
   gap: 6px;
   padding: 8px 12px;
   font-size: 0.875rem;
+  flex-shrink: 0;
 }
 
 .conv-header__back-arrow {
@@ -379,9 +398,20 @@
   gap: 8px;
 }
 
+.conv-header__new-label--short {
+  display: none;
+}
+
 .conv-header__tts {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   padding: 8px 12px;
   font-size: 0.875rem;
+}
+
+.conv-header__tts-text {
+  white-space: nowrap;
 }
 
 .chat-area {
@@ -712,7 +742,11 @@
   gap: 4px;
 }
 
-/* Right-side guidance panel (click on AI question) */
+/* Tips panel: sidebar desktop, bottom sheet mobile */
+.conv-guide-backdrop {
+  display: none;
+}
+
 .conv-guide-panel {
   width: 320px;
   min-width: 280px;
@@ -802,5 +836,168 @@
   em {
     color: var(--clr-text);
     font-style: italic;
+  }
+}
+
+@include bp.max-nav {
+  .conv-error,
+  .conv-notice,
+  .conv-session-summary,
+  .conv-unit-banner {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .conv-session-summary__inner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .conv-session-summary__dismiss {
+    margin-left: 0;
+    align-self: flex-end;
+  }
+
+  .conv-header {
+    padding: 10px 12px;
+  }
+
+  .conv-header__new-label--full {
+    display: none;
+  }
+
+  .conv-header__new-label--short {
+    display: inline;
+  }
+
+  .conv-header__tts-text {
+    display: none;
+  }
+
+  .conv-header__tts-controls {
+    flex: 1 1 100%;
+    gap: 8px;
+  }
+
+  .conv-header__label {
+    flex: 1 1 calc(50% - 6px);
+    min-width: 0;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+  }
+
+  :host ::ng-deep .conv-header__tts-controls .ng-select {
+    min-width: 0 !important;
+  }
+
+  .conv-header__voice-dropdown {
+    width: 100% !important;
+    max-width: none;
+  }
+
+  .conv-header__label:has(.conv-header__voice-dropdown) {
+    flex: 1 1 100%;
+  }
+
+  .chat-area {
+    padding: 12px 12px 16px;
+    gap: 14px;
+  }
+
+  .msg {
+    max-width: 92%;
+  }
+
+  .controls {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    padding: 12px;
+  }
+
+  .controls-left {
+    justify-content: center;
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .controls-right {
+    width: 100%;
+  }
+
+  .controls-tip {
+    min-width: 0;
+    flex: 1 1 auto;
+    text-align: center;
+  }
+
+  .btn-record {
+    width: 56px;
+    height: 56px;
+  }
+
+  .btn-record__icon {
+    font-size: 1.5rem;
+  }
+
+  .vu-bar {
+    width: 56px;
+  }
+
+  .conv-unit-modal-backdrop {
+    padding: 16px;
+    align-items: flex-end;
+  }
+
+  .conv-unit-modal {
+    max-width: none;
+    border-radius: var(--radius) var(--radius) 0 0;
+  }
+
+  .conv-guide-backdrop {
+    display: block;
+  }
+
+  .conv-guide-panel {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: auto;
+    width: 100%;
+    min-width: 0;
+    max-height: min(72vh, 560px);
+    padding-bottom: var(--sab);
+    border-left: none;
+    border-top: 1px solid var(--clr-border);
+    border-radius: var(--radius) var(--radius) 0 0;
+    z-index: 200;
+    box-shadow: 0 -12px 40px rgb(0 0 0 / 0.22);
+  }
+}
+
+@include bp.max-xxs {
+  .conv-header__back {
+    position: relative;
+    padding: 8px 10px;
+  }
+
+  .conv-header__back-text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+}
+
+@include bp.min-nav {
+  .conv-guide-backdrop {
+    display: none !important;
   }
 }

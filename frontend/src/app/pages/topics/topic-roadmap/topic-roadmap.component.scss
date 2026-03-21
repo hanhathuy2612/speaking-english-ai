@@ -1,3 +1,5 @@
+@use '../../../../styles/breakpoints' as bp;
+
 .page {
   min-height: 60vh;
 }
@@ -5,6 +7,11 @@
 .breadcrumb {
   padding: 24px 0 0;
   font-size: 0.875rem;
+
+  @include bp.max-sm {
+    padding: 16px 0 0;
+    font-size: 0.8125rem;
+  }
   color: var(--clr-text-muted);
 
   a {
@@ -29,11 +36,19 @@
 .hero {
   padding: 16px 0 32px;
 
+  @include bp.max-sm {
+    padding: 12px 0 24px;
+  }
+
   h1 {
     font-size: 1.75rem;
     font-weight: 700;
     margin: 0 0 8px;
     letter-spacing: -0.02em;
+
+    @include bp.max-sm {
+      font-size: 1.375rem;
+    }
   }
 
   .muted {
@@ -49,6 +64,15 @@
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
+
+  @include bp.max-sm {
+    flex-direction: column;
+
+    .btn {
+      width: 100%;
+      justify-content: center;
+    }
+  }
 }
 
 .loading {
@@ -88,6 +112,12 @@
   justify-content: space-between;
   gap: 20px;
   padding: 20px 24px;
+
+  @include bp.max-sm {
+    padding: 16px;
+    gap: 14px;
+    flex-direction: column;
+  }
   background: var(--clr-bg-elevated);
   border: 1px solid var(--clr-border);
   border-radius: var(--radius);
@@ -155,4 +185,13 @@
   flex-direction: column;
   gap: 8px;
   flex-shrink: 0;
+
+  @include bp.max-sm {
+    width: 100%;
+
+    .btn {
+      width: 100%;
+      justify-content: center;
+    }
+  }
 }

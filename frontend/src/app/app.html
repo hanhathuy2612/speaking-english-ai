@@ -1,22 +1,72 @@
-<main class="app-main">
+<main class="app-main" [class.app-main--with-nav]="auth.isLoggedIn()">
   @if (auth.isLoggedIn()) {
-    <nav class="app-nav">
-      <div>
-        <a routerLink="/topics" class="app-nav__logo" routerLinkActive="active">
-          <i class="bi bi-mic-fill app-nav__logo-icon" aria-hidden="true"></i>
-          <span>SpeakAI</span>
-        </a>
-      </div>
-      <div class="app-nav__links">
-        <a routerLink="/topics" routerLinkActive="active">Topics</a>
-        <a routerLink="/progress" routerLinkActive="active">Progress</a>
-        @if (account.isAdmin()) {
-          <a routerLink="/admin" routerLinkActive="active">Admin</a>
+    <nav class="app-nav" [class.app-nav--drawer-open]="mobileMenuOpen()" aria-label="Main">
+      <button
+        type="button"
+        class="app-nav__menu-btn"
+        (click)="toggleMobileMenu()"
+        [attr.aria-expanded]="mobileMenuOpen()"
+        aria-controls="app-nav-drawer"
+        aria-label="Menu"
+      >
+        @if (mobileMenuOpen()) {
+          <i class="bi bi-x-lg" aria-hidden="true"></i>
+        } @else {
+          <i class="bi bi-list" aria-hidden="true"></i>
         }
+      </button>
+
+      <a routerLink="/topics" class="app-nav__logo" routerLinkActive="active">
+        <i class="bi bi-mic-fill app-nav__logo-icon" aria-hidden="true"></i>
+        <span>SpeakAI</span>
+      </a>
+
+      <div class="app-nav__center">
+        <div class="app-nav__links app-nav__links--desktop">
+          <a routerLink="/topics" routerLinkActive="active">Topics</a>
+          <a routerLink="/progress" routerLinkActive="active">Progress</a>
+          @if (account.isAdmin()) {
+            <a routerLink="/admin" routerLinkActive="active">Admin</a>
+          }
+        </div>
       </div>
-      <div class="app-nav__user">
+
+      <div class="app-nav__user app-nav__user--desktop">
         <span class="app-nav__username">{{ auth.getUsername() }}</span>
         <button type="button" class="btn btn--ghost btn--sm" (click)="auth.logout()">Logout</button>
+      </div>
+
+      @if (mobileMenuOpen()) {
+        <div
+          class="app-nav__backdrop"
+          role="presentation"
+          (click)="closeMobileMenu()"
+          aria-hidden="true"
+        ></div>
+      }
+
+      <div id="app-nav-drawer" class="app-nav__drawer" [attr.aria-hidden]="!mobileMenuOpen()">
+        <div class="app-nav__drawer-inner">
+          <div class="app-nav__links app-nav__links--mobile">
+            <a routerLink="/topics" routerLinkActive="active" (click)="closeMobileMenu()">Topics</a>
+            <a routerLink="/progress" routerLinkActive="active" (click)="closeMobileMenu()"
+              >Progress</a
+            >
+            @if (account.isAdmin()) {
+              <a routerLink="/admin" routerLinkActive="active" (click)="closeMobileMenu()">Admin</a>
+            }
+          </div>
+          <div class="app-nav__drawer-footer">
+            <span class="app-nav__username">{{ auth.getUsername() }}</span>
+            <button
+              type="button"
+              class="btn btn--ghost btn--sm"
+              (click)="auth.logout(); closeMobileMenu()"
+            >
+              Logout
+            </button>
+          </div>
+        </div>
       </div>
     </nav>
   }

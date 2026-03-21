@@ -1,5 +1,11 @@
+@use '../../../../styles/breakpoints' as bp;
+
 .page {
   min-height: 60vh;
+
+  @include bp.max-sm {
+    padding-bottom: 24px;
+  }
 }
 
 .breadcrumb {
@@ -70,6 +76,11 @@
     padding: 12px 14px;
     text-align: left;
     border-bottom: 1px solid var(--clr-border);
+
+    @include bp.max-sm {
+      padding: 10px 10px;
+      font-size: 0.8125rem;
+    }
   }
 
   th {
@@ -103,6 +114,13 @@
   align-items: center;
   gap: 16px;
   padding-bottom: 48px;
+
+  @include bp.max-sm {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    padding-bottom: 32px;
+  }
 
   &__meta {
     font-size: 0.875rem;

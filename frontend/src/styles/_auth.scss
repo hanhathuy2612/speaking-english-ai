@@ -1,3 +1,5 @@
+@use './breakpoints' as bp;
+
 /* Auth pages (login, register) */
 .auth-page {
   min-height: 100vh;
@@ -6,6 +8,12 @@
   justify-content: center;
   padding: 24px;
   background: var(--clr-bg);
+
+  @include bp.max-auth-sm {
+    padding: 16px;
+    align-items: flex-start;
+    padding-top: 32px;
+  }
 }
 
 .auth-box {
@@ -35,6 +43,10 @@
   border-radius: var(--radius);
   padding: 28px 32px;
   box-shadow: var(--shadow-md);
+
+  @include bp.max-auth-sm {
+    padding: 20px 18px;
+  }
 }
 
 .auth-card .field {

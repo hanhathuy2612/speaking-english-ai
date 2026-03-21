@@ -46,9 +46,16 @@ class Settings(BaseSettings):
     database_url: str = (
         "postgresql+asyncpg://postgres:postgres@localhost:5432/speaking_english"
     )
+    # Web: ng serve. Capacitor Android/iOS serves the app from localhost / custom schemes — preflight
+    # sends that Origin, not http://10.0.2.2 (that is only the API host from the emulator).
     cors_allowed_origins: list[str] = [
         "http://localhost:4200",
         "http://192.168.1.44:4200",
+        "http://10.0.2.2:4200",
+        "http://localhost",
+        "https://localhost",
+        "capacitor://localhost",
+        "ionic://localhost",
     ]
     max_audio_upload_mb: int = 10
     request_timeout_seconds: int = 60

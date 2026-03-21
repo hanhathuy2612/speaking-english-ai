@@ -43,4 +43,14 @@
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
   --shadow-focus: 0 0 0 3px rgba(92, 141, 214, 0.2);
   --transition: 0.2s ease;
+
+  /* Safe area (tai thỏ / home indicator). Cần viewport-fit=cover trong index.html. */
+  --sat: env(safe-area-inset-top, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+
+  /* Height of the navigation bar (logo/link row) + status bar area */
+  --app-nav-bar: 56px;
+  --app-nav-offset: calc(var(--app-nav-bar) + var(--sat));
 }
