@@ -32,19 +32,22 @@
 }
 
 .badge--success,
-.badge--a1 {
+.badge--a1,
+.badge--ielts-low {
   background: var(--clr-success-bg);
   color: var(--clr-success);
 }
 
 .badge--accent,
-.badge--a2 {
+.badge--a2,
+.badge--ielts-mid {
   background: var(--clr-accent-bg);
   color: var(--clr-accent);
 }
 
 .badge--warning,
-.badge--b1 {
+.badge--b1,
+.badge--ielts-strong {
   background: var(--clr-warning-bg);
   color: var(--clr-warning);
 }
@@ -56,7 +59,8 @@
 }
 
 .badge--purple,
-.badge--c1 {
+.badge--c1,
+.badge--ielts-expert {
   background: var(--clr-purple-bg);
   color: var(--clr-purple);
 }

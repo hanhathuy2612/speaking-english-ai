@@ -5,7 +5,7 @@ export interface ConversationWsStartPayload {
   topicId: number;
   ttsRate: string;
   ttsVoice: string;
-  /** CEFR override or "" for topic default; must be sent on start so opening line uses correct level. */
+  /** IELTS Speaking band override or "" for topic default; must be sent on start so opening line uses correct level. */
   level: string;
   sessionId?: number;
   unitId?: number;

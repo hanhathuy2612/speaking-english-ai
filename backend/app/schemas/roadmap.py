@@ -26,6 +26,9 @@ class RoadmapUnitItem(BaseModel):
 class RoadmapOut(BaseModel):
     topic_id: int
     topic_title: str
+    topic_level: str | None = Field(
+        None, description="IELTS Speaking target band stored on the topic"
+    )
     units: list[RoadmapUnitItem]
 
 

@@ -137,7 +137,12 @@ async def get_topic_roadmap(
         RoadmapUnitItem(unit=TopicUnitOut.model_validate(u), status=s)
         for u, s in zip(units, statuses, strict=True)
     ]
-    return RoadmapOut(topic_id=topic.id, topic_title=topic.title, units=items)
+    return RoadmapOut(
+        topic_id=topic.id,
+        topic_title=topic.title,
+        topic_level=topic.level,
+        units=items,
+    )
 
 
 @router.post("/{topic_id:int}/roadmap/progress", response_model=RoadmapProgressOut)

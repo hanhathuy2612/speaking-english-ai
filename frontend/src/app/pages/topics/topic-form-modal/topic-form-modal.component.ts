@@ -10,23 +10,22 @@ import {
 } from '@angular/core';
 import { NgbActiveModal, NgbModalModule } from '@ng-bootstrap/ng-bootstrap';
 import { finalize } from 'rxjs';
+import {
+  IELTS_SPEAKING_BAND_VALUES,
+  normalizeIeltsLevelInput,
+} from '../../../shared/ielts-levels';
 import { ApiService, Topic } from '../../../shared/services/api.service';
 
 /** Khi có giá trị = edit, không provide hoặc null = create */
 export const TOPIC_FORM_MODAL_DATA = new InjectionToken<Topic | null>('TopicFormModalData');
 
-const LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1'] as const;
-
 const LEVEL_OPTIONS = [
   { value: '', label: 'General' },
-  ...LEVELS.map((l) => ({ value: l, label: l })),
+  ...IELTS_SPEAKING_BAND_VALUES.map((b) => ({ value: b, label: `Band ${b}` })),
 ];
 
 function normalizeLevel(level: string | null | undefined): string {
-  const raw = (level ?? '').trim();
-  if (!raw) return '';
-  const found = LEVELS.find((l) => l.toLowerCase() === raw.toLowerCase());
-  return found ?? raw;
+  return normalizeIeltsLevelInput(level);
 }
 
 @Component({

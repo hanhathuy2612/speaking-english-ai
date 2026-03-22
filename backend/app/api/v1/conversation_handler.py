@@ -17,6 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.config import get_settings
+from app.core.ielts_levels import resolve_ielts_band
 from app.models.conversation import (
     ConversationSession,
     Topic,
@@ -32,6 +33,30 @@ from app.services.stt_service import STTService
 from app.services.tts_service import TTSService
 
 logger = logging.getLogger(__name__)
+
+
+def _opening_max_tokens(level_raw: str) -> int:
+    n = resolve_ielts_band(level_raw)
+    if n is None:
+        return 120
+    if n <= 5.0:
+        return 80
+    if n <= 6.5:
+        return 100
+    return 120
+
+
+def _lm_max_reply_tokens(base: int, level_raw: str) -> int:
+    n = resolve_ielts_band(level_raw)
+    if n is None:
+        return base
+    if n <= 5.0:
+        return min(base, 85)
+    if n <= 6.0:
+        return min(base, 120)
+    if n <= 7.0:
+        return min(base, 150)
+    return min(base, 180)
 
 AUDIO_DIR = Path("audio")
 AUDIO_DIR.mkdir(exist_ok=True)
@@ -166,7 +191,7 @@ class ConversationHandler:
         return None
 
     def set_level(self, level: str | None) -> None:
-        """Set real-time level override (e.g. from client dropdown). '' or None = use topic level."""
+        """Set real-time IELTS band override (from client dropdown). '' or None = use topic level."""
         s = (level or "").strip()
         self.level_override = s if s else None
 
@@ -456,7 +481,6 @@ class ConversationHandler:
             if isinstance(existing, str) and existing.strip():
                 return
         effective = self._effective_level() or ""
-        level_key = effective.strip().lower()
         ctx = await self._topic_context_for_llm(db)
         if self.topic_unit is not None:
             u = self.topic_unit
@@ -478,7 +502,7 @@ class ConversationHandler:
             topic_context=ctx,
             topic_level=effective or None,
         )
-        max_open_tokens = 80 if level_key in ("a1", "a2") else 120
+        max_open_tokens = _opening_max_tokens(effective)
         try:
             opening_text = await stream_llm(
                 self._send,
@@ -608,12 +632,7 @@ class ConversationHandler:
             topic_context=ctx,
             topic_level=effective or None,
         )
-        level_key = effective.strip().lower()
-        max_tokens = settings.lm_conversation_max_tokens
-        if level_key == "a1":
-            max_tokens = min(max_tokens, 80)
-        elif level_key == "a2":
-            max_tokens = min(max_tokens, 120)
+        max_tokens = _lm_max_reply_tokens(settings.lm_conversation_max_tokens, effective)
 
         try:
             assistant_text = await stream_llm(
@@ -680,12 +699,7 @@ class ConversationHandler:
             topic_level=effective or None,
         )
         settings = get_settings()
-        level_key = effective.strip().lower()
-        max_tokens = settings.lm_conversation_max_tokens
-        if level_key == "a1":
-            max_tokens = min(max_tokens, 80)
-        elif level_key == "a2":
-            max_tokens = min(max_tokens, 120)
+        max_tokens = _lm_max_reply_tokens(settings.lm_conversation_max_tokens, effective)
 
         try:
             assistant_text = await stream_llm(

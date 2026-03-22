@@ -11,26 +11,27 @@ from typing import Any
 import httpx
 
 from app.core.config import get_settings
+from app.core.ielts_levels import format_ielts_band, resolve_ielts_band
 
 log = logging.getLogger(__name__)
 
-_DEFAULT_SYSTEM = """You are a friendly English conversation partner.
+_DEFAULT_SYSTEM = """You are a friendly AI partner helping the user practise **IELTS Speaking** (Parts 1–3 style).
 
-Sound natural and relaxed, like talking to a friend—not like a textbook or a formal teacher.
-Use everyday language, contractions (I'm, that's), and a warm tone.
+Sound like a warm examiner or tutor: natural, relaxed, not textbook-like.
+Use everyday language, contractions (I'm, that's).
 
-Keep your replies short and natural (usually 2–4 sentences). Avoid lists, bullet points, or over-explaining.
+Keep your replies short (usually 2–4 sentences). Avoid long lists or over-explaining.
 
-Always stay focused on the current topic and respond directly to what the user just said.
-Use the conversation history so your replies feel connected and not random.
+Stay on the current topic and respond directly to what the user just said.
+Use the conversation history so your replies feel connected.
 
-Keep the conversation going by asking a simple follow-up question when it feels natural.
+Ask a simple follow-up question when it fits (like in the real exam).
 
-If the user makes a mistake, gently correct only the important part in a natural way, without interrupting the flow.
+If the user makes a mistake, gently correct only the important part without breaking flow.
 
-If the user switches topics suddenly, briefly respond and then guide the conversation back.
+If the user switches topics suddenly, briefly respond and guide back to the topic.
 
-If the user uses Vietnamese (or mixes Vietnamese and English), understand it but always reply in English.
+If the user uses Vietnamese (or mixes languages), understand it but always reply in English.
 Encourage them to try saying it in English in a simple way."""
 
 _TRANSCRIPT_NORMALIZE_SYSTEM = """You fix obvious speech-to-text (ASR) mistakes only.
@@ -48,28 +49,32 @@ Rules (strict):
 
 If the input is empty or "(inaudible)", return it as given."""
 
-_LEVEL_INSTRUCTIONS: dict[str, str] = {
-    "a1": (
-        "Level A1: Reply in ONE very short sentence only (about 5–12 words). "
-        "Use only simple, common words. No long explanations."
-    ),
-    "a2": (
-        "Level A2: Reply in 1–2 short sentences (about 10–20 words total). "
-        "Use simple vocabulary and clear grammar."
-    ),
-    "b1": (
-        "Level B1: Reply in 2–3 short sentences. Use everyday vocabulary. "
-        "Keep it clear and not too long."
-    ),
-    "b2": (
-        "Level B2: Reply in 2–4 sentences. Natural and clear. "
-        "Avoid being long-winded."
-    ),
-    "c1": (
-        "Level C1: You may reply in 2–4 sentences with natural, varied language. "
-        "Still keep replies concise."
-    ),
-}
+def _ielts_tutor_instruction(band: float) -> str:
+    """How the AI should shape its turns for the learner's IELTS Speaking target band."""
+    label = format_ielts_band(band)
+    if band <= 5.0:
+        return (
+            f"IELTS Speaking target Band {label}. "
+            "Reply in ONE very short sentence or two tiny ones (about 8–18 words total). "
+            "Very simple words; one clear idea; slow, supportive pace like early Part 1."
+        )
+    if band <= 6.0:
+        return (
+            f"IELTS Speaking target Band {label}. "
+            "Reply in 2–3 short sentences. Everyday vocabulary; clear grammar; "
+            "help them extend answers slightly (one follow-up)."
+        )
+    if band <= 7.0:
+        return (
+            f"IELTS Speaking target Band {label}. "
+            "Reply in 2–4 sentences. Natural linkers; varied vocabulary where easy; "
+            "challenge them a bit with a focused follow-up."
+        )
+    return (
+        f"IELTS Speaking target Band {label}. "
+        "Reply in 2–4 sentences with fluent, natural language. "
+        "You may use subtle nuance; keep it spoken, not essay-like."
+    )
 
 
 class LMStudioClient:
@@ -112,9 +117,9 @@ class LMStudioClient:
                 "Keep your replies closely related to this topic and to the user's last message. "
                 "Ask short follow-up questions about what the user just said, instead of changing the subject."
             )
-        level_key = (topic_level or "").strip().lower()
-        if level_key in _LEVEL_INSTRUCTIONS:
-            system += f"\n\n{_LEVEL_INSTRUCTIONS[level_key]}"
+        band = resolve_ielts_band(topic_level)
+        if band is not None:
+            system += f"\n\n{_ielts_tutor_instruction(band)}"
         if self._extra_system:
             system += f"\n\n{self._extra_system.strip()}"
         return [{"role": "system", "content": system}, *history]
@@ -130,10 +135,12 @@ class LMStudioClient:
         messages: list[dict[str, Any]],
         temperature: float = 0.7,
         max_tokens: int = 256,
+        *,
+        model: str | None = None,
     ) -> AsyncIterator[str]:
         """Call LM Studio in streaming mode and yield text chunks."""
         payload: dict[str, Any] = {
-            "model": self._model,
+            "model": (model.strip() if model else None) or self._model,
             "messages": messages,
             "temperature": temperature,
             "max_tokens": max_tokens,
@@ -191,10 +198,14 @@ class LMStudioClient:
         messages: list[dict[str, Any]],
         temperature: float = 0.3,
         max_tokens: int = 512,
+        *,
+        model: str | None = None,
     ) -> str:
         """Non-streaming version — returns full text (used for scoring)."""
         chunks: list[str] = []
-        async for chunk in self.generate_stream(messages, temperature, max_tokens):
+        async for chunk in self.generate_stream(
+            messages, temperature, max_tokens, model=model
+        ):
             chunks.append(chunk)
         return "".join(chunks)
 

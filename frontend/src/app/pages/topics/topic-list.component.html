@@ -3,7 +3,7 @@
     <header class="hero hero--row">
       <div>
         <h1>Choose a topic</h1>
-        <p>Pick a conversation topic and start speaking with your AI tutor.</p>
+        <p>Pick a topic and practise IELTS Speaking with your AI tutor.</p>
       </div>
       @if (account.isAdmin()) {
         <button type="button" class="btn btn--primary" (click)="openCreateForm()">
@@ -45,17 +45,13 @@
               <p class="topic-desc">{{ t.description }}</p>
               <span
                 class="badge"
-                [class.badge--a1]="(t.level ?? '').toLowerCase() === 'a1'"
-                [class.badge--a2]="(t.level ?? '').toLowerCase() === 'a2'"
-                [class.badge--b1]="(t.level ?? '').toLowerCase() === 'b1'"
-                [class.badge--b2]="(t.level ?? '').toLowerCase() === 'b2'"
-                [class.badge--c1]="(t.level ?? '').toLowerCase() === 'c1'"
-                [class.badge--default]="
-                  !t.level ||
-                  !['a1', 'a2', 'b1', 'b2', 'c1'].includes((t.level || '').toLowerCase())
-                "
+                [class.badge--ielts-low]="ieltsTier(t.level) === 'low'"
+                [class.badge--ielts-mid]="ieltsTier(t.level) === 'mid'"
+                [class.badge--ielts-strong]="ieltsTier(t.level) === 'strong'"
+                [class.badge--ielts-expert]="ieltsTier(t.level) === 'expert'"
+                [class.badge--default]="ieltsTier(t.level) === 'none'"
               >
-                {{ t.level ?? 'General' }}
+                {{ topicLevelLabel(t) }}
               </span>
             </div>
             <div class="topic-card__action">

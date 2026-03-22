@@ -14,6 +14,15 @@
         shown under the title. Free conversation is always available without these rules.
       </p>
       <div class="hero-actions">
+        <button
+          type="button"
+          class="btn btn--secondary roadmap-band-btn"
+          (click)="openBandModal()"
+          title="Default IELTS Speaking band for this topic"
+        >
+          <span class="roadmap-band-btn__value">{{ topicBandLabel() }}</span>
+          <i class="bi bi-pencil-square" aria-hidden="true"></i>
+        </button>
         @if (account.isAdmin()) {
           <button type="button" class="btn btn--primary" (click)="openCreateUnitModal()">
             Add step
@@ -111,3 +120,54 @@
     }
   </div>
 </div>
+
+<ng-template #bandModal let-modal>
+  <div class="modal-header">
+    <h2 class="modal-title h5 mb-0" id="roadmap-band-modal-title">IELTS Speaking band</h2>
+    <button type="button" class="btn-close" aria-label="Close" (click)="modal.dismiss()"></button>
+  </div>
+  <div class="modal-body">
+    <p class="roadmap-band-modal__hint">
+      Default band for <strong>Free conversation</strong> and guided steps on this topic (you can
+      still override in the chat header).
+    </p>
+    <label class="form-label" for="roadmap-band-select">Target band</label>
+    <ng-select
+      id="roadmap-band-select"
+      [items]="levelOptions"
+      bindLabel="label"
+      bindValue="value"
+      [ngModel]="bandDraft()"
+      (ngModelChange)="bandDraft.set($event ?? '')"
+      placeholder="General"
+      [searchable]="true"
+      [clearable]="false"
+      [attr.aria-labelledby]="'roadmap-band-modal-title'"
+    />
+    @if (bandError()) {
+      <p class="text-danger small mt-2 mb-0">{{ bandError() }}</p>
+    }
+  </div>
+  <div class="modal-footer">
+    <button
+      type="button"
+      class="btn btn--ghost"
+      (click)="modal.dismiss()"
+      [disabled]="bandSaving()"
+    >
+      Cancel
+    </button>
+    <button
+      type="button"
+      class="btn btn--primary"
+      (click)="saveBand(modal)"
+      [disabled]="bandSaving()"
+    >
+      @if (bandSaving()) {
+        Saving…
+      } @else {
+        Save
+      }
+    </button>
+  </div>
+</ng-template>

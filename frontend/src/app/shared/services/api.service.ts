@@ -46,6 +46,7 @@ export interface RoadmapUnitItem {
 export interface RoadmapOut {
   topic_id: number;
   topic_title: string;
+  topic_level: string | null;
   units: RoadmapUnitItem[];
 }
 
@@ -203,9 +204,13 @@ export class ApiService {
   }
 
   /** Get answer suggestions for a question (for the guide panel). Optionally pass turnId to save guideline to that turn. */
-  getGuidance(question: string, turnId?: number): Observable<GuidanceResponse> {
-    const body: { question: string; turn_id?: number } = { question: question.trim() };
+  getGuidance(question: string, turnId?: number, level?: string | null): Observable<GuidanceResponse> {
+    const body: { question: string; turn_id?: number; level?: string } = {
+      question: question.trim(),
+    };
     if (turnId != null) body.turn_id = turnId;
+    const lv = (level ?? '').trim();
+    if (lv !== '') body.level = lv;
     return this.http.post<GuidanceResponse>(`${this.base}/conversation/guidance`, body);
   }
 

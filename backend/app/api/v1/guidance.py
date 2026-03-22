@@ -6,11 +6,13 @@ Optionally save the guideline to a turn when turn_id is provided.
 import logging
 import re
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import get_settings
+from app.core.ielts_levels import format_ielts_band, resolve_ielts_band
 from app.core.deps import get_current_user
 from app.db.session import get_db
 from app.models.conversation import ConversationSession, Turn
@@ -27,28 +29,101 @@ class GuidanceRequest(BaseModel):
     turn_id: int | None = Field(
         None, description="If set, save the returned guideline to this turn"
     )
+    level: str | None = Field(
+        None,
+        max_length=20,
+        description="IELTS Speaking target band (e.g. 6, 6.5); empty = default Band 6",
+    )
 
 
-_GUIDANCE_PROMPT = """The English tutor asked the learner this question:
+def _level_context_block(level: str | None) -> str:
+    n = resolve_ielts_band(level)
+    if n is None:
+        return (
+            "IELTS Speaking target band for this practice session: not specified — use **Band 6** "
+            "as default difficulty for all English examples (clear spoken English; Part 1–3 style, not essay tone)."
+        )
+    disp = format_ielts_band(n)
+    return (
+        f"IELTS Speaking target band for this practice session: **{disp}**. "
+        "Match difficulty of section 5 (example sentences) and the phrases in section 4 to this band:\n"
+        "- Bands 4.0–5.0: very short, simple sentences; basic vocabulary.\n"
+        "- Bands 5.5–6.0: short natural answers; simple linking (because, so, when).\n"
+        "- Bands 6.5–7.0: fuller ideas, some paraphrase; still spoken style.\n"
+        "- Bands 7.5–9.0: fluent, nuanced patterns; avoid rare literary words.\n"
+        "Trong mục 1 (Hướng trả lời), thêm một câu tiếng Việt ngắn nhắc người học đang luyện IELTS Speaking khoảng band này."
+    )
+
+
+def _guidance_level_tag(level: str | None) -> str:
+    n = resolve_ielts_band(level)
+    if n is None:
+        return "Band 6 (mặc định)"
+    return f"Band {format_ielts_band(n)}"
+
+
+# Split model output into one string per section (works even if the model skips blank lines between blocks).
+_GUIDANCE_SECTION_LABELS = (
+    "Hướng trả lời",
+    "Mẫu câu",
+    "Ngữ pháp",
+    "Từ vựng",
+    "Ví dụ",
+    # English labels (older prompts / non-compliant models)
+    "Answer approach",
+    "Sentence patterns",
+    "Grammar",
+    "Vocabulary",
+    "Examples",
+)
+_GUIDANCE_SECTION_SPLIT_RE = re.compile(
+    r"(?m)(?=^\s*(?:"
+    + "|".join(re.escape(lbl) for lbl in _GUIDANCE_SECTION_LABELS)
+    + r")\s*:)",
+)
+
+
+def _split_guidance_sections(raw: str) -> list[str]:
+    text = raw.strip()
+    if not text:
+        return []
+    parts = [p.strip() for p in _GUIDANCE_SECTION_SPLIT_RE.split(text) if p.strip()]
+    if len(parts) >= 2:
+        return parts[:8]
+    # Fallback: blank-line paragraphs, then single non-empty lines
+    by_para = [s.strip() for s in re.split(r"\n\s*\n+", text) if s.strip()]
+    if len(by_para) >= 2:
+        return by_para[:8]
+    lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
+    return lines[:8] if lines else []
+
+
+_GUIDANCE_PROMPT = """{level_block}
+
+The English tutor asked the learner this question:
 
 "{question}"
 
-You are writing a short study guide for a Vietnamese learner. Follow this order strictly:
+You help Vietnamese learners practise **spoken English**. Use **bilingual output**: short Vietnamese for thinking/strategy; **English** for phrases they will actually say.
 
-1) **Hướng trả lời** — First, 2–4 sentences in Vietnamese: how to approach the answer (what to include, how long, tone: agree/disagree, describe, compare, etc.). Do not give full English sentences here yet.
+**Facts:** If the question mentions real places, people, or facts, use accurate English in sections 4–5. Do not invent nonsense names or mix Vietnamese inside English sentences.
 
-2) **Cấu trúc câu** — One line in Vietnamese naming a useful English sentence frame or pattern (e.g. "I think … because …", "I usually + V1 …"). Optionally add one short English skeleton in quotes.
+Write **exactly five sections** in this order. Each section is **one block** (a few sentences max). **Do not** use "1." / "2." numbering, markdown bullets, or "(a)(b)(c)" lists — write flowing sentences only.
 
-3) **Ngữ pháp** — 1–2 sentences in Vietnamese: one grammar point that fits this question (tense, modal, comparatives, etc.).
+**Hướng trả lời:** — 3–5 short sentences in **Vietnamese only**. Strategy only: mở bài (nhắc ý câu hỏi rất ngắn), mấy ý, độ dài khi nói (2–4 câu tiếng Anh), một hướng nếu câu hỏi mở. **Không** viết câu tiếng Anh hoàn chỉnh ở mục này (chỉ gợi ý cách làm).
 
-4) **Từ vựng** — A single line: 4–8 useful English words or short phrases for this topic; add very short Vietnamese glosses in parentheses where helpful.
+**Mẫu câu:** — 1–2 câu **tiếng Việt** giải thích khung, rồi **1–2 khung tiếng Anh** trong ngoặc kép (ví dụ "Well, …" hoặc "Compared to …, I find …").
 
-5) **Ví dụ** — Last: 2–3 natural spoken English example answers (full sentences). Put them on ONE line, separated by " · " (middle dot). English only in this section.
+**Ngữ pháp:** — 1–2 câu **tiếng Việt**: một điểm ngữ pháp khớp loại câu hỏi.
 
-Formatting rules:
-- Use exactly these five section labels at the start of each block: "Hướng trả lời:", "Cấu trúc câu:", "Ngữ pháp:", "Từ vựng:", "Ví dụ:"
-- Separate each section from the next with one blank line (double newline).
-- No markdown bullets or numbered lists outside the labels above."""
+**Từ vựng:** — **Một dòng** gồm 5–8 cụm **tiếng Anh** (phân tách bằng dấu phẩy). Không tiếng Việt trong dòng này.
+
+**Ví dụ:** — **Một dòng**: 2–3 câu tiếng Anh hoàn chỉnh, tự nhiên khi nói, cách nhau bằng " · ". Chỉ tiếng Anh; đúng ngữ pháp và hợp lý.
+
+Formatting (strict):
+- Mỗi khối bắt đầu **đúng một dòng mới** với nhãn và dấu hai chấm ASCII: Hướng trả lời: / Mẫu câu: / Ngữ pháp: / Từ vựng: / Ví dụ:
+- Giữa hai khối liền kề: **một dòng trống** (xuống dòng hai lần).
+- Không dùng ** hoặc markdown khác ngoài nhãn trên."""
 
 
 @router.post("/guidance")
@@ -63,29 +138,46 @@ async def get_guidance_for_question(
     Returns: { "suggestions": ["I like to...", "I usually...", ...] }
     """
     question = body.question.strip()
+    level_block = _level_context_block(body.level)
+    lvl_tag = _guidance_level_tag(body.level)
 
     lm = LMStudioClient()
-    messages = [{"role": "user", "content": _GUIDANCE_PROMPT.format(question=question)}]
+    guidance_model = (get_settings().lmstudio_guidance_model or "").strip() or None
+    messages = [
+        {
+            "role": "user",
+            "content": _GUIDANCE_PROMPT.format(
+                level_block=level_block,
+                question=question,
+            ),
+        }
+    ]
     try:
-        text = await lm.generate_text(messages, temperature=0.5, max_tokens=512)
+        text = await lm.generate_text(
+            messages,
+            temperature=0.35,
+            max_tokens=768,
+            model=guidance_model,
+        )
     except Exception as e:
         logger.warning("Guidance LM call failed: %s", e)
         suggestions = [
-            "Hướng trả lời: Trả lời ngắn gọn, bám ý câu hỏi; nói quan điểm hoặc kinh nghiệm của bạn.",
-            "Cấu trúc câu: Dùng khung I think … because … hoặc In my opinion, … + lý do.",
-            "Ngữ pháp: Giữ thì phù hợp (hiện tại / quá khứ kể chuyện); câu đủ S + V + O.",
-            "Từ vựng: Ghi lại 3–5 từ khóa từ câu hỏi và thêm từ đồng nghĩa đơn giản.",
-            "Ví dụ: I think that … · In my experience, … · For me, …",
+            f"Hướng trả lời: [Mức phiên: {lvl_tag}] Đọc lại câu hỏi, chọn 1–2 từ khóa và dùng lại trong câu đầu (paraphrase). Trả lời thẳng trước, rồi thêm một lý do hoặc ví dụ ngắn trong khoảng 20–40 giây nói; giữ tiếng Anh đúng trình độ bạn chọn.",
+            'Mẫu câu: Mở tự nhiên rồi nối ý — dùng khung "Well, …" / "Actually, …" rồi "The main reason is …" hoặc "What I like about it is …"; tránh nối câu chỉ bằng "and".',
+            "Ngữ pháp: Thì hiện tại đơn cho thói quen và ý kiến; quá khứ đơn nếu kể một lần; dùng would cho giả định nhẹ. Mỗi câu cần chủ ngữ + động từ rõ — đơn giản hóa nếu band thấp (4–5.5).",
+            "Từ vựng: topic, main idea, reason, example, actually, compared to, I would say, to be honest",
+            "Ví dụ: I'd say … because … · To be honest, I usually … · If I had to choose, I'd go for …",
         ]
     else:
         raw = text.strip()
-        sections = [s.strip() for s in re.split(r"\n\s*\n+", raw) if s.strip()]
-        if len(sections) < 2:
-            sections = [line.strip() for line in raw.splitlines() if line.strip()]
+        sections = _split_guidance_sections(raw)
         suggestions = (
-            sections[:8]
+            sections
             if sections
-            else ["Thử trả lời 1–2 câu tiếng Anh ngắn, bám sát câu hỏi."]
+            else [
+                f"Hướng trả lời: [Mức phiên: {lvl_tag}] Nói 2–3 câu tiếng Anh: câu 1 lặp ý câu hỏi, câu 2 trả lời trực tiếp, câu 3 thêm một chi tiết.",
+                "Ví dụ: Sure — I'd say … · Actually, for me … · Let me put it this way …",
+            ]
         )
 
     guideline_text = "\n".join(suggestions)

@@ -11,14 +11,14 @@ import {
   GUIDE_PANEL_WIDTH_LS,
   NOOP,
 } from './conversation.constants';
-import { applyAssistantPartialFrame, attachConcatenatedAiAudio } from './conversation-assistant-stream';
+import {
+  applyAssistantPartialFrame,
+  attachConcatenatedAiAudio,
+} from './conversation-assistant-stream';
 import type { ChatMessage, TopicUnitWsMeta } from './conversation.models';
 import { mergeTurnScoresAndSessionFeedback } from './conversation-session-scoring';
 import { ConversationWsStartPayload } from './conversation.ws-helpers';
-import {
-  routeConversationWsMessage,
-  type ConversationWsSink,
-} from './conversation-ws.router';
+import { routeConversationWsMessage, type ConversationWsSink } from './conversation-ws.router';
 import { AccountService } from '@/app/shared/services/account.service';
 import { ApiService, UnitStepSummary } from '@/services/api.service';
 import { mapSessionDetailTurnsToMessages } from './conversation-session.mapper';
@@ -240,9 +240,7 @@ export class ConversationComponent implements OnInit, OnDestroy {
       }
     },
     onSessionScores: (turns, sessionFeedback) => {
-      this.messages.set(
-        mergeTurnScoresAndSessionFeedback(this.messages(), turns, sessionFeedback),
-      );
+      this.messages.set(mergeTurnScoresAndSessionFeedback(this.messages(), turns, sessionFeedback));
     },
   };
 
@@ -318,7 +316,8 @@ export class ConversationComponent implements OnInit, OnDestroy {
                   if (gen !== this._sessionBootstrapGen) return;
                   const voice = me.tts_voice;
                   const rate = me.tts_rate;
-                  if (voice != null && String(voice).trim() !== '') this.ttsVoice.set(String(voice));
+                  if (voice != null && String(voice).trim() !== '')
+                    this.ttsVoice.set(String(voice));
                   if (rate != null && String(rate).trim() !== '') this.ttsRate.set(String(rate));
                   this.cdr.detectChanges();
                 },
@@ -384,8 +383,7 @@ export class ConversationComponent implements OnInit, OnDestroy {
       const prefsApplied = this.userPrefsApplied();
       const topicId = this.topicId();
       const routeSessionId = this.sessionId();
-      const resumeSessionId =
-        routeSessionId > 0 ? routeSessionId : this.liveSessionId();
+      const resumeSessionId = routeSessionId > 0 ? routeSessionId : this.liveSessionId();
       const unitId = this.unitId();
       if (!conn || !prefsApplied || topicId <= 0) {
         if (!conn) this.startSentForConnection = false;
@@ -481,7 +479,11 @@ export class ConversationComponent implements OnInit, OnDestroy {
           const d = err?.error?.detail;
           let msg = 'Could not start a new conversation.';
           if (typeof d === 'string') msg = d;
-          else if (Array.isArray(d) && d.length > 0 && typeof (d[0] as { msg?: string }).msg === 'string') {
+          else if (
+            Array.isArray(d) &&
+            d.length > 0 &&
+            typeof (d[0] as { msg?: string }).msg === 'string'
+          ) {
             msg = (d[0] as { msg: string }).msg;
           }
           this.errorMessage.set(msg);
@@ -586,7 +588,7 @@ export class ConversationComponent implements OnInit, OnDestroy {
     }
     this.guideSuggestions.set([]);
     this.guideLoading.set(true);
-    this.api.getGuidance(question, message.turnId).subscribe({
+    this.api.getGuidance(question, message.turnId, this.conversationLevel()).subscribe({
       next: (res) => {
         const suggestions = res.suggestions || [];
         this.guideSuggestions.set(suggestions);
@@ -841,11 +843,7 @@ export class ConversationComponent implements OnInit, OnDestroy {
 
   private _applyTopicLevelAndLiveSession(msg: Record<string, unknown>): void {
     const tl = msg['topicLevel'];
-    if (
-      typeof tl === 'string' &&
-      tl.trim() !== '' &&
-      this.conversationLevel() === ''
-    ) {
+    if (typeof tl === 'string' && tl.trim() !== '' && this.conversationLevel() === '') {
       this.conversationLevel.set(tl.trim());
     }
     const sid = msg['sessionId'];

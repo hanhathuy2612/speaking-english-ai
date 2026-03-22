@@ -30,7 +30,9 @@ class Settings(BaseSettings):
     # LM Studio (OpenAI-compatible) configuration
     lmstudio_base_url: AnyHttpUrl | None = None
     lmstudio_api_key: str | None = None
-    lmstudio_model: str = "local-model"
+    lmstudio_model: str = "meta-llama-3.1-8b-instruct"
+    # If set, POST /conversation/guidance uses this model instead of lmstudio_model (same base URL & API key).
+    lmstudio_guidance_model: str | None = None
     # Style: max tokens per AI reply. Default 256 allows natural length.
     lm_conversation_max_tokens: int = 256
     # Optional: append this to the system prompt (e.g. "Use simple words only.")

@@ -4,6 +4,11 @@ import { Component, inject, Injector, OnInit, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { NgbModal, NgbModalModule, NgbModalRef } from '@ng-bootstrap/ng-bootstrap';
 import { finalize } from 'rxjs';
+import {
+  formatIeltsBand,
+  ieltsBadgeTier as ieltsTier,
+  resolveIeltsBand,
+} from '../../shared/ielts-levels';
 import { ApiService, Topic } from '../../shared/services/api.service';
 import {
   TOPIC_FORM_MODAL_DATA,
@@ -21,6 +26,16 @@ export class TopicListComponent implements OnInit {
   topics = signal<Topic[]>([]);
   loading = signal(false);
   account = inject(AccountService);
+
+  readonly ieltsTier = ieltsTier;
+
+  topicLevelLabel(t: Topic): string {
+    const n = resolveIeltsBand(t.level);
+    if (n != null) {
+      return `Band ${formatIeltsBand(n)}`;
+    }
+    return (t.level ?? '').trim() || 'General';
+  }
 
   readonly api = inject(ApiService);
   readonly router = inject(Router);

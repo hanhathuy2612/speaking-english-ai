@@ -4,8 +4,8 @@ WebSocket endpoint for full-duplex spoken conversation.
 Message protocol
 ────────────────
 Client → Server (JSON):
-  {"type": "start",       "topicId": int, "ttsRate": str, "ttsVoice": str, optional "level": str}  -- CEFR or ""; applied before opening TTS
-  {"type": "set_level",   "level": "A1"|"A2"|"B1"|"B2"|"C1"|""}  -- real-time level override
+  {"type": "start",       "topicId": int, "ttsRate": str, "ttsVoice": str, optional "level": str}  -- IELTS band (e.g. "6.5") or ""; applied before opening TTS
+  {"type": "set_level",   "level": str}  -- IELTS Speaking target band (4–9, half bands) or "" for topic default
   {"type": "tts_preferences", "ttsRate": str, "ttsVoice": str}
   {"type": "audio_end"}   -- after binary audio frames (voice turn)
   {"type": "user_text",   "text": str}                           -- text-only turn

@@ -23,7 +23,7 @@ class Topic(Base):
     description: Mapped[str | None] = mapped_column(Text(), nullable=True)
     level: Mapped[str | None] = mapped_column(
         String(20), nullable=True
-    )  # A1, A2, B1...
+    )  # IELTS Speaking target band e.g. "6", "6.5" (legacy CEFR strings still accepted at runtime)
 
     sessions: Mapped[list["ConversationSession"]] = relationship(
         back_populates="topic", cascade="all, delete-orphan"
