@@ -1,3 +1,24 @@
+import { ConversationControlsComponent } from './conversation-controls/conversation-controls.component';
+import { ConversationGuidePanelComponent } from './conversation-guide-panel/conversation-guide-panel.component';
+import { ConversationHeaderComponent } from './conversation-header/conversation-header.component';
+import { ConversationMessageListComponent } from './conversation-message-list/conversation-message-list.component';
+import { ConversationUnitBannerComponent } from './conversation-unit-banner/conversation-unit-banner.component';
+import { ConversationUnitCompleteModalComponent } from './conversation-unit-complete-modal/conversation-unit-complete-modal.component';
+import {
+  GUIDE_PANEL_DEFAULT_W,
+  GUIDE_PANEL_MAX_W,
+  GUIDE_PANEL_MIN_W,
+  GUIDE_PANEL_WIDTH_LS,
+  NOOP,
+} from './conversation.constants';
+import { applyAssistantPartialFrame, attachConcatenatedAiAudio } from './conversation-assistant-stream';
+import type { ChatMessage, TopicUnitWsMeta } from './conversation.models';
+import { mergeTurnScoresAndSessionFeedback } from './conversation-session-scoring';
+import { ConversationWsStartPayload } from './conversation.ws-helpers';
+import {
+  routeConversationWsMessage,
+  type ConversationWsSink,
+} from './conversation-ws.router';
 import { AccountService } from '@/app/shared/services/account.service';
 import { ApiService, UnitStepSummary } from '@/services/api.service';
 import { AudioService } from '@/services/audio.service';
@@ -17,72 +38,26 @@ import {
   viewChild,
 } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
-import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { NgOptionTemplateDirective, NgSelectComponent } from '@ng-select/ng-select';
+import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
-
-// ─── Types ─────────────────────────────────────────────────────────────────
-
-export interface ChatMessage {
-  role: 'user' | 'ai';
-  text: string;
-  partial?: boolean;
-  userAudio?: ArrayBuffer;
-  aiAudio?: ArrayBuffer;
-  /** Set for AI messages when we have a saved turn (from history or turn_score) */
-  turnId?: number;
-  /** Saved guideline for this AI question (from history or after fetching) */
-  guideline?: string;
-}
-
-export interface TurnScore {
-  fluency: number;
-  vocabulary: number;
-  grammar: number;
-  overall: number;
-  feedback: string;
-}
-
-interface StartPayload {
-  type: 'start';
-  topicId: number;
-  ttsRate: string;
-  ttsVoice: string;
-  sessionId?: number;
-  unitId?: number;
-}
-
-const TTS_RATE_OPTIONS = ['-30%', '-20%', '-10%', '+0%', '+10%', '+20%', '+30%'];
-const LEVEL_OPTIONS = [
-  { value: '', label: 'General' },
-  ...['A1', 'A2', 'B1', 'B2', 'C1'].map((l) => ({ value: l, label: l })),
-];
-const NOOP = { next: () => {}, error: () => {} };
-
-/** Roadmap step meta from WebSocket session_started (camelCase from server). */
-export interface TopicUnitWsMeta {
-  id: number;
-  title: string;
-  objective: string;
-  minTurnsToComplete: number | null;
-  minAvgOverall: number | null;
-  maxScoredTurns: number | null;
-  scoredTurnsSoFar: number;
-}
-
-// ─── Component ─────────────────────────────────────────────────────────────
 
 @Component({
   selector: 'app-conversation',
   standalone: true,
-  imports: [CommonModule, FormsModule, NgSelectComponent, NgOptionTemplateDirective, RouterLink],
+  imports: [
+    CommonModule,
+    ConversationHeaderComponent,
+    ConversationUnitBannerComponent,
+    ConversationUnitCompleteModalComponent,
+    ConversationGuidePanelComponent,
+    ConversationMessageListComponent,
+    ConversationControlsComponent,
+  ],
   styleUrls: ['./conversation.component.scss'],
   templateUrl: './conversation.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ConversationComponent implements OnInit, OnDestroy {
-  // Injectables & view refs
   private readonly ws = inject(WsService);
   private readonly audio = inject(AudioService);
   private readonly api = inject(ApiService);
@@ -91,7 +66,7 @@ export class ConversationComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly accountService = inject(AccountService);
 
-  private readonly chatArea = viewChild<ElementRef<HTMLDivElement>>('chatArea');
+  private readonly messageList = viewChild(ConversationMessageListComponent);
 
   private readonly queryParams = toSignal(this.route.queryParams, {
     initialValue: {} as Record<string, string>,
@@ -122,7 +97,6 @@ export class ConversationComponent implements OnInit, OnDestroy {
     return Number.isFinite(n) && n > 0 ? n : 0;
   });
 
-  // Connection & UI state
   connected = toSignal(this.ws.connected$, { initialValue: false });
   reconnecting = toSignal(this.ws.reconnecting$, { initialValue: false });
   vuLevel = toSignal(this.audio.volume$, { initialValue: 0 });
@@ -132,30 +106,26 @@ export class ConversationComponent implements OnInit, OnDestroy {
   transcribing = signal(false);
   aiSpeaking = signal(false);
   messages = signal<ChatMessage[]>([]);
-  scores = signal<Record<number, TurnScore>>({});
   errorMessage = signal('');
   deviceChangedNotice = signal('');
   playingMessageIndex = signal(-1);
 
-  /** Message selected for guidance panel (index + message); null = panel closed */
   selectedForGuide = signal<{ index: number; message: ChatMessage } | null>(null);
-  /** Suggestions from API for the selected question; empty while loading or none */
   guideSuggestions = signal<string[]>([]);
   guideLoading = signal(false);
+  guidePanelWidthPx = signal(GUIDE_PANEL_DEFAULT_W);
+  guidePanelSidebarDesktop = signal(
+    typeof matchMedia !== 'undefined' && matchMedia('(min-width: 768px)').matches,
+  );
 
-  // TTS
   ttsEnabled = signal(true);
   ttsRate = signal('+0%');
   ttsVoice = signal('en-US-JennyNeural');
   ttsVoices = signal<{ id: string; name: string }[]>([]);
   previewingVoiceId = signal<string | null>(null);
-  readonly ttsRateOptions = TTS_RATE_OPTIONS;
 
-  // Level (real-time override for AI response length/complexity)
   conversationLevel = signal('');
-  readonly levelOptions = LEVEL_OPTIONS;
 
-  // Private state
   chatInput = signal('');
   private pendingAiMsgIndex = -1;
   private lastAiMessageIndex = -1;
@@ -164,25 +134,108 @@ export class ConversationComponent implements OnInit, OnDestroy {
   private partialUpdateScheduled = false;
   private userPrefsApplied = signal(false);
   private startSentForConnection = false;
+  private readonly _mqMinNav =
+    typeof matchMedia !== 'undefined' ? matchMedia('(min-width: 768px)') : null;
+  private _mqMinNavOff: (() => void) | null = null;
+  private _guideResizeAbort: (() => void) | null = null;
+  private _unitBannerTrackedId: number | null = null;
 
-  /** Server session id (from WebSocket); used for unit summary API. */
   liveSessionId = signal(0);
-  /** Active roadmap step context while practicing a unit. */
   unitStepMeta = signal<TopicUnitWsMeta | null>(null);
-  /** Shown after roadmap_unit_completed; load via HTTP. */
+  unitBannerCollapsed = signal(false);
+  feedbackRequestPending = signal(false);
+  sessionEndedWithFeedback = signal(false);
   unitCompleteSummary = signal<UnitStepSummary | null>(null);
-  /** Session-wide averages from WebSocket when conversation ends. */
-  sessionScoreSummary = signal<{
-    fluency: number;
-    vocabulary: number;
-    grammar: number;
-    overall: number;
-  } | null>(null);
+
+  endConversationFeedbackEnabled = computed(() => {
+    if (this.sessionEndedWithFeedback()) return false;
+    if (this.feedbackRequestPending()) return false;
+    if (!this.connected()) return false;
+    const sid = this._activeSessionId();
+    if (sid <= 0) return false;
+    const msgs = this.messages();
+    if (msgs.length === 0) return false;
+    const last = msgs[msgs.length - 1];
+    if (last.role !== 'ai' || last.partial) return false;
+    if (this.aiSpeaking() || this.recording() || this.transcribing()) return false;
+    return true;
+  });
+
+  private readonly _wsSink: ConversationWsSink = {
+    statusRouter: {
+      clearError: () => this.errorMessage.set(''),
+      applyTopicLevelAndSessionId: (m) => this._applyTopicLevelAndLiveSession(m),
+      setUnitStepMeta: (meta) => this.unitStepMeta.set(meta),
+      getLiveSessionId: () => this.liveSessionId(),
+      fetchUnitStepSummary: (id) => this._fetchUnitStepSummary(id),
+      setTranscribing: (v) => this.transcribing.set(v),
+    },
+    resetStreamingState: () => this._resetConversationStreamingState(),
+    setMessages: (messages) => this.messages.set(messages),
+    setTranscribing: (v) => this.transcribing.set(v),
+    setErrorMessage: (s) => this.errorMessage.set(s),
+    onUserTranscript: (text, userAudio) => {
+      const userMsg: ChatMessage = { role: 'user', text };
+      if (userAudio != null) {
+        userMsg.userAudio = userAudio;
+      } else if (this.lastUserRecording) {
+        userMsg.userAudio = this.lastUserRecording;
+        this.lastUserRecording = null;
+      }
+      this.messages.update((m) => [...m, userMsg]);
+      this.pendingAiMsgIndex = -1;
+      if (this.unitStepMeta()) {
+        this.unitStepMeta.update((meta) =>
+          meta ? { ...meta, scoredTurnsSoFar: meta.scoredTurnsSoFar + 1 } : null,
+        );
+      }
+    },
+    onAssistantPartial: (chunk, done) => {
+      if (this.pendingAiMsgIndex === -1) {
+        this.currentAiAudioChunks = [];
+      }
+      const out = applyAssistantPartialFrame(
+        this.messages(),
+        this.pendingAiMsgIndex,
+        this.lastAiMessageIndex,
+        chunk,
+        done,
+      );
+      this.messages.set(out.messages);
+      this.pendingAiMsgIndex = out.pendingAiMsgIndex;
+      this.lastAiMessageIndex = out.lastAiMessageIndex;
+    },
+    onAssistantAudioEnd: () => {
+      this.messages.update((m) =>
+        attachConcatenatedAiAudio(m, this.lastAiMessageIndex, this.currentAiAudioChunks),
+      );
+      this.currentAiAudioChunks = [];
+      this.lastAiMessageIndex = -1;
+      this.audio.endStreamingPlayback().then(() => {
+        this.aiSpeaking.set(false);
+        this.cdr.detectChanges();
+      });
+    },
+    onAssistantAudioChunk: (bytes) => {
+      this.currentAiAudioChunks.push(bytes);
+      if (this.ttsEnabled()) {
+        if (this.currentAiAudioChunks.length === 1) this.audio.stopPlayback();
+        this.audio.enqueueStreamingChunk(bytes);
+        this.aiSpeaking.set(true);
+        this.cdr.detectChanges();
+      }
+    },
+    onSessionScores: (turns, sessionFeedback) => {
+      this.messages.set(
+        mergeTurnScoresAndSessionFeedback(this.messages(), turns, sessionFeedback),
+      );
+    },
+  };
 
   constructor() {
     this._effectLoadPrefsAndConnect();
     this._effectSendStartWhenReady();
-    this._effectAutoScroll();
+    this._effectUnitBannerResetOnStepChange();
     this.ws.messages$.pipe(takeUntilDestroyed()).subscribe((msg) => {
       this._handleMessage(msg as Record<string, unknown> & { type: string });
       this._scheduleDetectChanges(msg as WsMessage);
@@ -201,16 +254,14 @@ export class ConversationComponent implements OnInit, OnDestroy {
         this.router.navigate(['/topics']);
         return;
       }
-      void uid;
-      void sid;
+      void [uid, sid];
       this.messages.set([]);
-      this.scores.set({});
+      this.sessionEndedWithFeedback.set(false);
       this.startSentForConnection = false;
       this.userPrefsApplied.set(false);
       this.liveSessionId.set(0);
       this.unitStepMeta.set(null);
       this.unitCompleteSummary.set(null);
-      this.sessionScoreSummary.set(null);
       this.accountService.getMe().subscribe({
         next: (me) => {
           const voice = me.tts_voice;
@@ -229,6 +280,16 @@ export class ConversationComponent implements OnInit, OnDestroy {
     });
   }
 
+  private _effectUnitBannerResetOnStepChange(): void {
+    effect(() => {
+      const meta = this.unitStepMeta();
+      const id = meta?.id ?? null;
+      if (id === this._unitBannerTrackedId) return;
+      this._unitBannerTrackedId = id;
+      this.unitBannerCollapsed.set(false);
+    });
+  }
+
   private _effectSendStartWhenReady(): void {
     effect(() => {
       const conn = this.connected();
@@ -242,11 +303,12 @@ export class ConversationComponent implements OnInit, OnDestroy {
       }
       if (this.startSentForConnection) return;
       this.startSentForConnection = true;
-      const payload: StartPayload = {
+      const payload: ConversationWsStartPayload = {
         type: 'start',
         topicId,
         ttsRate: this.ttsRate(),
         ttsVoice: this.ttsVoice(),
+        level: this.conversationLevel(),
       };
       if (sessionId > 0) payload.sessionId = sessionId;
       else if (unitId > 0) payload.unitId = unitId;
@@ -255,6 +317,29 @@ export class ConversationComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    try {
+      const raw = localStorage.getItem(GUIDE_PANEL_WIDTH_LS);
+      if (raw) {
+        const n = Number(raw);
+        if (Number.isFinite(n)) {
+          this.guidePanelWidthPx.set(
+            Math.min(GUIDE_PANEL_MAX_W, Math.max(GUIDE_PANEL_MIN_W, Math.round(n))),
+          );
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+
+    if (this._mqMinNav) {
+      const onMq = () => {
+        this.guidePanelSidebarDesktop.set(this._mqMinNav!.matches);
+        this.cdr.markForCheck();
+      };
+      this._mqMinNav.addEventListener('change', onMq);
+      this._mqMinNavOff = () => this._mqMinNav!.removeEventListener('change', onMq);
+    }
+
     this.api.getTtsVoices().subscribe({
       next: (list) => this.ttsVoices.set(list.map((v) => ({ id: v.id, name: v.name }))),
       error: () => {},
@@ -262,13 +347,63 @@ export class ConversationComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this._mqMinNavOff?.();
+    this._mqMinNavOff = null;
+    this._endGuidePanelResize();
+    this.feedbackRequestPending.set(false);
     this._clearAudioPlayback();
     this.audio.release();
     this.ws.sendJson({ type: 'stop' });
     this.ws.disconnect();
   }
 
-  // ─── TTS ─────────────────────────────────────────────────────────────────
+  /** Fresh chat for the current topic (same as header “New conversation”). */
+  goNewConversationSameTopic(): void {
+    void this.router.navigate(['/conversation'], {
+      queryParams: { topicId: this.topicId(), title: this.topicTitle() },
+    });
+  }
+
+  /** Disconnect WS, POST /end, apply scores + optional unit summary. */
+  endConversationAndFeedback(): void {
+    if (this.feedbackRequestPending()) return;
+    const sid = this._activeSessionId();
+    if (sid <= 0) {
+      this.errorMessage.set('Session is not ready yet. Wait until the chat has started.');
+      this.cdr.markForCheck();
+      return;
+    }
+    if (!this.ws.isOpen()) {
+      this.errorMessage.set('Not connected.');
+      this.cdr.markForCheck();
+      return;
+    }
+
+    this.feedbackRequestPending.set(true);
+    this.ws.expectGracefulSessionShutdown();
+    this.ws.disconnect();
+
+    this.api.postSessionEnd(sid).subscribe({
+      next: (res) => {
+        this.messages.set(
+          mergeTurnScoresAndSessionFeedback(
+            this.messages(),
+            res.turns ?? [],
+            res.session_feedback ?? '',
+          ),
+        );
+        this.sessionEndedWithFeedback.set(true);
+        if (res.roadmap_unit_completed && sid > 0) this._fetchUnitStepSummary(sid);
+        this.feedbackRequestPending.set(false);
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.feedbackRequestPending.set(false);
+        this.errorMessage.set('Could not load session feedback. Try again or use Back.');
+        this.cdr.markForCheck();
+      },
+    });
+  }
 
   onTtsRateChange(rate: string): void {
     this.ttsRate.set(rate);
@@ -280,11 +415,6 @@ export class ConversationComponent implements OnInit, OnDestroy {
     this.ttsVoice.set(voiceId);
     this.accountService.patchMe({ tts_voice: voiceId }).subscribe(NOOP);
     this._sendTtsPreferences(this.ttsRate(), voiceId);
-  }
-
-  getVoiceName(voiceId: string): string {
-    const v = this.ttsVoices().find((x) => x.id === voiceId);
-    return v?.name ?? voiceId ?? 'Select…';
   }
 
   async previewVoice(voiceId: string): Promise<void> {
@@ -352,9 +482,59 @@ export class ConversationComponent implements OnInit, OnDestroy {
   }
 
   closeGuidePanel(): void {
+    this._endGuidePanelResize();
     this.selectedForGuide.set(null);
     this.guideSuggestions.set([]);
     this.guideLoading.set(false);
+  }
+
+  onGuideResizePointerDown(event: PointerEvent): void {
+    if (!this.guidePanelSidebarDesktop()) return;
+    event.preventDefault();
+    const handle = event.currentTarget as HTMLElement;
+    handle.setPointerCapture(event.pointerId);
+
+    const startX = event.clientX;
+    const startW = this.guidePanelWidthPx();
+
+    const onMove = (ev: PointerEvent) => {
+      const delta = startX - ev.clientX;
+      const next = Math.min(GUIDE_PANEL_MAX_W, Math.max(GUIDE_PANEL_MIN_W, startW + delta));
+      this.guidePanelWidthPx.set(next);
+    };
+
+    const onEnd = (ev: PointerEvent) => {
+      handle.releasePointerCapture(ev.pointerId);
+      handle.removeEventListener('pointermove', onMove);
+      handle.removeEventListener('pointerup', onEnd);
+      handle.removeEventListener('pointercancel', onEnd);
+      this._guideResizeAbort = null;
+      try {
+        localStorage.setItem(GUIDE_PANEL_WIDTH_LS, String(this.guidePanelWidthPx()));
+      } catch {
+        /* ignore */
+      }
+    };
+
+    this._guideResizeAbort = () => {
+      try {
+        handle.releasePointerCapture(event.pointerId);
+      } catch {
+        /* ignore */
+      }
+      handle.removeEventListener('pointermove', onMove);
+      handle.removeEventListener('pointerup', onEnd);
+      handle.removeEventListener('pointercancel', onEnd);
+    };
+
+    handle.addEventListener('pointermove', onMove);
+    handle.addEventListener('pointerup', onEnd);
+    handle.addEventListener('pointercancel', onEnd);
+  }
+
+  private _endGuidePanelResize(): void {
+    this._guideResizeAbort?.();
+    this._guideResizeAbort = null;
   }
 
   private _sendTtsPreferences(rate?: string, voice?: string): void {
@@ -365,8 +545,6 @@ export class ConversationComponent implements OnInit, OnDestroy {
       ttsVoice: voice ?? this.ttsVoice(),
     });
   }
-
-  // ─── Recording ──────────────────────────────────────────────────────────
 
   async startRecording(): Promise<void> {
     if (this.recording() || !this.canRecord()) return;
@@ -384,8 +562,6 @@ export class ConversationComponent implements OnInit, OnDestroy {
     this.ws.sendJson({ type: 'audio_end' });
   }
 
-  // ─── Text chat ─────────────────────────────────────────────────────────────
-
   sendText(): void {
     const text = this.chatInput().trim();
     if (!text) return;
@@ -393,8 +569,6 @@ export class ConversationComponent implements OnInit, OnDestroy {
     this.ws.sendJson({ type: 'user_text', text });
     this.chatInput.set('');
   }
-
-  // ─── Playback ────────────────────────────────────────────────────────────
 
   async playMessageAudio(msg: ChatMessage, index: number, kind: 'user' | 'ai'): Promise<void> {
     const buf = kind === 'user' ? msg.userAudio : msg.aiAudio;
@@ -414,14 +588,13 @@ export class ConversationComponent implements OnInit, OnDestroy {
       await this.audio.playAudioBuffer(buf);
     } catch {
       // ignore
+    } finally {
+      this.playingMessageIndex.set(-1);
+      this.cdr.detectChanges();
     }
-    this.playingMessageIndex.set(-1);
-    this.cdr.detectChanges();
   }
 
-  // ─── Message handling & helpers ───────────────────────────────────────────
-
-  /** Server turn index for the user message at `messageIndex` (0 = first learner turn). */
+  /** 0-based learner turn index for the user bubble at `messageIndex`. */
   userTurnIndexAtMessage(messageIndex: number): number {
     const list = this.messages();
     let n = 0;
@@ -431,7 +604,6 @@ export class ConversationComponent implements OnInit, OnDestroy {
     return n;
   }
 
-  /** Safe to request rework (not mid-stream AI/STT). */
   reworkAllowed(): boolean {
     return (
       this.connected() &&
@@ -480,254 +652,38 @@ export class ConversationComponent implements OnInit, OnDestroy {
     });
   }
 
-  private _handleMessage(msg: Record<string, unknown> & { type: string }): void {
-    switch (msg['type']) {
-      case 'status': {
-        this.errorMessage.set('');
-        const message = msg['message'] as string | undefined;
-        if (message === 'session_started') {
-          const topicLevel = msg['topicLevel'] as string | undefined;
-          if (topicLevel != null && typeof topicLevel === 'string') {
-            const normalized = topicLevel.trim();
-            this.conversationLevel.set(normalized);
-          }
-          const sid = msg['sessionId'] as number | undefined;
-          if (sid != null && Number.isFinite(sid) && sid > 0) {
-            this.liveSessionId.set(sid);
-          }
-          const tu = msg['topicUnit'] as Record<string, unknown> | undefined;
-          if (tu != null && typeof tu === 'object' && typeof tu['id'] === 'number') {
-            this.unitStepMeta.set({
-              id: tu['id'] as number,
-              title: String(tu['title'] ?? ''),
-              objective: String(tu['objective'] ?? ''),
-              minTurnsToComplete: (tu['minTurnsToComplete'] as number | null) ?? null,
-              minAvgOverall: (tu['minAvgOverall'] as number | null) ?? null,
-              maxScoredTurns: (tu['maxScoredTurns'] as number | null) ?? null,
-              scoredTurnsSoFar: Number(tu['scoredTurnsSoFar'] ?? 0) || 0,
-            });
-          } else {
-            this.unitStepMeta.set(null);
-          }
-        } else if (message === 'roadmap_unit_completed') {
-          const sid =
-            (msg['sessionId'] as number | undefined) ??
-            (this.liveSessionId() > 0 ? this.liveSessionId() : undefined);
-          if (sid != null && sid > 0) {
-            this.api.getUnitStepSummary(sid).subscribe({
-              next: (s: UnitStepSummary) => {
-                this.unitCompleteSummary.set(s);
-                this.cdr.detectChanges();
-              },
-              error: () => {
-                this.unitCompleteSummary.set(null);
-                this.cdr.detectChanges();
-              },
-            });
-          }
-        } else if (message === 'transcribing' || message === 'normalizing') {
-          this.transcribing.set(true);
-        } else if (message === 'rework_applied') {
-          const topicLevel = msg['topicLevel'] as string | undefined;
-          if (topicLevel != null && typeof topicLevel === 'string') {
-            const normalized = topicLevel.trim();
-            this.conversationLevel.set(normalized);
-          }
-          const sid = msg['sessionId'] as number | undefined;
-          if (sid != null && Number.isFinite(sid) && sid > 0) {
-            this.liveSessionId.set(sid);
-          }
-          const tu = msg['topicUnit'] as Record<string, unknown> | undefined;
-          if (tu != null && typeof tu === 'object' && typeof tu['id'] === 'number') {
-            this.unitStepMeta.set({
-              id: tu['id'] as number,
-              title: String(tu['title'] ?? ''),
-              objective: String(tu['objective'] ?? ''),
-              minTurnsToComplete: (tu['minTurnsToComplete'] as number | null) ?? null,
-              minAvgOverall: (tu['minAvgOverall'] as number | null) ?? null,
-              maxScoredTurns: (tu['maxScoredTurns'] as number | null) ?? null,
-              scoredTurnsSoFar: Number(tu['scoredTurnsSoFar'] ?? 0) || 0,
-            });
-          }
-        }
-        break;
-      }
-      case 'history': {
-        const list =
-          (msg['messages'] as {
-            role: string;
-            text: string;
-            turnId?: number;
-            guideline?: string;
-          }[]) ?? [];
-        this._resetConversationStreamingState();
-        this.scores.set({});
-        this.messages.set(
-          list.map((m) => ({
-            role: m.role === 'user' ? 'user' : 'ai',
-            text: m.text,
-            ...(m.role === 'assistant' && {
-              turnId: m.turnId,
-              guideline: m.guideline ?? undefined,
-            }),
-          })),
-        );
-        break;
-      }
-      case 'error':
-        this.transcribing.set(false);
-        {
-          const code = msg['message'] as string;
-          if (code === 'max_unit_turns_reached') {
-            this.errorMessage.set(
-              'You reached the maximum practice turns for this step in this session. Open the roadmap to continue or start again later.',
-            );
-          } else {
-            this.errorMessage.set(code || 'Something went wrong');
-          }
-        }
-        break;
-      case 'user_transcript': {
-        this.transcribing.set(false);
-        const text = msg['text'] as string;
-        const userMsg: ChatMessage = { role: 'user', text };
-        if (this.lastUserRecording) {
-          userMsg.userAudio = this.lastUserRecording;
-          this.lastUserRecording = null;
-        }
-        this.messages.update((m) => [...m, userMsg]);
-        this.pendingAiMsgIndex = -1;
-        if (this.unitStepMeta()) {
-          this.unitStepMeta.update((meta) =>
-            meta ? { ...meta, scoredTurnsSoFar: meta.scoredTurnsSoFar + 1 } : null,
-          );
-        }
-        break;
-      }
-      case 'assistant_partial':
-        this._handleAssistantPartial(msg);
-        break;
-      case 'assistant_audio_end':
-        this._applyAiAudioToLastMessage();
-        this.currentAiAudioChunks = [];
-        this.lastAiMessageIndex = -1;
-        this.audio.endStreamingPlayback().then(() => {
-          this.aiSpeaking.set(false);
-          this.cdr.detectChanges();
-        });
-        break;
-      case 'assistant_audio_chunk': {
-        const b64 = msg['data'] as string;
-        const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0)).buffer;
-        this.currentAiAudioChunks.push(bytes);
-        if (this.ttsEnabled()) {
-          if (this.currentAiAudioChunks.length === 1) this.audio.stopPlayback();
-          this.audio.enqueueStreamingChunk(bytes);
-          this.aiSpeaking.set(true);
-          this.cdr.detectChanges();
-        }
-        break;
-      }
-      case 'session_scores':
-        this._handleSessionScores(msg);
-        break;
-    }
+  private _activeSessionId(): number {
+    return this.liveSessionId() > 0 ? this.liveSessionId() : this.sessionId();
   }
 
-  private _handleAssistantPartial(msg: Record<string, unknown>): void {
-    const chunk = msg['text'] as string;
-    const done = msg['done'] as boolean;
-    const current = this.messages();
-    if (this.pendingAiMsgIndex === -1) {
-      this.currentAiAudioChunks = [];
-      this.messages.update((m) => [...m, { role: 'ai', text: chunk, partial: true }]);
-      this.pendingAiMsgIndex = current.length;
-    } else {
-      this.messages.update((m) => {
-        const next = [...m];
-        const idx = this.pendingAiMsgIndex;
-        next[idx] = { ...next[idx], text: next[idx].text + chunk };
-        return next;
-      });
-    }
-    if (done) {
-      this.messages.update((m) => {
-        const next = [...m];
-        next[this.pendingAiMsgIndex] = { ...next[this.pendingAiMsgIndex], partial: false };
-        return next;
-      });
-      this.lastAiMessageIndex = this.pendingAiMsgIndex;
-      this.pendingAiMsgIndex = -1;
-    }
-  }
-
-  private _applyAiAudioToLastMessage(): void {
-    if (this.lastAiMessageIndex < 0 || this.currentAiAudioChunks.length === 0) return;
-    const total = this.currentAiAudioChunks.reduce((s, c) => s + c.byteLength, 0);
-    const out = new Uint8Array(total);
-    let offset = 0;
-    for (const c of this.currentAiAudioChunks) {
-      out.set(new Uint8Array(c), offset);
-      offset += c.byteLength;
-    }
-    const idx = this.lastAiMessageIndex;
-    this.messages.update((m) => {
-      const next = [...m];
-      next[idx] = { ...next[idx], aiAudio: out.buffer };
-      return next;
+  private _fetchUnitStepSummary(sessionId: number): void {
+    this.api.getUnitStepSummary(sessionId).subscribe({
+      next: (s: UnitStepSummary) => {
+        this.unitCompleteSummary.set(s);
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.unitCompleteSummary.set(null);
+        this.cdr.detectChanges();
+      },
     });
   }
 
-  private _handleSessionScores(msg: Record<string, unknown>): void {
-    const av = msg['averages'] as Record<string, number> | undefined;
+  private _applyTopicLevelAndLiveSession(msg: Record<string, unknown>): void {
+    const tl = msg['topicLevel'];
     if (
-      av &&
-      typeof av['overall'] === 'number' &&
-      typeof av['fluency'] === 'number' &&
-      typeof av['vocabulary'] === 'number' &&
-      typeof av['grammar'] === 'number'
+      typeof tl === 'string' &&
+      tl.trim() !== '' &&
+      this.conversationLevel() === ''
     ) {
-      this.sessionScoreSummary.set({
-        fluency: av['fluency'],
-        vocabulary: av['vocabulary'],
-        grammar: av['grammar'],
-        overall: av['overall'],
-      });
+      this.conversationLevel.set(tl.trim());
     }
-    const turns =
-      (msg['turns'] as Array<{
-        turnId: number;
-        fluency: number;
-        vocabulary: number;
-        grammar: number;
-        overall: number;
-        feedback: string;
-      }>) ?? [];
-    if (turns.length === 0) return;
-
-    const list = [...this.messages()];
-    let ti = 0;
-    const nextScores: Record<number, TurnScore> = { ...this.scores() };
-    for (let i = 0; i < list.length && ti < turns.length; i++) {
-      if (list[i].role !== 'user') continue;
-      const sc = turns[ti++];
-      nextScores[i] = {
-        fluency: sc.fluency,
-        vocabulary: sc.vocabulary,
-        grammar: sc.grammar,
-        overall: sc.overall,
-        feedback: sc.feedback ?? '',
-      };
-      if (i + 1 < list.length && list[i + 1].role === 'ai') {
-        list[i + 1] = { ...list[i + 1], turnId: sc.turnId };
-      }
-    }
-    this.scores.set(nextScores);
-    this.messages.set(list);
+    const sid = msg['sessionId'];
+    if (typeof sid === 'number' && Number.isFinite(sid) && sid > 0) this.liveSessionId.set(sid);
   }
 
-  dismissSessionScoreSummary(): void {
-    this.sessionScoreSummary.set(null);
+  private _handleMessage(msg: Record<string, unknown> & { type: string }): void {
+    routeConversationWsMessage(msg, this._wsSink);
   }
 
   closeUnitCompleteModal(): void {
@@ -740,11 +696,6 @@ export class ConversationComponent implements OnInit, OnDestroy {
     const tid = s?.topic_id ?? this.topicId();
     this.unitCompleteSummary.set(null);
     void this.router.navigate(['/topics', tid, 'roadmap']);
-  }
-
-  formatAvg(n: number | null | undefined): string {
-    if (n == null || Number.isNaN(n)) return '—';
-    return n.toFixed(1);
   }
 
   private _scheduleDetectChanges(msg: WsMessage): void {
@@ -770,32 +721,6 @@ export class ConversationComponent implements OnInit, OnDestroy {
   }
 
   scrollToBottom(): void {
-    this._scrollToBottom(true);
-  }
-
-  private _isNearBottom(): boolean {
-    const el = this.chatArea()?.nativeElement;
-    if (!el) return true;
-    const threshold = 150;
-    return el.scrollHeight - el.scrollTop - el.clientHeight < threshold;
-  }
-
-  private _effectAutoScroll(): void {
-    effect(() => {
-      this.messages();
-      this.transcribing();
-      requestAnimationFrame(() => this._scrollToBottom());
-    });
-  }
-
-  private _scrollToBottom(force = false): void {
-    try {
-      const el = this.chatArea()?.nativeElement;
-      if (!el) return;
-      if (!force && !this._isNearBottom()) return;
-      el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
-    } catch {
-      // ignore
-    }
+    this.messageList()?.scrollToBottom();
   }
 }

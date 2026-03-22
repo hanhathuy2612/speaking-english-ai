@@ -11,464 +11,84 @@
     </div>
   }
 
-  <header class="conv-header">
-    <div class="conv-header__row conv-header__row--primary">
-      <a routerLink="/topics" class="btn btn--ghost conv-header__back">
-        <i class="bi bi-arrow-left conv-header__back-arrow" aria-hidden="true"></i>
-        <span class="conv-header__back-text">Back</span>
-      </a>
-      <h1 class="conv-title">{{ topicTitle() }}</h1>
-      <span
-        class="conv-status"
-        [class.connected]="connected()"
-        [class.reconnecting]="reconnecting()"
-      >
-        <span class="conv-status__dot"></span>
-        {{ reconnecting() ? 'Reconnecting…' : connected() ? 'Connected' : 'Connecting…' }}
-      </span>
-    </div>
-    <hr />
-    <div class="conv-header__row conv-header__row--secondary">
-      @if (sessionId() > 0) {
-        <a
-          [routerLink]="['/conversation']"
-          [queryParams]="{ topicId: topicId(), title: topicTitle() }"
-          class="btn btn--ghost conv-header__new"
-          title="Start a new conversation for this topic"
-        >
-          <span class="conv-header__new-label conv-header__new-label--full">New conversation</span>
-          <span class="conv-header__new-label conv-header__new-label--short">New</span>
-        </a>
-      }
-      <div class="conv-header__tts-controls">
-        <label class="conv-header__label">
-          Level
-          <ng-select
-            [items]="levelOptions"
-            bindLabel="label"
-            bindValue="value"
-            [ngModel]="conversationLevel()"
-            (ngModelChange)="onLevelChange($event)"
-            placeholder="General"
-            [searchable]="true"
-            [clearable]="false"
-            title="AI response level (A1=simplest, C1=natural)"
-          >
-          </ng-select>
-        </label>
-
-        <label class="conv-header__label">
-          Speed
-          <ng-select
-            [items]="ttsRateOptions"
-            [ngModel]="ttsRate()"
-            (ngModelChange)="onTtsRateChange($event)"
-            placeholder="Speed"
-            [searchable]="false"
-            [clearable]="false"
-            title="Speech speed"
-          >
-          </ng-select>
-        </label>
-        <label class="conv-header__label">
-          <span class="conv-header__voice-label">Voice</span>
-          <ng-select
-            class="conv-header__voice-dropdown"
-            [items]="ttsVoices()"
-            bindLabel="name"
-            bindValue="id"
-            [ngModel]="ttsVoice()"
-            (ngModelChange)="onTtsVoiceChange($event)"
-            placeholder="Voice"
-            [searchable]="true"
-            [clearable]="false"
-            [attr.aria-label]="'Voice: ' + getVoiceName(ttsVoice())"
-          >
-            <ng-template ng-option-tmp let-item="item">
-              <div class="d-flex align-items-center gap-2">
-                <span class="conv-header__voice-option-name">{{ item.name }}</span>
-                <button
-                  type="button"
-                  class="btn btn--ghost btn--icon conv-header__voice-option-preview"
-                  (click)="previewVoice(item.id); $event.stopPropagation()"
-                  [title]="previewingVoiceId() === item.id ? 'Stop' : 'Listen'"
-                  [attr.aria-label]="previewingVoiceId() === item.id ? 'Stop preview' : 'Listen'"
-                >
-                  @if (previewingVoiceId() === item.id) {
-                    <i class="bi bi-stop-fill" aria-hidden="true"></i>
-                  } @else {
-                    <i class="bi bi-volume-up-fill" aria-hidden="true"></i>
-                  }
-                </button>
-              </div>
-            </ng-template>
-          </ng-select>
-        </label>
-      </div>
-      <button
-        type="button"
-        class="btn btn--ghost conv-header__tts"
-        (click)="toggleTts()"
-        [title]="ttsEnabled() ? 'Turn off speech' : 'Turn on speech'"
-      >
-        @if (ttsEnabled()) {
-          <i class="bi bi-volume-up-fill" aria-hidden="true"></i>
-          <span class="conv-header__tts-text">Sound on</span>
-        } @else {
-          <i class="bi bi-volume-mute-fill" aria-hidden="true"></i>
-          <span class="conv-header__tts-text">Sound off</span>
-        }
-      </button>
-    </div>
-  </header>
-
-  @if (sessionScoreSummary(); as sm) {
-    <div class="conv-session-summary" role="region" aria-label="Session evaluation summary">
-      <div class="conv-session-summary__inner">
-        <span class="conv-session-summary__label">Session evaluation</span>
-        <span class="conv-session-summary__stats">
-          Overall <strong>{{ sm.overall.toFixed(1) }}</strong> · Fluency
-          {{ sm.fluency.toFixed(1) }} · Vocab {{ sm.vocabulary.toFixed(1) }} · Grammar
-          {{ sm.grammar.toFixed(1) }}
-        </span>
-        <button
-          type="button"
-          class="btn btn--ghost btn--icon conv-session-summary__dismiss"
-          (click)="dismissSessionScoreSummary()"
-          aria-label="Dismiss summary"
-        >
-          <i class="bi bi-x-lg" aria-hidden="true"></i>
-        </button>
-      </div>
-    </div>
-  }
+  <app-conversation-header
+    [topicTitle]="topicTitle()"
+    [topicId]="topicId()"
+    [sessionId]="sessionId()"
+    [connected]="connected()"
+    [reconnecting]="reconnecting()"
+    [conversationLevel]="conversationLevel()"
+    [ttsRate]="ttsRate()"
+    [ttsVoice]="ttsVoice()"
+    [ttsVoices]="ttsVoices()"
+    [ttsEnabled]="ttsEnabled()"
+    [previewingVoiceId]="previewingVoiceId()"
+    [sessionEndedWithFeedback]="sessionEndedWithFeedback()"
+    [feedbackRequestPending]="feedbackRequestPending()"
+    [endConversationFeedbackEnabled]="endConversationFeedbackEnabled()"
+    (levelChange)="onLevelChange($event)"
+    (ttsRateChange)="onTtsRateChange($event)"
+    (ttsVoiceChange)="onTtsVoiceChange($event)"
+    (toggleTts)="toggleTts()"
+    (previewVoice)="previewVoice($event)"
+    (endFeedback)="endConversationAndFeedback()"
+    (newConversationSameTopic)="goNewConversationSameTopic()"
+  />
 
   @if (unitStepMeta(); as step) {
-    <div class="conv-unit-banner" role="status">
-      <div class="conv-unit-banner__inner">
-        <strong class="conv-unit-banner__title">{{ step.title }}</strong>
-        <p class="conv-unit-banner__objective">{{ step.objective }}</p>
-        <p class="conv-unit-banner__progress">
-          <span
-            >Your practice turns this session: <strong>{{ step.scoredTurnsSoFar }}</strong></span
-          >
-          @if (step.minTurnsToComplete != null) {
-            <span class="conv-unit-banner__sep">·</span>
-            <span
-              >Target to auto-complete: <strong>{{ step.minTurnsToComplete }}</strong> practice
-              turns (scored when you end the chat)</span
-            >
-          }
-          @if (step.minAvgOverall != null) {
-            <span class="conv-unit-banner__sep">·</span>
-            <span
-              >Avg overall needed: <strong>≥ {{ step.minAvgOverall }}</strong></span
-            >
-          }
-          @if (step.maxScoredTurns != null) {
-            <span class="conv-unit-banner__sep">·</span>
-            <span
-              >Max this session: <strong>{{ step.maxScoredTurns }}</strong></span
-            >
-          }
-        </p>
-        <p class="conv-unit-banner__hint">
-          Detailed scores appear after you end this conversation (same as leaving the page). They
-          are not a fixed number of AI questions.
-        </p>
-      </div>
-    </div>
+    <app-conversation-unit-banner
+      [step]="step"
+      [collapsed]="unitBannerCollapsed()"
+      (collapsedChange)="unitBannerCollapsed.set($event)"
+    />
   }
 
   @if (unitCompleteSummary(); as sum) {
-    <div
-      class="conv-unit-modal-backdrop"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="unit-complete-title"
-    >
-      <div class="conv-unit-modal">
-        <h2 id="unit-complete-title" class="conv-unit-modal__title">Step complete</h2>
-        @if (sum.topic_unit) {
-          <p class="conv-unit-modal__step">{{ sum.topic_unit.title }}</p>
-          <p class="conv-unit-modal__objective">{{ sum.topic_unit.objective }}</p>
-        }
-        <dl class="conv-unit-modal__stats">
-          <div>
-            <dt>Scored turns</dt>
-            <dd>{{ sum.scored_turns }}</dd>
-          </div>
-          <div>
-            <dt>Avg overall</dt>
-            <dd>{{ formatAvg(sum.avg_overall) }}</dd>
-          </div>
-          <div>
-            <dt>Fluency</dt>
-            <dd>{{ formatAvg(sum.avg_fluency) }}</dd>
-          </div>
-          <div>
-            <dt>Vocabulary</dt>
-            <dd>{{ formatAvg(sum.avg_vocabulary) }}</dd>
-          </div>
-          <div>
-            <dt>Grammar</dt>
-            <dd>{{ formatAvg(sum.avg_grammar) }}</dd>
-          </div>
-        </dl>
-        @if (sum.thresholds_met) {
-          <p class="conv-unit-modal__ok">
-            You met this step’s auto-complete rules in this session.
-          </p>
-        }
-        <div class="conv-unit-modal__actions">
-          <button type="button" class="btn btn--primary" (click)="goToRoadmapAfterUnit()">
-            Back to roadmap
-          </button>
-          <button type="button" class="btn btn--ghost" (click)="closeUnitCompleteModal()">
-            Stay here
-          </button>
-        </div>
-      </div>
-    </div>
+    <app-conversation-unit-complete-modal
+      [summary]="sum"
+      (roadmap)="goToRoadmapAfterUnit()"
+      (stay)="closeUnitCompleteModal()"
+    />
   }
 
   <div class="conv-body">
     <div class="conv-main">
-      <div class="chat-area" #chatArea>
-        @if (messages().length === 0) {
-          <div class="empty-state">
-            <div class="empty-state__icon"><i class="bi bi-mic-fill" aria-hidden="true"></i></div>
-            <h2 class="empty-state__title">
-              {{ connected() ? 'Waiting for AI…' : 'Connecting…' }}
-            </h2>
-            <p class="empty-state__text">
-              {{
-                connected()
-                  ? 'The AI will say hello first. Then you can hold the button to speak. Detailed scores are shown when you end this chat.'
-                  : 'Connecting to your session.'
-              }}
-            </p>
-          </div>
-        }
-
-        @for (m of messages(); track $index) {
-          <div class="msg" [class.msg--user]="m.role === 'user'">
-            <span class="msg-label">{{ m.role === 'user' ? 'You' : 'AI Tutor' }}</span>
-            <div
-              class="bubble"
-              [class.bubble--user]="m.role === 'user'"
-              [class.bubble--ai]="m.role === 'ai'"
-              [class.bubble--clickable]="m.role === 'ai' && !m.partial"
-              (click)="m.role === 'ai' && !m.partial && openGuidePanel(m, $index)"
-              [title]="m.role === 'ai' && !m.partial ? 'Click for tips' : null"
-            >
-              @if (!m.partial) {
-                <span>{{ m.text }}</span>
-              } @else {
-                <span>{{ m.text }}</span>
-                <span class="typing" aria-hidden="true">
-                  <span></span><span></span><span></span>
-                </span>
-              }
-            </div>
-            <div class="msg-actions">
-              @if (m.role === 'user') {
-                <button
-                  type="button"
-                  class="btn btn--ghost btn--icon"
-                  (click)="requestRework($index)"
-                  [disabled]="!reworkAllowed()"
-                  title="Redo from here — remove this line and everything after, then speak again"
-                  aria-label="Redo from here"
-                >
-                  <i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i>
-                </button>
-              }
-              @if (m.role === 'user' && m.userAudio) {
-                <button
-                  type="button"
-                  class="btn btn--ghost btn--icon"
-                  [class.playing]="playingMessageIndex() === $index"
-                  (click)="playMessageAudio(m, $index, 'user')"
-                  [title]="playingMessageIndex() === $index ? 'Stop' : 'Play my recording'"
-                  [attr.aria-label]="
-                    playingMessageIndex() === $index ? 'Stop playback' : 'Play my recording'
-                  "
-                >
-                  @if (playingMessageIndex() === $index) {
-                    <i class="bi bi-stop-fill" aria-hidden="true"></i>
-                  } @else {
-                    <i class="bi bi-volume-up-fill" aria-hidden="true"></i>
-                  }
-                </button>
-              }
-              @if (m.role === 'ai' && m.aiAudio) {
-                <button
-                  type="button"
-                  class="btn btn--ghost btn--icon"
-                  [class.playing]="playingMessageIndex() === $index"
-                  (click)="playMessageAudio(m, $index, 'ai')"
-                  [title]="playingMessageIndex() === $index ? 'Stop' : 'Play AI response'"
-                  [attr.aria-label]="
-                    playingMessageIndex() === $index ? 'Stop playback' : 'Play AI response'
-                  "
-                >
-                  @if (playingMessageIndex() === $index) {
-                    <i class="bi bi-stop-fill" aria-hidden="true"></i>
-                  } @else {
-                    <i class="bi bi-volume-up-fill" aria-hidden="true"></i>
-                  }
-                </button>
-              }
-              @if (m.role === 'ai' && !m.partial) {
-                <button
-                  type="button"
-                  class="btn btn--ghost btn--icon conv-msg-hint"
-                  (click)="openGuidePanel(m, $index); $event.stopPropagation()"
-                  title="Gợi ý trả lời"
-                  aria-label="Get answer suggestions"
-                >
-                  <i class="bi bi-lightbulb" aria-hidden="true"></i>
-                </button>
-              }
-            </div>
-          </div>
-
-          @if (m.role === 'user' && scores()[$index]) {
-            <div class="score-panel">
-              <p class="score-panel__caption">Per-turn feedback (from end of session)</p>
-              <div class="score-row">
-                <span class="score-item"
-                  >Fluency <b class="score-val">{{ scores()[$index].fluency }}/10</b></span
-                >
-                <span class="score-item"
-                  >Vocab <b class="score-val">{{ scores()[$index].vocabulary }}/10</b></span
-                >
-                <span class="score-item"
-                  >Grammar <b class="score-val">{{ scores()[$index].grammar }}/10</b></span
-                >
-                <span class="score-item"
-                  >Overall <b class="score-val">{{ scores()[$index].overall }}/10</b></span
-                >
-              </div>
-              <p class="score-feedback">
-                <i class="bi bi-chat-left-text" aria-hidden="true"></i>
-                {{ scores()[$index].feedback }}
-              </p>
-            </div>
-          }
-        }
-      </div>
-
-      <div class="controls">
-        <div class="controls-left">
-          <div class="vu-bar" aria-hidden="true">
-            <div class="vu-fill" [style.width.%]="vuLevel()"></div>
-          </div>
-          <button
-            type="button"
-            class="btn-record"
-            [class.recording]="recording()"
-            [class.speaking]="aiSpeaking()"
-            (mousedown)="startRecording()"
-            (mouseup)="stopRecording()"
-            (touchstart)="startRecording()"
-            (touchend)="stopRecording()"
-            [disabled]="!canRecord()"
-            [attr.aria-label]="
-              recording()
-                ? 'Recording… release to send'
-                : canRecord()
-                  ? 'Hold to speak'
-                  : 'Wait for AI to greet you first'
-            "
-          >
-            <span class="btn-record__icon">
-              @if (recording()) {
-                <i class="bi bi-stop-fill" aria-hidden="true"></i>
-              } @else {
-                <i class="bi bi-mic-fill" aria-hidden="true"></i>
-              }
-            </span>
-          </button>
-          <span class="controls-tip">
-            @if (recording()) {
-              <span class="controls-tip--recording">Recording…</span>
-            } @else if (transcribing()) {
-              <span class="controls-tip--transcribing">Transcribing…</span>
-            } @else if (aiSpeaking()) {
-              <span class="controls-tip--speaking">AI speaking…</span>
-            } @else {
-              Hold to speak
-            }
-          </span>
-        </div>
-        <div class="controls-right">
-          <input
-            type="text"
-            class="chat-input"
-            [ngModel]="chatInput()"
-            (ngModelChange)="chatInput.set($event)"
-            (keyup.enter)="sendText()"
-            [placeholder]="
-              messages().length === 0 ? 'Wait for AI to say hello…' : 'Type your reply…'
-            "
-            [disabled]="!connected() || messages().length === 0 || aiSpeaking()"
-          />
-          <button
-            type="button"
-            class="btn btn--primary btn--sm chat-send"
-            (click)="sendText()"
-            [disabled]="
-              !connected() || messages().length === 0 || !chatInput().trim().length || aiSpeaking()
-            "
-            title="Send message"
-          >
-            <i class="bi bi-send-fill" aria-hidden="true"></i>
-          </button>
-        </div>
-      </div>
+      <app-conversation-message-list
+        [messages]="messages()"
+        [connected]="connected()"
+        [transcribing]="transcribing()"
+        [playingMessageIndex]="playingMessageIndex()"
+        [reworkAllowed]="reworkAllowed()"
+        (guideOpen)="openGuidePanel($event.message, $event.index)"
+        (rework)="requestRework($event)"
+        (playAudio)="playMessageAudio($event.msg, $event.index, $event.kind)"
+      />
+      <app-conversation-controls
+        [vuLevel]="vuLevel()"
+        [recording]="recording()"
+        [transcribing]="transcribing()"
+        [aiSpeaking]="aiSpeaking()"
+        [canRecord]="canRecord()"
+        [connected]="connected()"
+        [messagesCount]="messages().length"
+        [chatInput]="chatInput()"
+        (chatInputChange)="chatInput.set($event)"
+        (startRecording)="startRecording()"
+        (stopRecording)="stopRecording()"
+        (sendText)="sendText()"
+      />
     </div>
 
     @if (selectedForGuide(); as sel) {
-      <div
-        class="conv-guide-backdrop"
-        role="presentation"
-        tabindex="-1"
-        (click)="closeGuidePanel()"
-        aria-hidden="true"
-      ></div>
-      <aside class="conv-guide-panel" role="complementary" aria-label="Guidance">
-        <div class="conv-guide-panel__header">
-          <h2 class="conv-guide-panel__title">Tips</h2>
-          <button
-            type="button"
-            class="btn btn--ghost btn--icon conv-guide-panel__close"
-            (click)="closeGuidePanel()"
-            aria-label="Close panel"
-          >
-            <i class="bi bi-x-lg" aria-hidden="true"></i>
-          </button>
-        </div>
-        <div class="conv-guide-panel__message">
-          <span class="conv-guide-panel__label">Question</span>
-          <p class="conv-guide-panel__text">{{ sel.message.text }}</p>
-        </div>
-        <div class="conv-guide-panel__tips">
-          <span class="conv-guide-panel__label">Gợi ý trả lời</span>
-          @if (guideLoading()) {
-            <p class="conv-guide-panel__loading">Đang tải…</p>
-          } @else if (guideSuggestions().length > 0) {
-            <ul class="conv-guide-panel__list">
-              @for (s of guideSuggestions(); track $index) {
-                <li>{{ s }}</li>
-              }
-            </ul>
-          } @else {
-            <p class="conv-guide-panel__empty">Không có gợi ý.</p>
-          }
-        </div>
-      </aside>
+      <app-conversation-guide-panel
+        [questionText]="sel.message.text"
+        [suggestions]="guideSuggestions()"
+        [loading]="guideLoading()"
+        [panelWidthPx]="guidePanelWidthPx()"
+        [sidebarDesktop]="guidePanelSidebarDesktop()"
+        (close)="closeGuidePanel()"
+        (resizePointerDown)="onGuideResizePointerDown($event)"
+      />
     }
   </div>
 </div>

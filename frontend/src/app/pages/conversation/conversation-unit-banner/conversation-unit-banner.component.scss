@@ -1,0 +1,54 @@
+@use '../../../../styles/breakpoints' as bp;
+
+.conv-unit-banner {
+  padding: 12px 24px;
+  background: var(--clr-accent-bg-soft, rgba(37 99 235 / 0.08));
+  border-bottom: 1px solid var(--clr-border);
+  font-size: var(--fs-sm);
+  color: var(--clr-text);
+}
+
+.conv-unit-banner__inner {
+  max-width: 720px;
+}
+
+.conv-unit-banner__title {
+  display: block;
+  font-size: var(--fs-lg);
+  line-height: 1.35;
+  margin: 0;
+}
+
+.conv-unit-banner__details {
+  padding-top: 8px;
+}
+
+.conv-unit-banner__objective {
+  margin: 0 0 8px;
+  color: var(--clr-text-muted);
+  line-height: 1.45;
+}
+
+.conv-unit-banner__progress {
+  margin: 0 0 6px;
+  line-height: 1.5;
+}
+
+.conv-unit-banner__sep {
+  margin: 0 0.35em;
+  opacity: 0.5;
+}
+
+.conv-unit-banner__hint {
+  margin: 0;
+  font-size: var(--fs-xs);
+  color: var(--clr-text-muted);
+  line-height: 1.4;
+}
+
+@include bp.max-nav {
+  .conv-unit-banner {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+}

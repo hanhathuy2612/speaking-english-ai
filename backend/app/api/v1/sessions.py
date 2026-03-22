@@ -1,12 +1,17 @@
+from typing import Any
+
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
 
 from app.core.deps import get_current_user
 from app.db.session import get_db
 from app.models.conversation import ConversationSession, Turn
 from app.models.user import User
+from app.services.conversation_session_finalize import finalize_session_scoring
+from app.services.lm_client import LMStudioClient
+from app.services.scoring_service import ScoringService
 import app.services.topic_roadmap_service as roadmap_svc
 from app.schemas.conversation import (
     SessionDetailOut,
@@ -17,6 +22,27 @@ from app.schemas.conversation import (
 )
 
 router = APIRouter(prefix="/conversation", tags=["conversation"])
+
+
+def get_scoring_service() -> ScoringService:
+    return ScoringService(LMStudioClient())
+
+
+@router.post("/sessions/{session_id}/end")
+async def end_session_and_score(
+    session_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+    scorer: ScoringService = Depends(get_scoring_service),
+) -> dict[str, Any]:
+    """
+    End session: score any unscored turns, set ended_at, roadmap auto-complete.
+    Use when the WebSocket is already closed (e.g. client disconnected first).
+    """
+    out = await finalize_session_scoring(db, session_id, user.id, scorer)
+    if out is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
+    return out
 
 
 @router.get("/sessions", response_model=list[SessionOut])

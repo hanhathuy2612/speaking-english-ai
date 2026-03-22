@@ -1,0 +1,47 @@
+<div class="conv-unit-banner">
+  <div class="conv-unit-banner__inner">
+    <app-collapse
+      panelId="unit-banner-details"
+      [collapsed]="collapsed()"
+      (collapsedChange)="collapsedChange.emit($event)"
+      [ariaLabel]="'Practice step: ' + step().title"
+      expandAriaLabel="Expand step details"
+      collapseAriaLabel="Collapse step details"
+    >
+      <div collapseHeader>
+        <strong class="conv-unit-banner__title">{{ step().title }}</strong>
+      </div>
+      <div class="conv-unit-banner__details">
+        <p class="conv-unit-banner__objective">{{ step().objective }}</p>
+        <p class="conv-unit-banner__progress">
+          <span
+            >Your practice turns this session: <strong>{{ step().scoredTurnsSoFar }}</strong></span
+          >
+          @if (step().minTurnsToComplete != null) {
+            <span class="conv-unit-banner__sep">·</span>
+            <span
+              >Target to auto-complete: <strong>{{ step().minTurnsToComplete }}</strong> practice
+              turns (scored when you end the chat)</span
+            >
+          }
+          @if (step().minAvgOverall != null) {
+            <span class="conv-unit-banner__sep">·</span>
+            <span
+              >Avg overall needed: <strong>≥ {{ step().minAvgOverall }}</strong></span
+            >
+          }
+          @if (step().maxScoredTurns != null) {
+            <span class="conv-unit-banner__sep">·</span>
+            <span
+              >Max this session: <strong>{{ step().maxScoredTurns }}</strong></span
+            >
+          }
+        </p>
+        <p class="conv-unit-banner__hint">
+          Use End & feedback in the header when you are finished. Scores are not tied to a fixed
+          number of AI questions.
+        </p>
+      </div>
+    </app-collapse>
+  </div>
+</div>

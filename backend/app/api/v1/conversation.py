@@ -4,7 +4,7 @@ WebSocket endpoint for full-duplex spoken conversation.
 Message protocol
 ────────────────
 Client → Server (JSON):
-  {"type": "start",       "topicId": int, ...}
+  {"type": "start",       "topicId": int, "ttsRate": str, "ttsVoice": str, optional "level": str}  -- CEFR or ""; applied before opening TTS
   {"type": "set_level",   "level": "A1"|"A2"|"B1"|"B2"|"C1"|""}  -- real-time level override
   {"type": "tts_preferences", "ttsRate": str, "ttsVoice": str}
   {"type": "audio_end"}   -- after binary audio frames (voice turn)

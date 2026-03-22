@@ -1,0 +1,38 @@
+/* Themed scrollbars — Firefox (scrollbar-color) + Chromium / Safari / Edge (webkit) */
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--clr-scrollbar-thumb) var(--clr-scrollbar-track);
+}
+
+*::-webkit-scrollbar {
+  width: var(--scrollbar-size);
+  height: var(--scrollbar-size);
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-track {
+  margin-block: 4px;
+  margin-inline: 2px;
+  background: var(--clr-scrollbar-track);
+  border-radius: var(--scrollbar-radius);
+}
+
+*::-webkit-scrollbar-thumb {
+  border-radius: var(--scrollbar-radius);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  background-color: var(--clr-scrollbar-thumb);
+  transition: background-color var(--transition);
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: var(--clr-scrollbar-thumb-hover);
+}
+
+*::-webkit-scrollbar-thumb:active {
+  background-color: var(--clr-scrollbar-thumb-active);
+}

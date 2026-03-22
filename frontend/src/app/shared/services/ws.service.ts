@@ -136,6 +136,14 @@ export class WsService implements OnDestroy {
     return this.ws?.readyState === WebSocket.OPEN;
   }
 
+  /**
+   * Call before sending `{ type: 'stop' }` when the server will end the session and close the
+   * socket, so the client does not treat the close as a network drop and auto-reconnect.
+   */
+  expectGracefulSessionShutdown(): void {
+    this.intentionalClose = true;
+  }
+
   ngOnDestroy(): void {
     this.disconnect();
   }

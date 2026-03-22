@@ -73,6 +73,30 @@ export interface GuidanceResponse {
   suggestions: string[];
 }
 
+export interface SessionEndScoreTurn {
+  turnId: number;
+  fluency: number;
+  vocabulary: number;
+  grammar: number;
+  overall: number;
+  feedback: string;
+}
+
+/** POST .../conversation/sessions/{id}/end — same scoring payload shape as WebSocket session_scores. */
+export interface SessionEndScoresResponse {
+  turns: SessionEndScoreTurn[];
+  averages: {
+    fluency: number;
+    vocabulary: number;
+    grammar: number;
+    overall: number;
+  } | null;
+  /** One Vietnamese tutor recap: scores, mistakes, how to improve (not per-turn). */
+  session_feedback: string;
+  roadmap_unit_completed: boolean;
+  topic_unit_id: number | null;
+}
+
 export interface AdminUserOut {
   id: number;
   email: string;
@@ -150,6 +174,14 @@ export class ApiService {
   getUnitStepSummary(sessionId: number): Observable<UnitStepSummary> {
     return this.http.get<UnitStepSummary>(
       `${this.base}/conversation/sessions/${sessionId}/unit-step-summary`,
+    );
+  }
+
+  /** End session, score turns, set ended_at (call after WebSocket is closed). */
+  postSessionEnd(sessionId: number): Observable<SessionEndScoresResponse> {
+    return this.http.post<SessionEndScoresResponse>(
+      `${this.base}/conversation/sessions/${sessionId}/end`,
+      {},
     );
   }
 

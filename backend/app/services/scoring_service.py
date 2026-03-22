@@ -69,6 +69,35 @@ Respond ONLY with valid JSON in exactly this format (no extra text, no markdown)
 {{"fluency": 7.0, "vocabulary": 6.5, "grammar": 8.0, "overall": 7.2, "feedback": "Your 2-4 sentences here."}}
 """
 
+_SESSION_FEEDBACK_PROMPT = """Bạn là giáo viên tiếng Anh. Học viên vừa kết thúc một phiên luyện nói.
+
+Chủ đề / ngữ cảnh: {topic}
+
+Các lượt (học viên nói → gia sư trả lời), theo thứ tự:
+{turns_block}
+
+Điểm trung bình cả phiên (thang 10):
+- Speaking / độ trôi chảy: {flu:.1f}
+- Từ vựng: {voc:.1f}
+- Ngữ pháp: {gram:.1f}
+- Tổng thể: {ov:.1f}
+
+Viết MỘT tin nhắn duy nhất bằng tiếng Việt (giọng thân thiện), gồm:
+1) Một đoạn ngắn nêu lại điểm trung bình cả phiên (thang 10) cho: speaking/độ trôi chảy, từ vựng, ngữ pháp, tổng thể — dùng đúng các số đã cho ở trên (có thể gạch đầu dòng).
+2) Phần nhận xét: điểm mạnh/yếu nổi bật qua các lượt; chỉ ra lỗi sai cụ thể nếu có (ngữ pháp, từ vựng, cách nói).
+3) Gợi ý cách cải thiện rõ ràng theo từng mặt (nói, từ vựng, ngữ pháp) tùy mức điểm.
+4) Kết: một câu động viên.
+
+Không dùng markdown, không dùng JSON, không lặp lại toàn bộ hội thoại. Tối đa ~280 từ.
+"""
+
+
+def _trunc_text(text: str, max_len: int) -> str:
+    t = text.strip()
+    if len(t) <= max_len:
+        return t
+    return t[: max_len - 1] + "…"
+
 
 class ScoreResult(TypedDict):
     fluency: float
@@ -205,3 +234,65 @@ class ScoringService:
             overall=_compute_overall(fluency, vocab, _DEFAULT_GRAMMAR),
             feedback=_FALLBACK_FEEDBACK,
         )
+
+    def _fallback_session_feedback_vi(self, averages: dict[str, float]) -> str:
+        return (
+            "📊 Điểm trung bình phiên (thang 10)\n"
+            f"• Speaking (độ trôi chảy): {averages['fluency']:.1f}\n"
+            f"• Từ vựng: {averages['vocabulary']:.1f}\n"
+            f"• Ngữ pháp: {averages['grammar']:.1f}\n"
+            f"• Tổng thể: {averages['overall']:.1f}\n\n"
+            "Hãy xem lại các câu bạn đã nói: thử nối ý bằng because / so / but, "
+            "dùng đúng thì động từ với chủ ngữ, và mở rộng từ vựng theo chủ đề. "
+            "Luyện nói thêm từng câu hoàn chỉnh — bạn đang tiến bộ!"
+        )
+
+    async def session_feedback_message(
+        self,
+        topic: str,
+        turn_pairs: list[tuple[str, str]],
+        averages: dict[str, float],
+    ) -> str:
+        """
+        One tutor-style recap for the whole session (Vietnamese), using scores + full dialogue.
+        """
+        if not turn_pairs or not averages:
+            return ""
+
+        parts: list[str] = []
+        for i, (user_t, asst_t) in enumerate(turn_pairs, 1):
+            uu = _trunc_text(user_t, 480)
+            aa = _trunc_text(asst_t, 480)
+            parts.append(f"Lượt {i} — Học viên: {uu}\nGia sư: {aa}")
+        turns_block = "\n\n".join(parts)
+
+        safe_topic = topic.replace("{", "{{").replace("}", "}}")
+        safe_block = turns_block.replace("{", "{{").replace("}", "}}")
+        flu = float(averages["fluency"])
+        voc = float(averages["vocabulary"])
+        gram = float(averages["grammar"])
+        ov = float(averages["overall"])
+
+        user_msg = _SESSION_FEEDBACK_PROMPT.format(
+            topic=safe_topic,
+            turns_block=safe_block,
+            flu=flu,
+            voc=voc,
+            gram=gram,
+            ov=ov,
+        )
+        messages = [{"role": "user", "content": user_msg}]
+        try:
+            raw = await self._lm.generate_text(
+                messages, temperature=0.35, max_tokens=720
+            )
+            text = raw.strip()
+            if text.startswith("```"):
+                text = re.sub(r"^```(?:\w*)?\s*", "", text, flags=re.IGNORECASE)
+                text = re.sub(r"\s*```\s*$", "", text)
+            if len(text) > 20:
+                return text[:2800]
+        except Exception:
+            log.exception("Session feedback LM failed; using fallback text")
+
+        return self._fallback_session_feedback_vi(averages)

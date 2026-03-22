@@ -1,0 +1,37 @@
+:host {
+  display: block;
+}
+
+.app-collapse__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.app-collapse__header-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.app-collapse__toggle {
+  flex-shrink: 0;
+  padding: 4px 8px;
+  margin: -4px -6px -4px 0;
+  font-size: var(--fs-xl);
+  line-height: 1;
+  color: var(--clr-text-muted);
+
+  &:hover {
+    color: var(--clr-text);
+  }
+}
+
+.app-collapse__chev {
+  display: block;
+  transition: transform var(--transition);
+}
+
+:host(:not(.app-collapse--collapsed)) .app-collapse__chev {
+  transform: rotate(-180deg);
+}

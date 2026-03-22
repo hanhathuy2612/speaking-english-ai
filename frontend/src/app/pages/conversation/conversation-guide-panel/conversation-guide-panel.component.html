@@ -1,0 +1,51 @@
+<div
+  class="conv-guide-backdrop"
+  role="presentation"
+  tabindex="-1"
+  (click)="close.emit()"
+  aria-hidden="true"
+></div>
+<aside
+  class="conv-guide-panel"
+  role="complementary"
+  aria-label="Guidance"
+  [style.width.px]="sidebarDesktop() ? panelWidthPx() : null"
+>
+  <div
+    class="conv-guide-panel__resize-handle"
+    role="separator"
+    aria-orientation="vertical"
+    aria-label="Resize tips panel"
+    title="Drag to resize"
+    (pointerdown)="resizePointerDown.emit($event)"
+  ></div>
+  <div class="conv-guide-panel__header">
+    <h2 class="conv-guide-panel__title">Tips</h2>
+    <button
+      type="button"
+      class="btn btn--ghost btn--icon conv-guide-panel__close"
+      (click)="close.emit()"
+      aria-label="Close panel"
+    >
+      <i class="bi bi-x-lg" aria-hidden="true"></i>
+    </button>
+  </div>
+  <div class="conv-guide-panel__message">
+    <span class="conv-guide-panel__label">Question</span>
+    <p class="conv-guide-panel__text">{{ questionText() }}</p>
+  </div>
+  <div class="conv-guide-panel__tips">
+    <span class="conv-guide-panel__label">Gợi ý trả lời</span>
+    @if (loading()) {
+      <p class="conv-guide-panel__loading">Đang tải…</p>
+    } @else if (suggestions().length > 0) {
+      <ul class="conv-guide-panel__list">
+        @for (s of suggestions(); track $index) {
+          <li>{{ s }}</li>
+        }
+      </ul>
+    } @else {
+      <p class="conv-guide-panel__empty">Không có gợi ý.</p>
+    }
+  </div>
+</aside>

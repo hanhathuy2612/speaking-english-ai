@@ -55,4 +55,12 @@
   /* Height of the navigation bar (logo/link row) + status bar area */
   --app-nav-bar: 56px;
   --app-nav-offset: calc(var(--app-nav-bar) + var(--sat));
+
+  /* Scrollbars (Firefox + WebKit) */
+  --scrollbar-size: 10px;
+  --scrollbar-radius: 999px;
+  --clr-scrollbar-track: rgb(0 0 0 / 0.18);
+  --clr-scrollbar-thumb: rgb(139 156 173 / 0.35);
+  --clr-scrollbar-thumb-hover: rgb(139 156 173 / 0.55);
+  --clr-scrollbar-thumb-active: rgb(88 166 255 / 0.45);
 }

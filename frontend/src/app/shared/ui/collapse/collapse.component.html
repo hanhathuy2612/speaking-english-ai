@@ -1,0 +1,20 @@
+<div class="app-collapse__header">
+  <div class="app-collapse__header-main">
+    <ng-content select="[collapseHeader]" />
+  </div>
+  @if (showToggle()) {
+    <button
+      type="button"
+      class="app-collapse__toggle btn btn--ghost btn--icon"
+      (click)="toggle()"
+      [attr.aria-expanded]="!collapsed()"
+      [attr.aria-controls]="effectivePanelId()"
+      [attr.aria-label]="toggleAriaLabel()"
+    >
+      <i class="bi bi-chevron-down app-collapse__chev" aria-hidden="true"></i>
+    </button>
+  }
+</div>
+<div class="app-collapse__panel" [id]="effectivePanelId()" [hidden]="collapsed()">
+  <ng-content />
+</div>

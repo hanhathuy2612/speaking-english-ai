@@ -1,0 +1,105 @@
+<div class="chat-area" #chatArea>
+  @if (messages().length === 0) {
+    <div class="empty-state">
+      <div class="empty-state__icon"><i class="bi bi-mic-fill" aria-hidden="true"></i></div>
+      <h2 class="empty-state__title">
+        {{ connected() ? 'Waiting for AI…' : 'Connecting…' }}
+      </h2>
+      <p class="empty-state__text">
+        {{
+          connected()
+            ? 'The AI will say hello first. Then you can hold the button to speak. When you are done, use End & feedback in the header (next to Level / Speed) for session scores.'
+            : 'Connecting to your session.'
+        }}
+      </p>
+    </div>
+  }
+
+  @for (m of messages(); track $index) {
+    <div class="msg" [class.msg--user]="m.role === 'user'">
+      <span class="msg-label">{{
+        m.sessionRecap ? 'Tổng kết phiên' : m.role === 'user' ? 'You' : 'AI Tutor'
+      }}</span>
+      <div
+        class="bubble"
+        [class.bubble--user]="m.role === 'user'"
+        [class.bubble--ai]="m.role === 'ai'"
+        [class.bubble--clickable]="m.role === 'ai' && !m.partial && !m.sessionRecap"
+        (click)="
+          m.role === 'ai' && !m.partial && !m.sessionRecap && guideOpen.emit({ message: m, index: $index })
+        "
+        [title]="m.role === 'ai' && !m.partial && !m.sessionRecap ? 'Click for tips' : null"
+      >
+        @if (!m.partial) {
+          <span>{{ m.text }}</span>
+        } @else {
+          <span>{{ m.text }}</span>
+          <span class="typing" aria-hidden="true">
+            <span></span><span></span><span></span>
+          </span>
+        }
+      </div>
+      <div class="msg-actions">
+        @if (m.role === 'user') {
+          <button
+            type="button"
+            class="btn btn--ghost btn--icon"
+            (click)="rework.emit($index)"
+            [disabled]="!reworkAllowed()"
+            title="Redo from here — remove this line and everything after, then speak again"
+            aria-label="Redo from here"
+          >
+            <i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i>
+          </button>
+        }
+        @if (m.role === 'user' && m.userAudio) {
+          <button
+            type="button"
+            class="btn btn--ghost btn--icon"
+            [class.playing]="playingMessageIndex() === $index"
+            (click)="playAudio.emit({ msg: m, index: $index, kind: 'user' })"
+            [title]="playingMessageIndex() === $index ? 'Stop' : 'Play my recording'"
+            [attr.aria-label]="
+              playingMessageIndex() === $index ? 'Stop playback' : 'Play my recording'
+            "
+          >
+            @if (playingMessageIndex() === $index) {
+              <i class="bi bi-stop-fill" aria-hidden="true"></i>
+            } @else {
+              <i class="bi bi-volume-up-fill" aria-hidden="true"></i>
+            }
+          </button>
+        }
+        @if (m.role === 'ai' && m.aiAudio) {
+          <button
+            type="button"
+            class="btn btn--ghost btn--icon"
+            [class.playing]="playingMessageIndex() === $index"
+            (click)="playAudio.emit({ msg: m, index: $index, kind: 'ai' })"
+            [title]="playingMessageIndex() === $index ? 'Stop' : 'Play AI response'"
+            [attr.aria-label]="
+              playingMessageIndex() === $index ? 'Stop playback' : 'Play AI response'
+            "
+          >
+            @if (playingMessageIndex() === $index) {
+              <i class="bi bi-stop-fill" aria-hidden="true"></i>
+            } @else {
+              <i class="bi bi-volume-up-fill" aria-hidden="true"></i>
+            }
+          </button>
+        }
+        @if (m.role === 'ai' && !m.partial && !m.sessionRecap) {
+          <button
+            type="button"
+            class="btn btn--ghost btn--icon conv-msg-hint"
+            (click)="guideOpen.emit({ message: m, index: $index }); $event.stopPropagation()"
+            title="Gợi ý trả lời"
+            aria-label="Get answer suggestions"
+          >
+            <i class="bi bi-lightbulb" aria-hidden="true"></i>
+          </button>
+        }
+      </div>
+    </div>
+  }
+</div>

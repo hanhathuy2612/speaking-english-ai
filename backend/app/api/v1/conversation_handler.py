@@ -25,6 +25,7 @@ from app.models.conversation import (
     TurnScore,
 )
 import app.services.topic_roadmap_service as roadmap_svc
+from app.services.conversation_session_finalize import finalize_session_scoring
 from app.services.lm_client import LMStudioClient, transcript_normalization_plausible
 from app.services.scoring_service import ScoringService
 from app.services.stt_service import STTService
@@ -315,6 +316,9 @@ class ConversationHandler:
                 self._tts_rate = str(data["ttsRate"])
             if data.get("ttsVoice"):
                 self._tts_voice = str(data["ttsVoice"])
+            if "level" in data:
+                lv = data["level"]
+                self.set_level(str(lv) if lv is not None else None)
             status_payload: dict = {
                 "type": "status",
                 "message": "session_started",
@@ -379,6 +383,9 @@ class ConversationHandler:
             self._tts_rate = str(data["ttsRate"])
         if data.get("ttsVoice"):
             self._tts_voice = str(data["ttsVoice"])
+        if "level" in data:
+            lv = data["level"]
+            self.set_level(str(lv) if lv is not None else None)
 
         status_payload: dict = {
             "type": "status",
@@ -663,94 +670,39 @@ class ConversationHandler:
         if not self.session_id or not self.topic:
             return
 
-        ctx = await self._topic_context_for_llm(db)
-        score_topic = ctx or self.topic.title
-
-        r = await db.execute(
-            select(Turn)
-            .where(Turn.session_id == self.session_id)
-            .order_by(Turn.index_in_session)
-            .options(selectinload(Turn.score))
+        out = await finalize_session_scoring(
+            db, self.session_id, self._user_id, self._scorer
         )
-        turns = list(r.scalars().all())
+        if not out:
+            return
 
-        for t in turns:
-            if t.score is not None:
-                continue
-            sc = await self._scorer.score(t.user_text, score_topic, 0.0)
-            db.add(
-                TurnScore(
-                    turn_id=t.id,
-                    fluency=sc.get("fluency", 5),
-                    vocabulary=sc.get("vocabulary", 5),
-                    grammar=sc.get("grammar", 5),
-                    overall=sc.get("overall", 5),
-                    feedback=sc.get("feedback"),
-                )
-            )
-        await db.commit()
-
-        r2 = await db.execute(
-            select(Turn)
-            .where(Turn.session_id == self.session_id)
-            .order_by(Turn.index_in_session)
-            .options(selectinload(Turn.score))
-        )
-        all_with_scores = [t for t in r2.scalars() if t.score is not None]
-
-        turns_out: list[dict[str, Any]] = []
-        flu: list[float] = []
-        voc: list[float] = []
-        gram: list[float] = []
-        ovl: list[float] = []
-        for t in all_with_scores:
-            ts = t.score
-            if ts is None:
-                continue
-            turns_out.append(
-                {
-                    "turnId": t.id,
-                    "fluency": ts.fluency,
-                    "vocabulary": ts.vocabulary,
-                    "grammar": ts.grammar,
-                    "overall": ts.overall,
-                    "feedback": ts.feedback or "",
-                }
-            )
-            flu.append(ts.fluency)
-            voc.append(ts.vocabulary)
-            gram.append(ts.grammar)
-            ovl.append(ts.overall)
-
-        if turns_out:
-            n = len(turns_out)
-            averages = {
-                "fluency": sum(flu) / n,
-                "vocabulary": sum(voc) / n,
-                "grammar": sum(gram) / n,
-                "overall": sum(ovl) / n,
-            }
+        if out.get("averages"):
             await self._send(
                 {
                     "type": "session_scores",
-                    "turns": turns_out,
-                    "averages": averages,
+                    "turns": out["turns"],
+                    "averages": out["averages"],
+                    "session_feedback": out.get("session_feedback") or "",
+                }
+            )
+        elif (out.get("session_feedback") or "").strip():
+            await self._send(
+                {
+                    "type": "session_scores",
+                    "turns": out.get("turns") or [],
+                    "session_feedback": out["session_feedback"],
                 }
             )
 
-        if await roadmap_svc.try_auto_complete_unit_for_session(
-            db, self.session_id, self._user_id
-        ):
-            uid = self.topic_unit.id if self.topic_unit else None
-            if uid is not None:
-                await self._send(
-                    {
-                        "type": "status",
-                        "message": "roadmap_unit_completed",
-                        "topicUnitId": uid,
-                        "sessionId": self.session_id,
-                    }
-                )
+        if out.get("roadmap_unit_completed") and out.get("topic_unit_id") is not None:
+            await self._send(
+                {
+                    "type": "status",
+                    "message": "roadmap_unit_completed",
+                    "topicUnitId": out["topic_unit_id"],
+                    "sessionId": self.session_id,
+                }
+            )
 
     async def handle_rework(self, db: AsyncSession, data: dict) -> bool:
         """Remove this turn and all following turns; client continues from before this slot."""
@@ -794,14 +746,14 @@ class ConversationHandler:
         self.turn_index = turn_index
 
         r = await db.execute(
-            select(Turn)
-            .where(Turn.session_id == sid)
-            .order_by(Turn.index_in_session)
+            select(Turn).where(Turn.session_id == sid).order_by(Turn.index_in_session)
         )
         turns = list(r.scalars().all())
         self._rebuild_lm_history(turns)
 
-        await self._send({"type": "history", "messages": self._client_history_messages(turns)})
+        await self._send(
+            {"type": "history", "messages": self._client_history_messages(turns)}
+        )
 
         status_payload: dict[str, Any] = {
             "type": "status",
@@ -819,12 +771,12 @@ class ConversationHandler:
         sid = self.session_id
         if sid and self.topic:
             await self._score_pending_turns_and_send_summary(db)
-        if sid:
+        elif sid:
             sess_q = await db.execute(
                 select(ConversationSession).where(ConversationSession.id == sid)
             )
             sess = sess_q.scalar_one_or_none()
-            if sess:
+            if sess is not None:
                 sess.ended_at = datetime.now(timezone.utc)
                 await db.commit()
         await self._send({"type": "status", "message": "session_stopped"})

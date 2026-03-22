@@ -1,0 +1,164 @@
+@use '../../../../styles/breakpoints' as bp;
+
+:host {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.chat-area {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.msg {
+  display: flex;
+  flex-direction: column;
+  max-width: 85%;
+}
+
+.msg--user {
+  align-self: flex-end;
+}
+
+.msg-label {
+  font-size: var(--fs-2xs);
+  font-weight: var(--fw-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--clr-text-muted);
+  margin-bottom: 4px;
+}
+
+.msg-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.msg-actions .btn--icon {
+  padding: 6px 10px;
+  font-size: var(--fs-md);
+  min-width: 36px;
+
+  &.playing {
+    color: var(--clr-accent);
+  }
+}
+
+.conv-msg-hint {
+  font-size: var(--fs-xl);
+}
+
+.msg--user .msg-label {
+  text-align: right;
+}
+
+.bubble {
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  font-size: var(--fs-lg);
+  line-height: 1.5;
+}
+
+.bubble--user {
+  background: var(--clr-accent);
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+
+.bubble--ai {
+  background: var(--clr-surface);
+  border: 1px solid var(--clr-border);
+  color: var(--clr-text);
+  border-bottom-left-radius: 4px;
+}
+
+.bubble--clickable {
+  cursor: pointer;
+
+  &:hover {
+    border-color: var(--clr-border-focus);
+    box-shadow: var(--shadow-focus);
+  }
+}
+
+.empty-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  text-align: center;
+  padding: 24px;
+}
+
+.empty-state__icon {
+  font-size: var(--fs-6xl);
+  opacity: 0.8;
+}
+
+.empty-state__title {
+  font-size: var(--fs-2xl);
+  font-weight: var(--fw-semibold);
+  margin: 0;
+  color: var(--clr-text);
+}
+
+.empty-state__text {
+  max-width: 320px;
+  margin: 0;
+  font-size: var(--fs-lg);
+  color: var(--clr-text-muted);
+  line-height: 1.5;
+}
+
+.typing {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px 0 0 4px;
+  vertical-align: middle;
+}
+
+.typing span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--clr-text-muted);
+  animation: bounce 1.2s infinite;
+}
+
+.typing span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.typing span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes bounce {
+  0%,
+  80%,
+  100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-5px);
+  }
+}
+
+@include bp.max-nav {
+  .chat-area {
+    padding: 12px 12px 16px;
+    gap: 14px;
+  }
+
+  .msg {
+    max-width: 92%;
+  }
+}
