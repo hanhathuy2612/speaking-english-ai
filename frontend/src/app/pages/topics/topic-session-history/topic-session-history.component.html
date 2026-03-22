@@ -11,27 +11,14 @@
     <header class="hero">
       <h1>Session history</h1>
       <p class="muted">
-        All your practice sessions for <strong>{{ topicTitle() }}</strong>. Resume a session to continue the
-        same chat, or start a new one from the roadmap.
+        All your practice sessions for <strong>{{ topicTitle() }}</strong
+        >. Resume a session to continue the same chat, or start a new one from the roadmap.
       </p>
       <div class="hero-actions">
-        <a [routerLink]="['/topics', topicId(), 'roadmap']" class="btn btn--secondary">Back to roadmap</a>
-        <button
-          type="button"
-          class="btn btn--primary"
-          [disabled]="newChatBusy()"
-          (click)="startNewConversation()"
+        <a [routerLink]="['/topics', topicId(), 'roadmap']" class="btn btn--secondary"
+          >Back to roadmap</a
         >
-          @if (newChatBusy()) {
-            Starting…
-          } @else {
-            New conversation
-          }
-        </button>
       </div>
-      @if (newChatError()) {
-        <p class="hero-error" role="alert">{{ newChatError() }}</p>
-      }
     </header>
 
     <div class="sessions-card">
@@ -83,7 +70,9 @@
               }
               @if (!loading() && (sessionsData()?.items?.length ?? 0) === 0) {
                 <tr class="sessions-empty">
-                  <td colspan="5">No sessions for this topic yet. Start a conversation from the roadmap.</td>
+                  <td colspan="5">
+                    No sessions for this topic yet. Start a conversation from the roadmap.
+                  </td>
                 </tr>
               }
             </tbody>

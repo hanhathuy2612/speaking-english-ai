@@ -25,8 +25,6 @@ export class TopicSessionHistoryComponent implements OnInit {
   topicTitle = signal('');
   sessionsData = signal<SessionsPageResponse | null>(null);
   loading = signal(true);
-  newChatBusy = signal(false);
-  newChatError = signal('');
   currentPage = signal(1);
   readonly pageSize = PAGE_SIZE;
 
@@ -85,33 +83,6 @@ export class TopicSessionHistoryComponent implements OnInit {
     void this.router.navigate(['/conversation'], {
       queryParams: { topicId: s.topic_id, title: s.topic_title, sessionId: s.id },
     });
-  }
-
-  startNewConversation(): void {
-    if (this.newChatBusy()) return;
-    const tid = this.topicId();
-    const title = this.topicTitle();
-    this.newChatError.set('');
-    this.newChatBusy.set(true);
-    this.api
-      .postCreateSession({ topic_id: tid })
-      .pipe(finalize(() => this.newChatBusy.set(false)))
-      .subscribe({
-        next: (res) => {
-          void this.router.navigate(['/conversation'], {
-            queryParams: { topicId: tid, title, sessionId: res.id },
-          });
-        },
-        error: (err: { error?: { detail?: unknown } }) => {
-          const d = err?.error?.detail;
-          let msg = 'Could not create a session. Try again.';
-          if (typeof d === 'string') msg = d;
-          else if (Array.isArray(d) && d.length > 0 && typeof (d[0] as { msg?: string }).msg === 'string') {
-            msg = (d[0] as { msg: string }).msg;
-          }
-          this.newChatError.set(msg);
-        },
-      });
   }
 
   deleteSession(sessionId: number, $event?: Event): void {
