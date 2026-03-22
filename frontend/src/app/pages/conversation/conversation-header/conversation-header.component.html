@@ -44,7 +44,7 @@
           Session history
         </a>
       </div>
-    } @else if (sessionId() > 0) {
+    } @else if (sessionId() > 0 && !sessionEndedWithFeedback()) {
       <button
         type="button"
         class="btn btn--ghost conv-header__new"
