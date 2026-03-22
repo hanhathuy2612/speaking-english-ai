@@ -98,27 +98,6 @@
   margin: 0;
 }
 
-.conv-guide-panel__list {
-  margin: 0;
-  padding-left: 20px;
-  font-size: var(--fs-md);
-  line-height: 1.6;
-  color: var(--clr-text-muted);
-
-  li {
-    margin-bottom: 10px;
-  }
-
-  li:last-child {
-    margin-bottom: 0;
-  }
-
-  em {
-    color: var(--clr-text);
-    font-style: italic;
-  }
-}
-
 @include bp.max-nav {
   .conv-guide-backdrop {
     display: block;

@@ -39,11 +39,11 @@
     @if (loading()) {
       <p class="conv-guide-panel__loading">Đang tải…</p>
     } @else if (suggestions().length > 0) {
-      <ul class="conv-guide-panel__list">
+      <div class="conv-guide-panel__blocks">
         @for (s of suggestions(); track $index) {
-          <li>{{ s }}</li>
+          <div class="conv-guide-panel__block conv-guide-markdown" [innerHTML]="s | markdownHtml"></div>
         }
-      </ul>
+      </div>
     } @else {
       <p class="conv-guide-panel__empty">Không có gợi ý.</p>
     }

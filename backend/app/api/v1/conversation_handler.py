@@ -66,6 +66,11 @@ _BATCH_INTERVAL = 0.04
 _TTS_BATCH_BYTES = 4000
 _TTS_BATCH_INTERVAL = 0.05
 
+# When the tutor LM fails after the user's line was shown, we still persist a Turn so end-session scoring can run.
+_AI_UNAVAILABLE_ASSISTANT_TEXT = (
+    "Sorry — I couldn't reply just now. Your answer was still saved for this session."
+)
+
 
 async def stream_llm(
     send: Callable[[dict], Any],
@@ -644,8 +649,12 @@ class ConversationHandler:
             )
         except Exception:
             logger.exception("LM generate failed")
+            assistant_text = _AI_UNAVAILABLE_ASSISTANT_TEXT
+            await self._send(
+                {"type": "assistant_partial", "text": assistant_text, "done": False}
+            )
+            await self._send({"type": "assistant_partial", "text": "", "done": True})
             await self._send({"type": "error", "message": "AI unavailable"})
-            return False
 
         self.history.append({"role": "assistant", "content": assistant_text})
 
@@ -666,7 +675,7 @@ class ConversationHandler:
             user_text=user_text,
             assistant_text=assistant_text,
             user_audio_path=str(audio_path),
-            assistant_audio_path=str(tts_path),
+            assistant_audio_path=str(tts_path) if tts_bytes else None,
         )
         db.add(turn)
         await db.commit()
@@ -711,8 +720,12 @@ class ConversationHandler:
             )
         except Exception:
             logger.exception("LM generate failed (text turn)")
+            assistant_text = _AI_UNAVAILABLE_ASSISTANT_TEXT
+            await self._send(
+                {"type": "assistant_partial", "text": assistant_text, "done": False}
+            )
+            await self._send({"type": "assistant_partial", "text": "", "done": True})
             await self._send({"type": "error", "message": "AI unavailable"})
-            return False
 
         self.history.append({"role": "assistant", "content": assistant_text})
 

@@ -156,8 +156,9 @@ async def finalize_session_scoring(
         )
     elif not turns_out:
         session_feedback = (
-            "Chưa có lượt nói nào được ghi nhận trong phiên này, "
-            "nên chưa có điểm hay nhận xét chi tiết."
+            "Chưa có lượt nói nào được lưu trong phiên này (mỗi lượt = bạn nói + AI trả lời xong), "
+            "nên chưa có điểm hay nhận xét chi tiết. "
+            "Nếu bạn đã thấy chữ nhận dạng giọng nói nhưng AI báo lỗi, hãy thử nói lại hoặc kiểm tra kết nối tới máy chủ AI."
         )
 
     session.ended_at = datetime.now(timezone.utc)

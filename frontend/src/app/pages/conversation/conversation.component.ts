@@ -396,8 +396,11 @@ export class ConversationComponent implements OnInit, OnDestroy {
         topicId,
         ttsRate: this.ttsRate(),
         ttsVoice: this.ttsVoice(),
-        level: this.conversationLevel(),
       };
+      const bandOverride = this.conversationLevel().trim();
+      if (bandOverride !== '') {
+        payload.level = bandOverride;
+      }
       if (resumeSessionId > 0) payload.sessionId = resumeSessionId;
       else if (unitId > 0) payload.unitId = unitId;
       this.ws.sendJson(payload);

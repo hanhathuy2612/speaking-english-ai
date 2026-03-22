@@ -5,8 +5,11 @@ export interface ConversationWsStartPayload {
   topicId: number;
   ttsRate: string;
   ttsVoice: string;
-  /** IELTS Speaking band override or "" for topic default; must be sent on start so opening line uses correct level. */
-  level: string;
+  /**
+   * IELTS band override from the chat header. Omit entirely to use the topic’s stored default
+   * (server loads `topics.level` — the model never sees this JSON, only the built system prompt).
+   */
+  level?: string;
   sessionId?: number;
   unitId?: number;
 }
