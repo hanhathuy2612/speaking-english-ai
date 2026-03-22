@@ -35,6 +35,14 @@ class Settings(BaseSettings):
     lm_conversation_max_tokens: int = 256
     # Optional: append this to the system prompt (e.g. "Use simple words only.")
     lm_system_prompt_extra: str | None = None
+    # After STT: ask the LLM to fix ASR errors only (spelling / obvious mishearings). Fails → raw STT.
+    lm_normalize_transcript: bool = True
+    lm_normalize_temperature: float = 0.15
+    lm_normalize_max_tokens: int = 400
+    # If True, the topic is sent to the normalizer (can prime wrong answers). Default False.
+    lm_normalize_include_topic_context: bool = False
+    # Reject LLM output if too unlike raw STT (stops hallucinations). 0.35–0.5 typical.
+    lm_normalize_min_similarity: float = 0.38
 
     # Auth / JWT
     jwt_secret_key: str = "CHANGE_ME_SECRET_KEY"

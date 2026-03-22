@@ -421,6 +421,49 @@ export class ConversationComponent implements OnInit, OnDestroy {
 
   // ─── Message handling & helpers ───────────────────────────────────────────
 
+  /** Server turn index for the user message at `messageIndex` (0 = first learner turn). */
+  userTurnIndexAtMessage(messageIndex: number): number {
+    const list = this.messages();
+    let n = 0;
+    for (let i = 0; i < messageIndex && i < list.length; i++) {
+      if (list[i].role === 'user') n += 1;
+    }
+    return n;
+  }
+
+  /** Safe to request rework (not mid-stream AI/STT). */
+  reworkAllowed(): boolean {
+    return (
+      this.connected() &&
+      !this.recording() &&
+      !this.transcribing() &&
+      !this.aiSpeaking() &&
+      this.pendingAiMsgIndex === -1
+    );
+  }
+
+  requestRework(messageIndex: number): void {
+    if (!this.reworkAllowed()) return;
+    const list = this.messages();
+    if (messageIndex < 0 || messageIndex >= list.length) return;
+    if (list[messageIndex].role !== 'user') return;
+    const turnIndex = this.userTurnIndexAtMessage(messageIndex);
+    this._clearAudioPlayback();
+    this.playingMessageIndex.set(-1);
+    this.ws.sendJson({ type: 'rework', turnIndex });
+  }
+
+  private _resetConversationStreamingState(): void {
+    this.pendingAiMsgIndex = -1;
+    this.lastAiMessageIndex = -1;
+    this.currentAiAudioChunks = [];
+    this.lastUserRecording = null;
+    this.playingMessageIndex.set(-1);
+    this.aiSpeaking.set(false);
+    this.transcribing.set(false);
+    this.audio.stopPlayback();
+  }
+
   private _onDeviceLostDuringRecording(): void {
     if (!this.recording()) return;
     this.recording.set(false);
@@ -482,8 +525,30 @@ export class ConversationComponent implements OnInit, OnDestroy {
               },
             });
           }
-        } else if (message === 'transcribing') {
+        } else if (message === 'transcribing' || message === 'normalizing') {
           this.transcribing.set(true);
+        } else if (message === 'rework_applied') {
+          const topicLevel = msg['topicLevel'] as string | undefined;
+          if (topicLevel != null && typeof topicLevel === 'string') {
+            const normalized = topicLevel.trim();
+            this.conversationLevel.set(normalized);
+          }
+          const sid = msg['sessionId'] as number | undefined;
+          if (sid != null && Number.isFinite(sid) && sid > 0) {
+            this.liveSessionId.set(sid);
+          }
+          const tu = msg['topicUnit'] as Record<string, unknown> | undefined;
+          if (tu != null && typeof tu === 'object' && typeof tu['id'] === 'number') {
+            this.unitStepMeta.set({
+              id: tu['id'] as number,
+              title: String(tu['title'] ?? ''),
+              objective: String(tu['objective'] ?? ''),
+              minTurnsToComplete: (tu['minTurnsToComplete'] as number | null) ?? null,
+              minAvgOverall: (tu['minAvgOverall'] as number | null) ?? null,
+              maxScoredTurns: (tu['maxScoredTurns'] as number | null) ?? null,
+              scoredTurnsSoFar: Number(tu['scoredTurnsSoFar'] ?? 0) || 0,
+            });
+          }
         }
         break;
       }
@@ -495,6 +560,8 @@ export class ConversationComponent implements OnInit, OnDestroy {
             turnId?: number;
             guideline?: string;
           }[]) ?? [];
+        this._resetConversationStreamingState();
+        this.scores.set({});
         this.messages.set(
           list.map((m) => ({
             role: m.role === 'user' ? 'user' : 'ai',

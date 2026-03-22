@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import difflib
 import json
 import logging
+import re
 import time
 from collections.abc import AsyncIterator
 from typing import Any
@@ -30,6 +32,19 @@ If the user switches topics suddenly, briefly respond and then guide the convers
 
 If the user uses Vietnamese (or mixes Vietnamese and English), understand it but always reply in English.
 Encourage them to try saying it in English in a simple way."""
+
+_TRANSCRIPT_NORMALIZE_SYSTEM = """You lightly clean raw speech-to-text (ASR) for English learners.
+
+Output exactly ONE line: the transcript. No quotes, labels, or explanation.
+
+Be minimal:
+- If the line is already easy to understand, return it unchanged (or with at most tiny spelling fixes).
+- Only change words or short phrases that are clearly wrong ASR or hard to parse.
+- Do not add words. Do not remove words. Do not rephrase for style, politeness, or “better English.”
+- Do not change word order unless one obvious misheard word must be swapped (same slot in the sentence).
+- Do not answer questions or complete the user’s thought—only fix unclear fragments.
+- Never invent dialogue, role-play lines, lesson questions, or travel/booking scripts. Never copy or paraphrase a topic description—only edit the words in the raw line below.
+- If the input is empty or "(inaudible)", return it as given."""
 
 _LEVEL_INSTRUCTIONS: dict[str, str] = {
     "a1": (
@@ -180,3 +195,94 @@ class LMStudioClient:
         async for chunk in self.generate_stream(messages, temperature, max_tokens):
             chunks.append(chunk)
         return "".join(chunks)
+
+    async def normalize_transcript(
+        self,
+        raw: str,
+        *,
+        topic_context: str | None = None,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+    ) -> str:
+        """Repair ASR text only; caller should fall back to `raw` on failure."""
+        settings = get_settings()
+        t = (
+            temperature
+            if temperature is not None
+            else float(settings.lm_normalize_temperature)
+        )
+        mt = (
+            max_tokens
+            if max_tokens is not None
+            else int(settings.lm_normalize_max_tokens)
+        )
+        raw_wc = len(raw.strip().split())
+        # Cap output size vs input so the model cannot dump a paragraph on short utterances.
+        mt = min(mt, max(24, raw_wc * 10 + 32))
+        include_ctx = settings.lm_normalize_include_topic_context and (
+            topic_context or ""
+        ).strip()
+        if include_ctx:
+            ctx = (topic_context or "").strip()
+            user = f"Topic context (homophone hints only; do not quote or expand):\n{ctx}\n\nRaw ASR transcript:\n{raw.strip()}"
+        else:
+            user = f"Raw ASR transcript:\n{raw.strip()}"
+        messages: list[dict[str, Any]] = [
+            {"role": "system", "content": _TRANSCRIPT_NORMALIZE_SYSTEM},
+            {"role": "user", "content": user},
+        ]
+        out = await self.generate_text(messages, temperature=t, max_tokens=mt)
+        return _normalize_transcript_cleanup(out)
+
+
+def _squish_for_compare(s: str) -> str:
+    s = re.sub(r"[^\w\s]", " ", s.lower())
+    return " ".join(s.split())
+
+
+def transcript_normalization_plausible(
+    raw: str,
+    normalized: str,
+    *,
+    min_similarity: float = 0.38,
+) -> bool:
+    """
+    Reject LLM output that is unrelated to the STT line (hallucinations).
+    Keeps fixes like yea→yes when similarity stays high.
+    """
+    raw_s = raw.strip()
+    norm_s = normalized.strip()
+    if not raw_s or not norm_s:
+        return False
+    if raw_s.casefold() == norm_s.casefold():
+        return True
+    a = _squish_for_compare(raw_s)
+    b = _squish_for_compare(norm_s)
+    if not a:
+        return True
+    ratio = difflib.SequenceMatcher(None, a, b).ratio()
+    if ratio < min_similarity:
+        return False
+    rw = len(a.split())
+    nw = len(b.split())
+    if rw <= 8 and nw > rw * 2 + 8:
+        return False
+    if rw <= 3 and nw > rw + 6:
+        return False
+    return True
+
+
+def _normalize_transcript_cleanup(text: str) -> str:
+    s = text.strip()
+    if not s:
+        return s
+    if s.startswith("```"):
+        lines = s.split("\n")
+        if lines and lines[0].startswith("```"):
+            lines = lines[1:]
+        if lines and lines[-1].strip() == "```":
+            lines = lines[:-1]
+        s = "\n".join(lines).strip()
+    if len(s) >= 2 and s[0] in "\"'" and s[-1] == s[0]:
+        s = s[1:-1].strip()
+    return s

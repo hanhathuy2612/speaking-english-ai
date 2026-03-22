@@ -35,14 +35,12 @@ export class AuthService {
   }
 
   login(email: string, password: string): Observable<AuthResponse> {
-    return this.http
-      .post<AuthResponse>(`${this.base}/auth/login`, { email, password })
-      .pipe(
-        tap((r: AuthResponse) => {
-          this._store(r);
-          this.account.applyLoginResponse(r);
-        }),
-      );
+    return this.http.post<AuthResponse>(`${this.base}/auth/login`, { email, password }).pipe(
+      tap((r: AuthResponse) => {
+        this._store(r);
+        this.account.applyLoginResponse(r);
+      }),
+    );
   }
 
   logout(): void {

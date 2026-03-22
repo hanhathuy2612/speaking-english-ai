@@ -1,0 +1,54 @@
+/* App-wide type scale + weights.
+ * - In CSS: var(--fs-md), var(--fw-semibold), …
+ * - In SCSS: @use '../../../styles/typography' as typo (adjust path); typo.fs('4xl'); typo.fw('semibold');
+ */
+@use 'sass:map';
+
+$font-sizes: (
+  '2xs': 0.6875rem,
+  // 11px
+  'xs': 0.75rem,
+  // 12px
+  'sm': 0.8125rem,
+  // 13px
+  'md': 0.875rem,
+  // 14px
+  'lg': 0.9375rem,
+  // 15px
+  'xl': 1rem,
+  // 16px
+  '2xl': 1.125rem,
+  // 18px
+  '3xl': 1.25rem,
+  // 20px
+  '4xl': 1.5rem,
+  // 24px
+  '5xl': 1.75rem,
+  // 28px
+  '6xl': 3rem, // 48px — display / empty-state icon
+);
+
+$font-weights: (
+  'normal': 400,
+  'medium': 500,
+  'semibold': 600,
+  'bold': 700,
+);
+
+@function fs($name) {
+  @return map.get($font-sizes, $name);
+}
+
+@function fw($name) {
+  @return map.get($font-weights, $name);
+}
+
+:root {
+  @each $key, $val in $font-sizes {
+    --fs-#{$key}: #{$val};
+  }
+
+  @each $key, $val in $font-weights {
+    --fw-#{$key}: #{$val};
+  }
+}

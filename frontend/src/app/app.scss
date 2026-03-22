@@ -130,7 +130,7 @@
   font-size: 0.8125rem;
 }
 
-/* —— Mobile drawer —— */
+// Mobile drawer
 .app-nav__backdrop {
   display: none;
 }
@@ -157,7 +157,7 @@
     position: fixed;
     inset: var(--app-nav-offset) 0 0 0;
     z-index: 101;
-    background: rgb(0 0 0 / 0.45);
+    background: var(--overlay-backdrop);
     animation: app-nav-fade-in 0.2s ease;
   }
 
@@ -230,9 +230,19 @@
 .app-main {
   box-sizing: border-box;
   min-height: calc(100dvh - var(--sab));
+  display: flex;
+  flex-direction: column;
 }
 
-/* Chừa chỗ cho header fixed (chỉ khi đã login, có nav) */
+// Save space for the fixed navbar
 .app-main--with-nav {
   padding-top: var(--app-nav-offset);
+}
+
+// Navbar hidden on conversation; don’t reserve nav height for layout / children
+.app-main--conversation {
+  --app-nav-offset: 0;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
 }

@@ -1,6 +1,15 @@
-<main class="app-main" [class.app-main--with-nav]="auth.isLoggedIn()">
+<main
+  class="app-main"
+  [class.app-main--with-nav]="auth.isLoggedIn() && !hiddenNavbar()"
+  [class.app-main--conversation]="hiddenNavbar()"
+>
   @if (auth.isLoggedIn()) {
-    <nav class="app-nav" [class.app-nav--drawer-open]="mobileMenuOpen()" aria-label="Main">
+    <nav
+      class="app-nav"
+      [class.app-nav--drawer-open]="mobileMenuOpen()"
+      [class.d-none]="hiddenNavbar()"
+      aria-label="Main"
+    >
       <button
         type="button"
         class="app-nav__menu-btn"

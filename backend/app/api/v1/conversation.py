@@ -9,6 +9,7 @@ Client → Server (JSON):
   {"type": "tts_preferences", "ttsRate": str, "ttsVoice": str}
   {"type": "audio_end"}   -- after binary audio frames (voice turn)
   {"type": "user_text",   "text": str}                           -- text-only turn
+  {"type": "rework",      "turnIndex": int}                      -- drop from this turn onward; redo from here
   {"type": "stop"}        -- end session
 
 Server → Client: status, history, user_transcript, assistant_partial, assistant_audio_chunk,
@@ -108,6 +109,8 @@ async def conversation_ws(websocket: WebSocket) -> None:
                     await handler.handle_audio_end(db)
                 elif msg_type == "user_text":
                     await handler.handle_user_text(db, data)
+                elif msg_type == "rework":
+                    await handler.handle_rework(db, data)
                 elif msg_type == "stop":
                     await handler.handle_stop(db)
                     break

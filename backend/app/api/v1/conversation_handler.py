@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -25,7 +25,7 @@ from app.models.conversation import (
     TurnScore,
 )
 import app.services.topic_roadmap_service as roadmap_svc
-from app.services.lm_client import LMStudioClient
+from app.services.lm_client import LMStudioClient, transcript_normalization_plausible
 from app.services.scoring_service import ScoringService
 from app.services.stt_service import STTService
 from app.services.tts_service import TTSService
@@ -152,6 +152,8 @@ class ConversationHandler:
         self.history: list[dict[str, str]] = []
         self.turn_index = 0
         self.audio_buffer = bytearray()
+        # Opening line for new sessions (not persisted as a Turn); kept for rework rebuilds.
+        self._opening_text: str | None = None
 
     def _effective_level(self) -> str | None:
         """Level for next reply: override if set, else topic level."""
@@ -228,6 +230,31 @@ class ConversationHandler:
         await self._send({"type": "error", "message": "max_unit_turns_reached"})
         return True
 
+    def _rebuild_lm_history(self, turns: list[Turn]) -> None:
+        h: list[dict[str, str]] = []
+        if self._opening_text:
+            h.append({"role": "assistant", "content": self._opening_text})
+        for t in turns:
+            h.append({"role": "user", "content": t.user_text})
+            h.append({"role": "assistant", "content": t.assistant_text})
+        self.history = h
+
+    def _client_history_messages(self, turns: list[Turn]) -> list[dict[str, Any]]:
+        out: list[dict[str, Any]] = []
+        if self._opening_text:
+            out.append({"role": "assistant", "text": self._opening_text})
+        for t in turns:
+            out.append({"role": "user", "text": t.user_text})
+            out.append(
+                {
+                    "role": "assistant",
+                    "text": t.assistant_text,
+                    "turnId": t.id,
+                    "guideline": t.guideline,
+                }
+            )
+        return out
+
     async def handle_start(self, db: AsyncSession, data: dict) -> bool:
         """
         Start or resume a session.
@@ -276,15 +303,11 @@ class ConversationHandler:
                 .order_by(Turn.index_in_session)
             )
             turns = list(turns_q.scalars().all())
-            history = []
-            for t in turns:
-                history.append({"role": "user", "content": t.user_text})
-                history.append({"role": "assistant", "content": t.assistant_text})
-
             self.session_id = sess.id
             self.topic = topic
             self.topic_unit = sess.topic_unit
-            self.history = history
+            self._opening_text = None
+            self._rebuild_lm_history(turns)
             self.turn_index = len(turns)
             self.audio_buffer = bytearray()
 
@@ -303,18 +326,9 @@ class ConversationHandler:
                 status_payload["topicUnitId"] = sess.topic_unit_id
             await self._attach_topic_unit_ws_meta(db, status_payload)
             await self._send(status_payload)
-            history_payload = []
-            for t in turns:
-                history_payload.append({"role": "user", "text": t.user_text})
-                history_payload.append(
-                    {
-                        "role": "assistant",
-                        "text": t.assistant_text,
-                        "turnId": t.id,
-                        "guideline": t.guideline,
-                    }
-                )
-            await self._send({"type": "history", "messages": history_payload})
+            await self._send(
+                {"type": "history", "messages": self._client_history_messages(turns)}
+            )
             return True
 
         # New session
@@ -360,6 +374,7 @@ class ConversationHandler:
         self.history = []
         self.turn_index = 0
         self.audio_buffer = bytearray()
+        self._opening_text = None
         if data.get("ttsRate") is not None:
             self._tts_rate = str(data["ttsRate"])
         if data.get("ttsVoice"):
@@ -395,7 +410,7 @@ class ConversationHandler:
         if self.topic_unit is not None:
             u = self.topic_unit
             prompt = (
-                f"[Start a guided speaking step titled \"{u.title}\". "
+                f'[Start a guided speaking step titled "{u.title}". '
                 f"Learner goal: {u.objective} "
                 "The learner will have several scored speaking turns in this session toward this step. "
                 "Give a short greeting or one opening question that fits this goal. "
@@ -436,6 +451,7 @@ class ConversationHandler:
                 }
             )
         self.history.append({"role": "assistant", "content": opening_text})
+        self._opening_text = opening_text or None
         if opening_text:
             await stream_tts(
                 self._send,
@@ -467,22 +483,61 @@ class ConversationHandler:
         await self._send({"type": "status", "message": "transcribing"})
         try:
             stt_result = await asyncio.to_thread(self._stt.transcribe, audio_path)
-            user_text: str = stt_result["text"] or "(inaudible)"
+            raw_stt: str = stt_result["text"] or "(inaudible)"
         except Exception:
             logger.exception("STT failed")
             await self._send({"type": "error", "message": "Transcription failed"})
             return False
 
-        await self._send({"type": "user_transcript", "text": user_text})
-        self.history.append({"role": "user", "content": user_text})
+        settings = get_settings()
         effective = self._effective_level() or ""
         ctx = await self._topic_context_for_llm(db)
+
+        user_text = raw_stt
+        if (
+            settings.lm_normalize_transcript
+            and raw_stt.strip()
+            and raw_stt != "(inaudible)"
+        ):
+            await self._send({"type": "status", "message": "normalizing"})
+            try:
+                normalized = await self._lm.normalize_transcript(
+                    raw_stt,
+                    topic_context=ctx,
+                )
+                if normalized.strip():
+                    cand = normalized.strip()
+                    min_sim = float(settings.lm_normalize_min_similarity)
+                    if transcript_normalization_plausible(
+                        raw_stt, cand, min_similarity=min_sim
+                    ):
+                        user_text = cand
+                        if user_text != raw_stt.strip():
+                            logger.info(
+                                "Transcript normalized: %r -> %r",
+                                raw_stt,
+                                user_text,
+                            )
+                    else:
+                        logger.warning(
+                            "Normalized transcript rejected (unlike raw STT): %r -> %r",
+                            raw_stt,
+                            cand,
+                        )
+                        user_text = raw_stt
+                else:
+                    user_text = raw_stt
+            except Exception:
+                logger.exception("Transcript normalization failed; using raw STT")
+                user_text = raw_stt
+
+        await self._send({"type": "user_transcript", "text": user_text})
+        self.history.append({"role": "user", "content": user_text})
         messages = self._lm.build_messages(
             self.history,
             topic_context=ctx,
             topic_level=effective or None,
         )
-        settings = get_settings()
         level_key = effective.strip().lower()
         max_tokens = settings.lm_conversation_max_tokens
         if level_key == "a1":
@@ -696,6 +751,68 @@ class ConversationHandler:
                         "sessionId": self.session_id,
                     }
                 )
+
+    async def handle_rework(self, db: AsyncSession, data: dict) -> bool:
+        """Remove this turn and all following turns; client continues from before this slot."""
+        if not self.session_id or not self.topic:
+            await self._send({"type": "error", "message": "Send 'start' first"})
+            return False
+        try:
+            turn_index = int(data.get("turnIndex", -1))
+        except (TypeError, ValueError):
+            turn_index = -1
+        if turn_index < 0 or turn_index >= self.turn_index:
+            await self._send({"type": "error", "message": "Invalid rework"})
+            return False
+
+        sid = self.session_id
+        old_ti = self.turn_index
+        user_dir = AUDIO_DIR / str(self._user_id) / str(sid)
+
+        subq = select(Turn.id).where(
+            Turn.session_id == sid,
+            Turn.index_in_session >= turn_index,
+        )
+        await db.execute(delete(TurnScore).where(TurnScore.turn_id.in_(subq)))
+        await db.execute(
+            delete(Turn).where(
+                Turn.session_id == sid,
+                Turn.index_in_session >= turn_index,
+            )
+        )
+        await db.commit()
+
+        for i in range(turn_index, old_ti):
+            for name in (f"turn_{i}_user.webm", f"turn_{i}_ai.mp3"):
+                p = user_dir / name
+                try:
+                    if p.exists():
+                        p.unlink()
+                except OSError:
+                    logger.warning("Could not delete %s", p)
+
+        self.turn_index = turn_index
+
+        r = await db.execute(
+            select(Turn)
+            .where(Turn.session_id == sid)
+            .order_by(Turn.index_in_session)
+        )
+        turns = list(r.scalars().all())
+        self._rebuild_lm_history(turns)
+
+        await self._send({"type": "history", "messages": self._client_history_messages(turns)})
+
+        status_payload: dict[str, Any] = {
+            "type": "status",
+            "message": "rework_applied",
+            "sessionId": sid,
+            "topicId": self.topic.id,
+            "topicLevel": self.topic.level,
+        }
+        await self._attach_topic_unit_ws_meta(db, status_payload)
+        await self._send(status_payload)
+        return True
 
     async def handle_stop(self, db: AsyncSession) -> None:
         """Score any pending turns, then mark session ended and send session_stopped."""
