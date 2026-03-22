@@ -679,6 +679,14 @@ class ConversationHandler:
         )
         db.add(turn)
         await db.commit()
+        await db.refresh(turn)
+        await self._send(
+            {
+                "type": "turn_saved",
+                "turnId": turn.id,
+                "indexInSession": turn.index_in_session,
+            }
+        )
         self.turn_index += 1
         return True
 
@@ -752,6 +760,14 @@ class ConversationHandler:
         )
         db.add(turn)
         await db.commit()
+        await db.refresh(turn)
+        await self._send(
+            {
+                "type": "turn_saved",
+                "turnId": turn.id,
+                "indexInSession": turn.index_in_session,
+            }
+        )
         self.turn_index += 1
         return True
 

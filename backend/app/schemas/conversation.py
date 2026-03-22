@@ -1,6 +1,12 @@
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
+
+class TurnGuidelinePatchIn(BaseModel):
+    """Persist guide-panel hints for a turn (client may send JSON-stringified sections)."""
+
+    guideline: str = Field(..., max_length=200_000)
 
 
 class TurnOut(BaseModel):

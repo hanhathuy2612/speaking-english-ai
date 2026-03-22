@@ -214,6 +214,13 @@ export class ApiService {
     return this.http.post<GuidanceResponse>(`${this.base}/conversation/guidance`, body);
   }
 
+  /** Persist guide text on a turn (used when guideline was generated before turn id existed). */
+  patchTurnGuideline(turnId: number, guideline: string): Observable<{ ok: boolean }> {
+    return this.http.patch<{ ok: boolean }>(`${this.base}/conversation/turns/${turnId}/guideline`, {
+      guideline,
+    });
+  }
+
   /** Full session transcript + scores (for archive / detail view). */
   getSessionDetail(sessionId: number): Observable<SessionDetailOut> {
     return this.http.get<SessionDetailOut>(`${this.base}/conversation/sessions/${sessionId}`);

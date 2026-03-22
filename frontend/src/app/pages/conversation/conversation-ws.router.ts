@@ -25,6 +25,8 @@ export interface ConversationWsSink {
   onAssistantAudioChunk(bytes: ArrayBuffer): void;
   /** session_scores */
   onSessionScores(turns: SessionScoreTurn[], sessionFeedback: string | undefined): void;
+  /** turn_saved — server committed a Turn; client attaches turnId to transcript messages */
+  onTurnSaved(turnId: number, indexInSession: number): void;
 }
 
 export function routeConversationWsMessage(
@@ -72,6 +74,14 @@ export function routeConversationWsMessage(
         typeof msg['session_feedback'] === 'string' ? msg['session_feedback'] : undefined,
       );
       break;
+    case 'turn_saved': {
+      const tid = msg['turnId'];
+      const idx = msg['indexInSession'];
+      if (typeof tid === 'number' && Number.isFinite(tid) && typeof idx === 'number' && Number.isFinite(idx)) {
+        sink.onTurnSaved(tid, idx);
+      }
+      break;
+    }
     default:
       break;
   }

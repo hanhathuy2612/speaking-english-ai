@@ -21,6 +21,7 @@ from app.schemas.conversation import (
     SessionDetailOut,
     SessionOut,
     TopicUnitSummarySnippet,
+    TurnGuidelinePatchIn,
     TurnOut,
     UnitStepSummaryOut,
 )
@@ -119,6 +120,28 @@ async def get_session_opening_audio(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
     path = _resolved_audio_file(session.opening_audio_path)
     return FileResponse(path, media_type="audio/mpeg")
+
+
+@router.patch("/turns/{turn_id}/guideline")
+async def patch_turn_guideline(
+    turn_id: int,
+    body: TurnGuidelinePatchIn,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> dict[str, bool]:
+    """Save guide-panel content for a turn (e.g. after turn id is known on the client)."""
+    turn_q = await db.execute(
+        select(Turn)
+        .join(ConversationSession, Turn.session_id == ConversationSession.id)
+        .where(Turn.id == turn_id, ConversationSession.user_id == user.id)
+    )
+    turn = turn_q.scalar_one_or_none()
+    if not turn:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Turn not found")
+    g = body.guideline.strip()
+    turn.guideline = g if g else None
+    await db.commit()
+    return {"ok": True}
 
 
 @router.get("/turns/{turn_id}/audio")

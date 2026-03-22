@@ -41,6 +41,26 @@ import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { finalize, firstValueFrom } from 'rxjs';
 
+/** Client cache as JSON array; server/API may use newline-separated text. */
+function parseGuidelineSections(raw: string | undefined): string[] | null {
+  if (raw == null || !String(raw).trim()) return null;
+  const t = String(raw).trim();
+  if (t.startsWith('[')) {
+    try {
+      const p = JSON.parse(t) as unknown;
+      if (Array.isArray(p) && p.every((x) => typeof x === 'string')) return p;
+    } catch {
+      /* fall through */
+    }
+  }
+  const lines = t.split('\n').filter(Boolean);
+  return lines.length ? lines : null;
+}
+
+function stringifyGuidelineSections(sections: string[]): string {
+  return JSON.stringify(sections);
+}
+
 @Component({
   selector: 'app-conversation',
   standalone: true,
@@ -241,6 +261,28 @@ export class ConversationComponent implements OnInit, OnDestroy {
     },
     onSessionScores: (turns, sessionFeedback) => {
       this.messages.set(mergeTurnScoresAndSessionFeedback(this.messages(), turns, sessionFeedback));
+    },
+    onTurnSaved: (turnId, indexInSession) => {
+      this.messages.update((list) => {
+        const hasOpening = list.length > 0 && list[0].isOpeningLine === true;
+        const offset = hasOpening ? 1 : 0;
+        const userIdx = offset + indexInSession * 2;
+        const aiIdx = userIdx + 1;
+        if (userIdx < 0 || aiIdx >= list.length) return list;
+        const next = [...list];
+        if (next[userIdx]?.role === 'user') {
+          next[userIdx] = { ...next[userIdx], turnId };
+        }
+        const ai = next[aiIdx];
+        if (ai?.role === 'ai' && !ai.isOpeningLine) {
+          next[aiIdx] = { ...ai, turnId };
+          const g = ai.guideline;
+          if (g != null && String(g).trim() !== '') {
+            this.api.patchTurnGuideline(turnId, g).subscribe({ error: () => {} });
+          }
+        }
+        return next;
+      });
     },
   };
 
@@ -583,8 +625,9 @@ export class ConversationComponent implements OnInit, OnDestroy {
       this.guideLoading.set(false);
       return;
     }
-    if (message.guideline) {
-      this.guideSuggestions.set(message.guideline.split('\n').filter(Boolean));
+    const cached = parseGuidelineSections(message.guideline);
+    if (cached != null && cached.length > 0) {
+      this.guideSuggestions.set(cached);
       this.guideLoading.set(false);
       this.cdr.detectChanges();
       return;
@@ -595,10 +638,15 @@ export class ConversationComponent implements OnInit, OnDestroy {
       next: (res) => {
         const suggestions = res.suggestions || [];
         this.guideSuggestions.set(suggestions);
-        if (message.turnId != null && suggestions.length > 0) {
+        if (suggestions.length > 0) {
           this.messages.update((list) => {
             const next = [...list];
-            if (next[index]) next[index] = { ...next[index], guideline: suggestions.join('\n') };
+            if (next[index]) {
+              next[index] = {
+                ...next[index],
+                guideline: stringifyGuidelineSections(suggestions),
+              };
+            }
             return next;
           });
         }
