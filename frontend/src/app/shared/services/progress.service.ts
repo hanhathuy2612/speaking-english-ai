@@ -36,6 +36,14 @@ export class ProgressService {
     });
   }
 
+  /** All sessions for one topic (paginated). */
+  getTopicSessions(topicId: number, page: number, limit: number): Observable<SessionsPageResponse> {
+    const params = { page: String(page), limit: String(limit) };
+    return this.http.get<SessionsPageResponse>(`${this.base}/topics/${topicId}/sessions`, {
+      params,
+    });
+  }
+
   deleteSession(sessionId: number): Observable<void> {
     return this.http.delete<void>(`${this.base}/progress/sessions/${sessionId}`);
   }

@@ -5,145 +5,175 @@
       <span class="conv-header__back-text">Back</span>
     </a>
     <h1 class="conv-title">{{ topicTitle() }}</h1>
-    <span
-      class="conv-status"
-      [class.connected]="connected()"
-      [class.reconnecting]="reconnecting()"
-    >
-      <span class="conv-status__dot"></span>
-      {{ reconnecting() ? 'Reconnecting…' : connected() ? 'Connected' : 'Connecting…' }}
-    </span>
+    @if (detailLoading()) {
+      <span class="conv-status conv-status--loading">
+        <span class="conv-status__dot"></span>
+        Loading…
+      </span>
+    } @else if (archiveView()) {
+      <span class="conv-status conv-status--ended">
+        <span class="conv-status__dot"></span>
+        Ended · view only
+      </span>
+    } @else {
+      <span
+        class="conv-status"
+        [class.connected]="connected()"
+        [class.reconnecting]="reconnecting()"
+      >
+        <span class="conv-status__dot"></span>
+        {{ reconnecting() ? 'Reconnecting…' : connected() ? 'Connected' : 'Connecting…' }}
+      </span>
+    }
   </div>
   <hr />
   <div class="conv-header__row conv-header__row--secondary">
-    @if (sessionId() > 0) {
-      <a
-        [routerLink]="['/conversation']"
-        [queryParams]="{ topicId: topicId(), title: topicTitle() }"
+    @if (archiveView()) {
+      <p class="conv-header__archive-hint">
+        This session has ended. You can read the transcript but cannot send new messages.
+      </p>
+      <div class="conv-header__archive-actions">
+        <button
+          type="button"
+          class="btn btn--primary btn--sm"
+          (click)="newConversationSameTopic.emit()"
+        >
+          New conversation
+        </button>
+        <a [routerLink]="['/topics', topicId(), 'sessions']" class="btn btn--ghost btn--sm">
+          Session history
+        </a>
+      </div>
+    } @else if (sessionId() > 0) {
+      <button
+        type="button"
         class="btn btn--ghost conv-header__new"
         title="Start a new conversation for this topic"
+        (click)="newConversationSameTopic.emit()"
       >
         <span class="conv-header__new-label conv-header__new-label--full">New conversation</span>
         <span class="conv-header__new-label conv-header__new-label--short">New</span>
-      </a>
+      </button>
     }
-    <div class="conv-header__tts-controls">
-      <div
-        class="conv-header__end-feedback"
-        role="region"
-        [attr.aria-label]="
-          sessionEndedWithFeedback() ? 'Start a new conversation' : 'End session and scoring'
-        "
-      >
-        @if (sessionEndedWithFeedback()) {
-          <button
-            type="button"
-            class="btn btn--secondary btn--sm conv-header__end-feedback-btn"
-            (click)="newConversationSameTopic.emit()"
-            title="Start a new conversation for this topic"
-          >
-            <span class="conv-header__new-label conv-header__new-label--full">New conversation</span>
-            <span class="conv-header__new-label conv-header__new-label--short">New</span>
-          </button>
-        } @else {
-          <button
-            type="button"
-            class="btn btn--secondary btn--sm conv-header__end-feedback-btn"
-            (click)="endFeedback.emit()"
-            [disabled]="!endConversationFeedbackEnabled()"
-            [title]="
-              feedbackRequestPending()
-                ? 'Loading feedback…'
-                : endConversationFeedbackEnabled()
-                  ? 'End chat and get session feedback'
-                  : 'Available when connected, after the AI finishes a reply, and while not recording'
-            "
-          >
-            @if (feedbackRequestPending()) {
-              Getting feedback…
-            } @else {
-              End & feedback
-            }
-          </button>
-        }
-      </div>
-      <label class="conv-header__label">
-        Level
-        <ng-select
-          [items]="levelOptions"
-          bindLabel="label"
-          bindValue="value"
-          [ngModel]="conversationLevel()"
-          (ngModelChange)="levelChange.emit($event)"
-          placeholder="General"
-          [searchable]="true"
-          [clearable]="false"
-          title="AI response level (A1=simplest, C1=natural)"
+    @if (!archiveView()) {
+      <div class="conv-header__tts-controls">
+        <div
+          class="conv-header__end-feedback"
+          role="region"
+          [attr.aria-label]="
+            sessionEndedWithFeedback() ? 'Start a new conversation' : 'End session and review'
+          "
         >
-        </ng-select>
-      </label>
+          @if (sessionEndedWithFeedback()) {
+            <button
+              type="button"
+              class="btn btn--secondary btn--sm conv-header__end-feedback-btn"
+              (click)="newConversationSameTopic.emit()"
+              title="Start a new conversation for this topic"
+            >
+              <span class="conv-header__new-label conv-header__new-label--full">New conversation</span>
+              <span class="conv-header__new-label conv-header__new-label--short">New</span>
+            </button>
+          } @else {
+            <button
+              type="button"
+              class="btn btn--secondary btn--sm conv-header__end-feedback-btn"
+              (click)="endFeedback.emit()"
+              [disabled]="!endConversationFeedbackEnabled()"
+              [title]="
+                feedbackRequestPending()
+                  ? 'Ending session…'
+                  : endConversationFeedbackEnabled()
+                    ? 'End session and review'
+                    : 'Available when connected, after the AI finishes a reply, and while not recording'
+              "
+            >
+              @if (feedbackRequestPending()) {
+                Ending session…
+              } @else {
+                End session and review
+              }
+            </button>
+          }
+        </div>
+        <label class="conv-header__label">
+          Level
+          <ng-select
+            [items]="levelOptions"
+            bindLabel="label"
+            bindValue="value"
+            [ngModel]="conversationLevel()"
+            (ngModelChange)="levelChange.emit($event)"
+            placeholder="General"
+            [searchable]="true"
+            [clearable]="false"
+            title="AI response level (A1=simplest, C1=natural)"
+          >
+          </ng-select>
+        </label>
 
-      <label class="conv-header__label">
-        Speed
-        <ng-select
-          [items]="ttsRateOptions"
-          [ngModel]="ttsRate()"
-          (ngModelChange)="ttsRateChange.emit($event)"
-          placeholder="Speed"
-          [searchable]="false"
-          [clearable]="false"
-          title="Speech speed"
-        >
-        </ng-select>
-      </label>
-      <label class="conv-header__label">
-        <span class="conv-header__voice-label">Voice</span>
-        <ng-select
-          class="conv-header__voice-dropdown"
-          [items]="ttsVoices()"
-          bindLabel="name"
-          bindValue="id"
-          [ngModel]="ttsVoice()"
-          (ngModelChange)="ttsVoiceChange.emit($event)"
-          placeholder="Voice"
-          [searchable]="true"
-          [clearable]="false"
-          [attr.aria-label]="'Voice: ' + getVoiceName(ttsVoice())"
-        >
-          <ng-template ng-option-tmp let-item="item">
-            <div class="d-flex align-items-center gap-2">
-              <span class="conv-header__voice-option-name">{{ item.name }}</span>
-              <button
-                type="button"
-                class="btn btn--ghost btn--icon conv-header__voice-option-preview"
-                (click)="previewVoice.emit(item.id); $event.stopPropagation()"
-                [title]="previewingVoiceId() === item.id ? 'Stop' : 'Listen'"
-                [attr.aria-label]="previewingVoiceId() === item.id ? 'Stop preview' : 'Listen'"
-              >
-                @if (previewingVoiceId() === item.id) {
-                  <i class="bi bi-stop-fill" aria-hidden="true"></i>
-                } @else {
-                  <i class="bi bi-volume-up-fill" aria-hidden="true"></i>
-                }
-              </button>
-            </div>
-          </ng-template>
-        </ng-select>
-      </label>
-    </div>
-    <button
-      type="button"
-      class="btn btn--ghost conv-header__tts"
-      (click)="toggleTts.emit()"
-      [title]="ttsEnabled() ? 'Turn off speech' : 'Turn on speech'"
-    >
-      @if (ttsEnabled()) {
-        <i class="bi bi-volume-up-fill" aria-hidden="true"></i>
-        <span class="conv-header__tts-text">Sound on</span>
-      } @else {
-        <i class="bi bi-volume-mute-fill" aria-hidden="true"></i>
-        <span class="conv-header__tts-text">Sound off</span>
-      }
-    </button>
+        <label class="conv-header__label">
+          Speed
+          <ng-select
+            [items]="ttsRateOptions"
+            [ngModel]="ttsRate()"
+            (ngModelChange)="ttsRateChange.emit($event)"
+            placeholder="Speed"
+            [searchable]="false"
+            [clearable]="false"
+            title="Speech speed"
+          >
+          </ng-select>
+        </label>
+        <label class="conv-header__label">
+          <span class="conv-header__voice-label">Voice</span>
+          <ng-select
+            class="conv-header__voice-dropdown"
+            [items]="ttsVoices()"
+            bindLabel="name"
+            bindValue="id"
+            [ngModel]="ttsVoice()"
+            (ngModelChange)="ttsVoiceChange.emit($event)"
+            placeholder="Voice"
+            [searchable]="true"
+            [clearable]="false"
+            [attr.aria-label]="'Voice: ' + getVoiceName(ttsVoice())"
+          >
+            <ng-template ng-option-tmp let-item="item">
+              <div class="d-flex align-items-center gap-2">
+                <span class="conv-header__voice-option-name">{{ item.name }}</span>
+                <button
+                  type="button"
+                  class="btn btn--ghost btn--icon conv-header__voice-option-preview"
+                  (click)="previewVoice.emit(item.id); $event.stopPropagation()"
+                  [title]="previewingVoiceId() === item.id ? 'Stop' : 'Listen'"
+                  [attr.aria-label]="previewingVoiceId() === item.id ? 'Stop preview' : 'Listen'"
+                >
+                  @if (previewingVoiceId() === item.id) {
+                    <i class="bi bi-stop-fill" aria-hidden="true"></i>
+                  } @else {
+                    <i class="bi bi-volume-up-fill" aria-hidden="true"></i>
+                  }
+                </button>
+              </div>
+            </ng-template>
+          </ng-select>
+        </label>
+      </div>
+      <button
+        type="button"
+        class="btn btn--ghost conv-header__tts"
+        (click)="toggleTts.emit()"
+        [title]="ttsEnabled() ? 'Turn off speech' : 'Turn on speech'"
+      >
+        @if (ttsEnabled()) {
+          <i class="bi bi-volume-up-fill" aria-hidden="true"></i>
+          <span class="conv-header__tts-text">Sound on</span>
+        } @else {
+          <i class="bi bi-volume-mute-fill" aria-hidden="true"></i>
+          <span class="conv-header__tts-text">Sound off</span>
+        }
+      </button>
+    }
   </div>
 </header>

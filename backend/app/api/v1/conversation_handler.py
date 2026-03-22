@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -155,6 +155,7 @@ class ConversationHandler:
         self.audio_buffer = bytearray()
         # Opening line for new sessions (not persisted as a Turn); kept for rework rebuilds.
         self._opening_text: str | None = None
+        self._opening_audio_path: str | None = None
 
     def _effective_level(self) -> str | None:
         """Level for next reply: override if set, else topic level."""
@@ -243,17 +244,28 @@ class ConversationHandler:
     def _client_history_messages(self, turns: list[Turn]) -> list[dict[str, Any]]:
         out: list[dict[str, Any]] = []
         if self._opening_text:
-            out.append({"role": "assistant", "text": self._opening_text})
+            omsg: dict[str, Any] = {
+                "role": "assistant",
+                "text": self._opening_text,
+                "isOpening": True,
+            }
+            if self._opening_audio_path and str(self._opening_audio_path).strip():
+                omsg["hasAssistantAudio"] = True
+            out.append(omsg)
         for t in turns:
-            out.append({"role": "user", "text": t.user_text})
-            out.append(
-                {
-                    "role": "assistant",
-                    "text": t.assistant_text,
-                    "turnId": t.id,
-                    "guideline": t.guideline,
-                }
-            )
+            urow: dict[str, Any] = {"role": "user", "text": t.user_text, "turnId": t.id}
+            if t.user_audio_path and str(t.user_audio_path).strip():
+                urow["hasUserAudio"] = True
+            out.append(urow)
+            arow: dict[str, Any] = {
+                "role": "assistant",
+                "text": t.assistant_text,
+                "turnId": t.id,
+                "guideline": t.guideline,
+            }
+            if t.assistant_audio_path and str(t.assistant_audio_path).strip():
+                arow["hasAssistantAudio"] = True
+            out.append(arow)
         return out
 
     async def handle_start(self, db: AsyncSession, data: dict) -> bool:
@@ -307,7 +319,16 @@ class ConversationHandler:
             self.session_id = sess.id
             self.topic = topic
             self.topic_unit = sess.topic_unit
-            self._opening_text = None
+            raw_opening = sess.opening_message
+            self._opening_text = (
+                raw_opening.strip()
+                if isinstance(raw_opening, str) and raw_opening.strip()
+                else None
+            )
+            oap = sess.opening_audio_path
+            self._opening_audio_path = (
+                oap.strip() if isinstance(oap, str) and oap.strip() else None
+            )
             self._rebuild_lm_history(turns)
             self.turn_index = len(turns)
             self.audio_buffer = bytearray()
@@ -379,6 +400,7 @@ class ConversationHandler:
         self.turn_index = 0
         self.audio_buffer = bytearray()
         self._opening_text = None
+        self._opening_audio_path = None
         if data.get("ttsRate") is not None:
             self._tts_rate = str(data["ttsRate"])
         if data.get("ttsVoice"):
@@ -407,10 +429,32 @@ class ConversationHandler:
         if data.get("ttsVoice"):
             self._tts_voice = str(data["ttsVoice"])
 
+    async def needs_opening_message(self, db: AsyncSession) -> bool:
+        """True when the session has no stored opening and no turns (new or pre-created empty)."""
+        if not self.session_id:
+            return False
+        sess = await db.get(ConversationSession, self.session_id)
+        if sess is None:
+            return False
+        om = sess.opening_message
+        if isinstance(om, str) and om.strip():
+            return False
+        r = await db.execute(
+            select(func.count()).select_from(Turn).where(Turn.session_id == self.session_id)
+        )
+        return (r.scalar() or 0) == 0
+
     async def send_opening_message(self, db: AsyncSession) -> None:
         """Generate and stream AI opening (greeting/question); append to history and stream TTS."""
         if not self.topic:
             return
+        if not self.session_id:
+            return
+        sess_row = await db.get(ConversationSession, self.session_id)
+        if sess_row is not None:
+            existing = sess_row.opening_message
+            if isinstance(existing, str) and existing.strip():
+                return
         effective = self._effective_level() or ""
         level_key = effective.strip().lower()
         ctx = await self._topic_context_for_llm(db)
@@ -459,14 +503,33 @@ class ConversationHandler:
             )
         self.history.append({"role": "assistant", "content": opening_text})
         self._opening_text = opening_text or None
+        tts_bytes = b""
         if opening_text:
-            await stream_tts(
+            tts_bytes = await stream_tts(
                 self._send,
                 self._tts,
                 opening_text,
                 voice=self._tts_voice,
                 rate=self._tts_rate,
             )
+        opening_audio_path: str | None = None
+        if opening_text and self.session_id:
+            user_dir = AUDIO_DIR / str(self._user_id) / str(self.session_id)
+            user_dir.mkdir(parents=True, exist_ok=True)
+            if tts_bytes:
+                opath = user_dir / "opening_ai.mp3"
+                opath.write_bytes(tts_bytes)
+                opening_audio_path = str(opath)
+            self._opening_audio_path = opening_audio_path
+            await db.execute(
+                update(ConversationSession)
+                .where(ConversationSession.id == self.session_id)
+                .values(
+                    opening_message=opening_text,
+                    opening_audio_path=opening_audio_path,
+                )
+            )
+            await db.commit()
 
     async def handle_audio_end(self, db: AsyncSession) -> bool:
         """Transcribe, get AI reply, TTS, persist turn (scoring runs at session end). Return True on success."""

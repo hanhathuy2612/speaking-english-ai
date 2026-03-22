@@ -98,8 +98,7 @@ async def conversation_ws(websocket: WebSocket) -> None:
 
                 if msg_type == "start":
                     if await handler.handle_start(db, data):
-                        # Only send AI opening for new sessions, not when resuming
-                        if not data.get("sessionId"):
+                        if await handler.needs_opening_message(db):
                             await handler.send_opening_message(db)
                 elif msg_type == "set_level":
                     handler.set_level(data.get("level"))

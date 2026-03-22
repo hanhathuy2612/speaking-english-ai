@@ -8,7 +8,7 @@
       <p class="empty-state__text">
         {{
           connected()
-            ? 'The AI will say hello first. Then you can hold the button to speak. When you are done, use End & feedback in the header (next to Level / Speed) for session scores.'
+            ? 'The AI will say hello first. Then you can hold the button to speak. When you are done, use End session and review in the header (next to Level / Speed) for scores and recap.'
             : 'Connecting to your session.'
         }}
       </p>
@@ -52,7 +52,7 @@
             <i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i>
           </button>
         }
-        @if (m.role === 'user' && m.userAudio) {
+        @if (m.role === 'user' && (m.userAudio || m.hasUserRecording)) {
           <button
             type="button"
             class="btn btn--ghost btn--icon"
@@ -70,7 +70,7 @@
             }
           </button>
         }
-        @if (m.role === 'ai' && m.aiAudio) {
+        @if (m.role === 'ai' && !m.partial && !m.sessionRecap && (m.aiAudio || m.hasAiAudio)) {
           <button
             type="button"
             class="btn btn--ghost btn--icon"

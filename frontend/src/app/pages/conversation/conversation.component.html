@@ -15,6 +15,8 @@
     [topicTitle]="topicTitle()"
     [topicId]="topicId()"
     [sessionId]="sessionId()"
+    [detailLoading]="sessionDetailLoading()"
+    [archiveView]="sessionArchiveView()"
     [connected]="connected()"
     [reconnecting]="reconnecting()"
     [conversationLevel]="conversationLevel()"
@@ -52,32 +54,41 @@
   }
 
   <div class="conv-body">
-    <div class="conv-main">
-      <app-conversation-message-list
-        [messages]="messages()"
-        [connected]="connected()"
-        [transcribing]="transcribing()"
-        [playingMessageIndex]="playingMessageIndex()"
-        [reworkAllowed]="reworkAllowed()"
-        (guideOpen)="openGuidePanel($event.message, $event.index)"
-        (rework)="requestRework($event)"
-        (playAudio)="playMessageAudio($event.msg, $event.index, $event.kind)"
-      />
-      <app-conversation-controls
-        [vuLevel]="vuLevel()"
-        [recording]="recording()"
-        [transcribing]="transcribing()"
-        [aiSpeaking]="aiSpeaking()"
-        [canRecord]="canRecord()"
-        [connected]="connected()"
-        [messagesCount]="messages().length"
-        [chatInput]="chatInput()"
-        (chatInputChange)="chatInput.set($event)"
-        (startRecording)="startRecording()"
-        (stopRecording)="stopRecording()"
-        (sendText)="sendText()"
-      />
-    </div>
+    @if (sessionDetailLoading()) {
+      <div class="conv-session-detail-loading" role="status">
+        <div class="spinner"></div>
+        <span>Loading conversation…</span>
+      </div>
+    } @else {
+      <div class="conv-main">
+        <app-conversation-message-list
+          [messages]="messages()"
+          [connected]="connected()"
+          [transcribing]="transcribing()"
+          [playingMessageIndex]="playingMessageIndex()"
+          [reworkAllowed]="reworkAllowed()"
+          (guideOpen)="openGuidePanel($event.message, $event.index)"
+          (rework)="requestRework($event)"
+          (playAudio)="playMessageAudio($event.msg, $event.index, $event.kind)"
+        />
+        @if (!sessionArchiveView()) {
+          <app-conversation-controls
+            [vuLevel]="vuLevel()"
+            [recording]="recording()"
+            [transcribing]="transcribing()"
+            [aiSpeaking]="aiSpeaking()"
+            [canRecord]="canRecord()"
+            [connected]="connected()"
+            [messagesCount]="messages().length"
+            [chatInput]="chatInput()"
+            (chatInputChange)="chatInput.set($event)"
+            (startRecording)="startRecording()"
+            (stopRecording)="stopRecording()"
+            (sendText)="sendText()"
+          />
+        }
+      </div>
+    }
 
     @if (selectedForGuide(); as sel) {
       <app-conversation-guide-panel

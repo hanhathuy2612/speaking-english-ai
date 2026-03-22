@@ -71,36 +71,16 @@
                 </thead>
                 <tbody>
                   @for (s of sessionsData()?.items; track s.id) {
-                    <tr>
-                      <td>
-                        <a
-                          [routerLink]="['/conversation']"
-                          [queryParams]="{
-                            topicId: s.topic_id,
-                            title: s.topic_title,
-                            sessionId: s.id,
-                          }"
-                          >{{ s.topic_title }}</a
-                        >
-                      </td>
+                    <tr class="sessions-row" (click)="openSession(s)">
+                      <td>{{ s.topic_title }}</td>
                       <td>{{ s.started_at | date: 'MMM d, y' }}</td>
                       <td>{{ s.turn_count }}</td>
                       <td>{{ s.avg_overall != null ? (s.avg_overall | number: '1.1-1') : '—' }}</td>
-                      <td>
-                        <a
-                          [routerLink]="['/conversation']"
-                          [queryParams]="{
-                            topicId: s.topic_id,
-                            title: s.topic_title,
-                            sessionId: s.id,
-                          }"
-                          class="btn btn--ghost btn--sm"
-                          >Resume</a
-                        >
+                      <td (click)="$event.stopPropagation()">
                         <button
                           type="button"
                           class="btn btn--ghost btn--icon btn--sm"
-                          (click)="deleteSession(s.id)"
+                          (click)="deleteSession(s.id, $event)"
                         >
                           <i class="bi bi-trash"></i>
                         </button>

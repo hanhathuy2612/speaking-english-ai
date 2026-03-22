@@ -12,6 +12,7 @@ export function mergeTurnScoresAndSessionFeedback(
   for (let i = 0; i < list.length && ti < turns.length; i++) {
     if (list[i].role !== 'user') continue;
     const sc = turns[ti++];
+    list[i] = { ...list[i], turnId: sc.turnId };
     if (i + 1 < list.length && list[i + 1].role === 'ai') {
       list[i + 1] = { ...list[i + 1], turnId: sc.turnId };
     }

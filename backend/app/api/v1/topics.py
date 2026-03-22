@@ -1,11 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.core.deps import get_current_user
 from app.db.session import get_db
-from app.models.conversation import Topic, TopicUnit
+from app.models.conversation import ConversationSession, Topic, TopicUnit, Turn, TurnScore
 from app.models.user import User
+from app.schemas.progress import RecentSession, SessionsPage
 from app.schemas.roadmap import (
     RoadmapOut,
     RoadmapProgressIn,
@@ -50,6 +52,74 @@ async def create_topic(
     await db.commit()
     await db.refresh(topic)
     return TopicOut.model_validate(topic)
+
+
+@router.get("/{topic_id:int}/sessions", response_model=SessionsPage)
+async def list_topic_sessions(
+    topic_id: int,
+    page: int = 1,
+    limit: int = 20,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> SessionsPage:
+    """Paginated conversation sessions for this topic (current user only)."""
+    r = await db.execute(select(Topic).where(Topic.id == topic_id))
+    if r.scalar_one_or_none() is None:
+        raise HTTPException(status_code=404, detail="Topic not found")
+    if page < 1:
+        page = 1
+    if limit < 1 or limit > 100:
+        limit = 20
+    offset = (page - 1) * limit
+
+    total_q = await db.execute(
+        select(func.count())
+        .select_from(ConversationSession)
+        .where(
+            ConversationSession.user_id == user.id,
+            ConversationSession.topic_id == topic_id,
+        )
+    )
+    total = total_q.scalar() or 0
+
+    recent_q = await db.execute(
+        select(ConversationSession)
+        .options(selectinload(ConversationSession.topic))
+        .where(
+            ConversationSession.user_id == user.id,
+            ConversationSession.topic_id == topic_id,
+        )
+        .order_by(ConversationSession.started_at.desc())
+        .offset(offset)
+        .limit(limit)
+    )
+    recent_sessions_db = recent_q.scalars().all()
+
+    recent_out: list[RecentSession] = []
+    for s in recent_sessions_db:
+        turns_q = await db.execute(
+            select(func.count()).select_from(Turn).where(Turn.session_id == s.id)
+        )
+        tc = turns_q.scalar() or 0
+        avg_q = await db.execute(
+            select(func.avg(TurnScore.overall))
+            .join(Turn, TurnScore.turn_id == Turn.id)
+            .where(Turn.session_id == s.id)
+        )
+        avg_val = avg_q.scalar()
+        recent_out.append(
+            RecentSession(
+                id=s.id,
+                topic_id=s.topic_id,
+                topic_title=s.topic.title if s.topic else "Unknown",
+                started_at=s.started_at,
+                ended_at=s.ended_at,
+                turn_count=tc,
+                avg_overall=round(avg_val, 2) if avg_val is not None else None,
+            )
+        )
+
+    return SessionsPage(items=recent_out, total=total)
 
 
 @router.get("/{topic_id:int}/roadmap", response_model=RoadmapOut)

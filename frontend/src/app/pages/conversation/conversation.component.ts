@@ -21,6 +21,7 @@ import {
 } from './conversation-ws.router';
 import { AccountService } from '@/app/shared/services/account.service';
 import { ApiService, UnitStepSummary } from '@/services/api.service';
+import { mapSessionDetailTurnsToMessages } from './conversation-session.mapper';
 import { AudioService } from '@/services/audio.service';
 import { WsMessage, WsService } from '@/services/ws.service';
 import { CommonModule } from '@angular/common';
@@ -30,7 +31,6 @@ import {
   Component,
   computed,
   effect,
-  ElementRef,
   inject,
   OnDestroy,
   OnInit,
@@ -39,7 +39,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
-import { firstValueFrom } from 'rxjs';
+import { finalize, firstValueFrom } from 'rxjs';
 
 @Component({
   selector: 'app-conversation',
@@ -100,7 +100,21 @@ export class ConversationComponent implements OnInit, OnDestroy {
   connected = toSignal(this.ws.connected$, { initialValue: false });
   reconnecting = toSignal(this.ws.reconnecting$, { initialValue: false });
   vuLevel = toSignal(this.audio.volume$, { initialValue: 0 });
-  canRecord = computed(() => this.connected() && !this.aiSpeaking() && this.messages().length > 0);
+  canRecord = computed(
+    () =>
+      !this.sessionArchiveView() &&
+      this.connected() &&
+      !this.aiSpeaking() &&
+      this.messages().length > 0,
+  );
+
+  /** Ended session: show transcript from API only, no WebSocket. */
+  sessionArchiveView = signal(false);
+  sessionDetailLoading = signal(false);
+  private _sessionBootstrapGen = 0;
+  /** When we merge sessionId into the URL after start, skip one full bootstrap (avoid wipe + reconnect). */
+  private _skipBootstrapForSessionUrlSync: { topicId: number; sessionId: number } | null = null;
+  private _newConversationInFlight = false;
 
   recording = signal(false);
   transcribing = signal(false);
@@ -251,10 +265,19 @@ export class ConversationComponent implements OnInit, OnDestroy {
       const uid = this.unitId();
       const sid = this.sessionId();
       if (id <= 0) {
-        this.router.navigate(['/topics']);
+        void this.router.navigate(['/topics']);
         return;
       }
-      void [uid, sid];
+      const skip = this._skipBootstrapForSessionUrlSync;
+      if (skip) {
+        if (skip.topicId === id && skip.sessionId === sid && sid > 0) {
+          this._skipBootstrapForSessionUrlSync = null;
+          return;
+        }
+        this._skipBootstrapForSessionUrlSync = null;
+      }
+      void uid;
+      const gen = ++this._sessionBootstrapGen;
       this.messages.set([]);
       this.sessionEndedWithFeedback.set(false);
       this.startSentForConnection = false;
@@ -262,21 +285,85 @@ export class ConversationComponent implements OnInit, OnDestroy {
       this.liveSessionId.set(0);
       this.unitStepMeta.set(null);
       this.unitCompleteSummary.set(null);
-      this.accountService.getMe().subscribe({
-        next: (me) => {
-          const voice = me.tts_voice;
-          const rate = me.tts_rate;
-          if (voice != null && String(voice).trim() !== '') this.ttsVoice.set(String(voice));
-          if (rate != null && String(rate).trim() !== '') this.ttsRate.set(String(rate));
-          this.userPrefsApplied.set(true);
-          this.ws.connect(id);
-          this.cdr.detectChanges();
-        },
-        error: () => {
-          this.userPrefsApplied.set(true);
-          this.ws.connect(id);
-        },
-      });
+      this.sessionArchiveView.set(false);
+      this.errorMessage.set('');
+
+      if (sid > 0) {
+        this.sessionDetailLoading.set(true);
+        this.api.getSessionDetail(sid).subscribe({
+          next: (detail) => {
+            if (gen !== this._sessionBootstrapGen) return;
+            this.sessionDetailLoading.set(false);
+            if (detail.topic_id !== id) {
+              this.errorMessage.set('This session does not belong to this topic.');
+              this.cdr.markForCheck();
+              return;
+            }
+            const ended = detail.ended_at != null && String(detail.ended_at).trim() !== '';
+            if (ended) {
+              this.sessionArchiveView.set(true);
+              this.messages.set(
+                mapSessionDetailTurnsToMessages(
+                  detail.turns,
+                  detail.opening_message,
+                  detail.has_opening_audio,
+                ),
+              );
+              this.sessionEndedWithFeedback.set(true);
+              this.liveSessionId.set(sid);
+              this.userPrefsApplied.set(true);
+              this.startSentForConnection = true;
+              this.accountService.getMe().subscribe({
+                next: (me) => {
+                  if (gen !== this._sessionBootstrapGen) return;
+                  const voice = me.tts_voice;
+                  const rate = me.tts_rate;
+                  if (voice != null && String(voice).trim() !== '') this.ttsVoice.set(String(voice));
+                  if (rate != null && String(rate).trim() !== '') this.ttsRate.set(String(rate));
+                  this.cdr.detectChanges();
+                },
+                error: () => {
+                  if (gen !== this._sessionBootstrapGen) return;
+                  this.cdr.detectChanges();
+                },
+              });
+              this.cdr.detectChanges();
+              return;
+            }
+            this._connectLiveAfterPrefs(id, gen);
+          },
+          error: () => {
+            if (gen !== this._sessionBootstrapGen) return;
+            this.sessionDetailLoading.set(false);
+            this.errorMessage.set('Could not load this session. It may have been deleted.');
+            this.cdr.markForCheck();
+          },
+        });
+      } else {
+        this.sessionDetailLoading.set(false);
+        this._connectLiveAfterPrefs(id, gen);
+      }
+    });
+  }
+
+  private _connectLiveAfterPrefs(topicId: number, gen: number): void {
+    this.accountService.getMe().subscribe({
+      next: (me) => {
+        if (gen !== this._sessionBootstrapGen) return;
+        const voice = me.tts_voice;
+        const rate = me.tts_rate;
+        if (voice != null && String(voice).trim() !== '') this.ttsVoice.set(String(voice));
+        if (rate != null && String(rate).trim() !== '') this.ttsRate.set(String(rate));
+        this.userPrefsApplied.set(true);
+        this.ws.connect(topicId);
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        if (gen !== this._sessionBootstrapGen) return;
+        this.userPrefsApplied.set(true);
+        this.ws.connect(topicId);
+        this.cdr.detectChanges();
+      },
     });
   }
 
@@ -292,10 +379,13 @@ export class ConversationComponent implements OnInit, OnDestroy {
 
   private _effectSendStartWhenReady(): void {
     effect(() => {
+      if (this.sessionArchiveView()) return;
       const conn = this.connected();
       const prefsApplied = this.userPrefsApplied();
       const topicId = this.topicId();
-      const sessionId = this.sessionId();
+      const routeSessionId = this.sessionId();
+      const resumeSessionId =
+        routeSessionId > 0 ? routeSessionId : this.liveSessionId();
       const unitId = this.unitId();
       if (!conn || !prefsApplied || topicId <= 0) {
         if (!conn) this.startSentForConnection = false;
@@ -310,7 +400,7 @@ export class ConversationComponent implements OnInit, OnDestroy {
         ttsVoice: this.ttsVoice(),
         level: this.conversationLevel(),
       };
-      if (sessionId > 0) payload.sessionId = sessionId;
+      if (resumeSessionId > 0) payload.sessionId = resumeSessionId;
       else if (unitId > 0) payload.unitId = unitId;
       this.ws.sendJson(payload);
     });
@@ -353,19 +443,56 @@ export class ConversationComponent implements OnInit, OnDestroy {
     this.feedbackRequestPending.set(false);
     this._clearAudioPlayback();
     this.audio.release();
-    this.ws.sendJson({ type: 'stop' });
-    this.ws.disconnect();
+    if (!this.sessionArchiveView()) {
+      // Avoid WS `stop`: it finalizes the session. Back/navigate away only closes the socket.
+      this.ws.disconnect();
+    }
   }
 
   /** Fresh chat for the current topic (same as header “New conversation”). */
   goNewConversationSameTopic(): void {
-    void this.router.navigate(['/conversation'], {
-      queryParams: { topicId: this.topicId(), title: this.topicTitle() },
-    });
+    if (this._newConversationInFlight) return;
+    const tid = this.topicId();
+    const uid = this.unitId();
+    this._newConversationInFlight = true;
+    this.errorMessage.set('');
+    this.api
+      .postCreateSession({
+        topic_id: tid,
+        topic_unit_id: uid > 0 ? uid : null,
+      })
+      .pipe(
+        finalize(() => {
+          this._newConversationInFlight = false;
+          this.cdr.markForCheck();
+        }),
+      )
+      .subscribe({
+        next: (res) => {
+          const qp: Record<string, string | number> = {
+            topicId: tid,
+            title: this.topicTitle(),
+            sessionId: res.id,
+          };
+          if (uid > 0) qp['unitId'] = uid;
+          void this.router.navigate(['/conversation'], { queryParams: qp });
+        },
+        error: (err: { error?: { detail?: unknown } }) => {
+          const d = err?.error?.detail;
+          let msg = 'Could not start a new conversation.';
+          if (typeof d === 'string') msg = d;
+          else if (Array.isArray(d) && d.length > 0 && typeof (d[0] as { msg?: string }).msg === 'string') {
+            msg = (d[0] as { msg: string }).msg;
+          }
+          this.errorMessage.set(msg);
+          this.cdr.markForCheck();
+        },
+      });
   }
 
   /** Disconnect WS, POST /end, apply scores + optional unit summary. */
   endConversationAndFeedback(): void {
+    if (this.sessionArchiveView()) return;
     if (this.feedbackRequestPending()) return;
     const sid = this._activeSessionId();
     if (sid <= 0) {
@@ -547,7 +674,7 @@ export class ConversationComponent implements OnInit, OnDestroy {
   }
 
   async startRecording(): Promise<void> {
-    if (this.recording() || !this.canRecord()) return;
+    if (this.sessionArchiveView() || this.recording() || !this.canRecord()) return;
     this.recording.set(true);
     await this.audio.startRecording((buf) => {
       this.lastUserRecording = buf;
@@ -571,8 +698,6 @@ export class ConversationComponent implements OnInit, OnDestroy {
   }
 
   async playMessageAudio(msg: ChatMessage, index: number, kind: 'user' | 'ai'): Promise<void> {
-    const buf = kind === 'user' ? msg.userAudio : msg.aiAudio;
-    if (!buf) return;
     if (this.playingMessageIndex() === index) {
       this._clearAudioPlayback();
       this.audio.stopPlayback();
@@ -580,6 +705,50 @@ export class ConversationComponent implements OnInit, OnDestroy {
       this.cdr.detectChanges();
       return;
     }
+
+    let buf = kind === 'user' ? msg.userAudio : msg.aiAudio;
+    if (!buf && msg.turnId != null) {
+      const canFetchUser = kind === 'user' && msg.hasUserRecording;
+      const canFetchAi = kind === 'ai' && msg.hasAiAudio;
+      if (!canFetchUser && !canFetchAi) return;
+      const apiKind = kind === 'user' ? 'user' : 'assistant';
+      try {
+        buf = await firstValueFrom(this.api.getTurnAudio(msg.turnId, apiKind));
+      } catch {
+        this.errorMessage.set('Could not load audio for this message.');
+        this.cdr.markForCheck();
+        return;
+      }
+      this.messages.update((list) => {
+        const next = [...list];
+        const cur = next[index];
+        if (!cur) return list;
+        next[index] =
+          kind === 'user'
+            ? { ...cur, userAudio: buf as ArrayBuffer }
+            : { ...cur, aiAudio: buf as ArrayBuffer };
+        return next;
+      });
+    } else if (!buf && kind === 'ai' && msg.isOpeningLine && msg.hasAiAudio) {
+      const sid = this._activeSessionId();
+      if (sid <= 0) return;
+      try {
+        buf = await firstValueFrom(this.api.getSessionOpeningAudio(sid));
+      } catch {
+        this.errorMessage.set('Could not load audio for this message.');
+        this.cdr.markForCheck();
+        return;
+      }
+      this.messages.update((list) => {
+        const next = [...list];
+        const cur = next[index];
+        if (!cur) return list;
+        next[index] = { ...cur, aiAudio: buf as ArrayBuffer };
+        return next;
+      });
+    }
+
+    if (!buf) return;
     this._clearAudioPlayback();
     this.audio.stopPlayback();
     this.playingMessageIndex.set(index);
@@ -606,6 +775,7 @@ export class ConversationComponent implements OnInit, OnDestroy {
 
   reworkAllowed(): boolean {
     return (
+      !this.sessionArchiveView() &&
       this.connected() &&
       !this.recording() &&
       !this.transcribing() &&
@@ -615,7 +785,7 @@ export class ConversationComponent implements OnInit, OnDestroy {
   }
 
   requestRework(messageIndex: number): void {
-    if (!this.reworkAllowed()) return;
+    if (this.sessionArchiveView() || !this.reworkAllowed()) return;
     const list = this.messages();
     if (messageIndex < 0 || messageIndex >= list.length) return;
     if (list[messageIndex].role !== 'user') return;
@@ -679,7 +849,19 @@ export class ConversationComponent implements OnInit, OnDestroy {
       this.conversationLevel.set(tl.trim());
     }
     const sid = msg['sessionId'];
-    if (typeof sid === 'number' && Number.isFinite(sid) && sid > 0) this.liveSessionId.set(sid);
+    if (typeof sid === 'number' && Number.isFinite(sid) && sid > 0) {
+      this.liveSessionId.set(sid);
+      if (msg['message'] === 'session_started' && this.sessionId() <= 0) {
+        const tid = this.topicId();
+        this._skipBootstrapForSessionUrlSync = { topicId: tid, sessionId: sid };
+        void this.router.navigate([], {
+          relativeTo: this.route,
+          queryParams: { sessionId: String(sid) },
+          queryParamsHandling: 'merge',
+          replaceUrl: true,
+        });
+      }
+    }
   }
 
   private _handleMessage(msg: Record<string, unknown> & { type: string }): void {

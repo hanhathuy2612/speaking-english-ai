@@ -76,7 +76,7 @@ export class TopicRoadmapComponent implements OnInit {
   freeConversation(): void {
     const id = this.topicId();
     const title = this.roadmap()?.topic_title ?? this.topicMeta()?.title ?? 'Conversation';
-    this.router.navigate(['/conversation'], {
+    void this.router.navigate(['/conversation'], {
       queryParams: { topicId: id, title },
     });
   }

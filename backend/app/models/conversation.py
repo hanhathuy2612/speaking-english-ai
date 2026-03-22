@@ -89,6 +89,8 @@ class ConversationSession(Base):
     ended_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    opening_message: Mapped[str | None] = mapped_column(Text(), nullable=True)
+    opening_audio_path: Mapped[str | None] = mapped_column(String(512), nullable=True)
 
     user = relationship("User", back_populates="sessions")
     topic = relationship("Topic", back_populates="sessions")

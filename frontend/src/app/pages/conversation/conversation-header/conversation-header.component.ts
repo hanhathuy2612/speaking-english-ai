@@ -26,6 +26,10 @@ export class ConversationHeaderComponent {
   topicTitle = input.required<string>();
   topicId = input.required<number>();
   sessionId = input.required<number>();
+  /** Loading session detail before WebSocket (when resuming by id). */
+  detailLoading = input(false);
+  /** Ended session: read-only transcript, no live chat controls. */
+  archiveView = input(false);
   connected = input.required<boolean>();
   reconnecting = input.required<boolean>();
   conversationLevel = input.required<string>();

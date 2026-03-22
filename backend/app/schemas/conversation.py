@@ -4,9 +4,12 @@ from pydantic import BaseModel
 
 
 class TurnOut(BaseModel):
+    turn_id: int
     index_in_session: int
     user_text: str
     assistant_text: str
+    has_user_audio: bool = False
+    has_assistant_audio: bool = False
     guideline: str | None = None
     fluency: float | None = None
     vocabulary: float | None = None
@@ -25,12 +28,26 @@ class SessionOut(BaseModel):
     turn_count: int
 
 
+class SessionCreateIn(BaseModel):
+    topic_id: int
+    topic_unit_id: int | None = None
+
+
+class SessionCreatedOut(BaseModel):
+    id: int
+    topic_id: int
+    topic_unit_id: int | None = None
+    topic_level: str | None = None
+
+
 class SessionDetailOut(BaseModel):
     id: int
     topic_id: int
     topic_title: str
     started_at: datetime
     ended_at: datetime | None
+    opening_message: str | None = None
+    has_opening_audio: bool = False
     turns: list[TurnOut]
 
 

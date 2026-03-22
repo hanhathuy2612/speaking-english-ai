@@ -1,0 +1,111 @@
+<div class="page">
+  <div class="container">
+    <nav class="breadcrumb">
+      <a routerLink="/topics">Topics</a>
+      <span class="sep" aria-hidden="true">/</span>
+      <a [routerLink]="['/topics', topicId(), 'roadmap']">{{ topicTitle() }}</a>
+      <span class="sep" aria-hidden="true">/</span>
+      <span class="current">Session history</span>
+    </nav>
+
+    <header class="hero">
+      <h1>Session history</h1>
+      <p class="muted">
+        All your practice sessions for <strong>{{ topicTitle() }}</strong>. Resume a session to continue the
+        same chat, or start a new one from the roadmap.
+      </p>
+      <div class="hero-actions">
+        <a [routerLink]="['/topics', topicId(), 'roadmap']" class="btn btn--secondary">Back to roadmap</a>
+        <button
+          type="button"
+          class="btn btn--primary"
+          [disabled]="newChatBusy()"
+          (click)="startNewConversation()"
+        >
+          @if (newChatBusy()) {
+            Starting…
+          } @else {
+            New conversation
+          }
+        </button>
+      </div>
+      @if (newChatError()) {
+        <p class="hero-error" role="alert">{{ newChatError() }}</p>
+      }
+    </header>
+
+    <div class="sessions-card">
+      <h2 class="sessions-title">Sessions</h2>
+      <div class="sessions-shell">
+        @if (loading()) {
+          <div class="sessions-shell__overlay" aria-busy="true" aria-live="polite">
+            <div class="sessions-shell__overlay-inner">
+              <div class="spinner" aria-hidden="true"></div>
+              <span>Loading…</span>
+            </div>
+          </div>
+        }
+        <div class="sessions-wrap" [class.sessions-wrap--dimmed]="loading()">
+          <table class="sessions-table">
+            <thead>
+              <tr>
+                <th>Started</th>
+                <th>Status</th>
+                <th>Turns</th>
+                <th>Avg score</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (s of sessionsData()?.items ?? []; track s.id) {
+                <tr class="sessions-row" (click)="openSession(s)">
+                  <td>{{ s.started_at | date: 'medium' }}</td>
+                  <td>
+                    @if (s.ended_at) {
+                      <span class="status-ended">Ended</span>
+                    } @else {
+                      <span class="status-active">In progress</span>
+                    }
+                  </td>
+                  <td>{{ s.turn_count }}</td>
+                  <td>{{ s.avg_overall != null ? (s.avg_overall | number: '1.1-1') : '—' }}</td>
+                  <td class="sessions-actions" (click)="$event.stopPropagation()">
+                    <button
+                      type="button"
+                      class="btn btn--ghost btn--icon btn--sm"
+                      title="Delete session"
+                      (click)="deleteSession(s.id, $event)"
+                    >
+                      <i class="bi bi-trash" aria-hidden="true"></i>
+                    </button>
+                  </td>
+                </tr>
+              }
+              @if (!loading() && (sessionsData()?.items?.length ?? 0) === 0) {
+                <tr class="sessions-empty">
+                  <td colspan="5">No sessions for this topic yet. Start a conversation from the roadmap.</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+      @if ((sessionsData()?.total ?? 0) > pageSize) {
+        <div class="sessions-pagination" [class.sessions-pagination--busy]="loading()">
+          <span class="sessions-pagination-info">
+            Showing {{ paginationRange().start }}–{{ paginationRange().end }} of
+            {{ paginationRange().total }}
+          </span>
+          <ngb-pagination
+            [collectionSize]="sessionsData()?.total ?? 0"
+            [page]="currentPage()"
+            [pageSize]="pageSize"
+            [maxSize]="5"
+            [boundaryLinks]="true"
+            (pageChange)="goToPage($event)"
+          />
+        </div>
+      }
+    </div>
+  </div>
+</div>

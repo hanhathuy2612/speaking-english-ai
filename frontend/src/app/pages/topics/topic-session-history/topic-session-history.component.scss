@@ -1,0 +1,244 @@
+@use '../../../../styles/breakpoints' as bp;
+
+.page {
+  min-height: 60vh;
+}
+
+.breadcrumb {
+  padding: 24px 0 0;
+  font-size: 0.875rem;
+  color: var(--clr-text-muted);
+
+  @include bp.max-sm {
+    padding: 16px 0 0;
+    font-size: 0.8125rem;
+  }
+
+  a {
+    color: var(--clr-accent);
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  .sep {
+    margin: 0 8px;
+    opacity: 0.5;
+  }
+
+  .current {
+    color: var(--clr-text);
+  }
+}
+
+.hero {
+  padding: 16px 0 28px;
+
+  h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin: 0 0 8px;
+    letter-spacing: -0.02em;
+
+    @include bp.max-sm {
+      font-size: 1.375rem;
+    }
+  }
+
+  .muted {
+    color: var(--clr-text-muted);
+    font-size: 0.9375rem;
+    margin: 0 0 16px;
+    max-width: 56ch;
+    line-height: 1.5;
+  }
+
+  .hero-error {
+    margin: 12px 0 0;
+    color: var(--clr-danger);
+    font-size: 0.9375rem;
+  }
+}
+
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+
+  @include bp.max-sm {
+    flex-direction: column;
+
+    .btn {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+}
+
+.sessions-card {
+  background: var(--clr-bg-elevated);
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 32px;
+}
+
+.sessions-title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--clr-border);
+  color: var(--clr-text);
+}
+
+.sessions-shell {
+  position: relative;
+  min-height: min(320px, 55vh);
+}
+
+.sessions-shell__overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--clr-bg-elevated) 82%, transparent);
+  backdrop-filter: blur(2px);
+}
+
+.sessions-shell__overlay-inner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  border-radius: var(--radius);
+  border: 1px solid var(--clr-border);
+  background: var(--clr-bg-elevated);
+  color: var(--clr-text-muted);
+  font-size: 0.875rem;
+  box-shadow: var(--shadow-md, 0 8px 24px rgba(0 0 0 / 0.08));
+}
+
+.sessions-wrap--dimmed {
+  opacity: 0.42;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+
+.sessions-pagination--busy {
+  pointer-events: none;
+  opacity: 0.55;
+  transition: opacity 0.2s ease;
+}
+
+.spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--clr-border);
+  border-top-color: var(--clr-accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.sessions-wrap {
+  overflow-x: auto;
+}
+
+.sessions-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+
+.sessions-table th,
+.sessions-table td {
+  text-align: left;
+  padding: 14px 24px;
+  border-bottom: 1px solid var(--clr-border);
+
+  @include bp.max-sm {
+    padding: 10px 12px;
+    font-size: 0.75rem;
+  }
+}
+
+.sessions-table th {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--clr-text-muted);
+  background: var(--clr-table-header-bg);
+}
+
+.sessions-table tbody tr:hover {
+  background: var(--clr-row-hover);
+}
+
+.sessions-row {
+  cursor: pointer;
+}
+
+.sessions-empty td {
+  text-align: center;
+  color: var(--clr-text-muted);
+  padding: 32px 24px;
+  font-size: 0.875rem;
+}
+
+.sessions-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.status-ended {
+  color: var(--clr-text-muted);
+  font-size: 0.8125rem;
+}
+
+.status-active {
+  color: var(--clr-accent);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.sessions-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--clr-border);
+  font-size: 0.8125rem;
+  color: var(--clr-text-muted);
+
+  ngb-pagination ::ng-deep .page-link {
+    color: var(--clr-text);
+    background: var(--clr-bg-elevated);
+    border-color: var(--clr-border);
+
+    &:hover {
+      background: var(--clr-row-hover);
+      border-color: var(--clr-border);
+    }
+  }
+
+  ngb-pagination ::ng-deep .page-item.active .page-link {
+    background: var(--clr-accent);
+    border-color: var(--clr-accent);
+    color: #fff;
+  }
+}

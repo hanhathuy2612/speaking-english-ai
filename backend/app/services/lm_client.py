@@ -33,18 +33,20 @@ If the user switches topics suddenly, briefly respond and then guide the convers
 If the user uses Vietnamese (or mixes Vietnamese and English), understand it but always reply in English.
 Encourage them to try saying it in English in a simple way."""
 
-_TRANSCRIPT_NORMALIZE_SYSTEM = """You lightly clean raw speech-to-text (ASR) for English learners.
+_TRANSCRIPT_NORMALIZE_SYSTEM = """You fix obvious speech-to-text (ASR) mistakes only.
 
-Output exactly ONE line: the transcript. No quotes, labels, or explanation.
+Output exactly ONE line — the same utterance the speaker said. No quotes, labels, or explanation.
 
-Be minimal:
-- If the line is already easy to understand, return it unchanged (or with at most tiny spelling fixes).
-- Only change words or short phrases that are clearly wrong ASR or hard to parse.
-- Do not add words. Do not remove words. Do not rephrase for style, politeness, or “better English.”
-- Do not change word order unless one obvious misheard word must be swapped (same slot in the sentence).
-- Do not answer questions or complete the user’s thought—only fix unclear fragments.
-- Never invent dialogue, role-play lines, lesson questions, or travel/booking scripts. Never copy or paraphrase a topic description—only edit the words in the raw line below.
-- If the input is empty or "(inaudible)", return it as given."""
+Rules (strict):
+- Prefer returning the input byte-for-byte if it is understandable.
+- Only fix clear typos / one obvious misheard word (same meaning, same sentence).
+- Same words in the same order whenever possible. Do not reorder clauses.
+- Do NOT add words, filler, or new sentences. Do NOT remove words except obvious ASR noise tokens.
+- Do NOT “improve” grammar, style, or translate. Do NOT answer questions or finish the user’s idea.
+- Do NOT invent scenarios, dialogs, or content not present in the raw line.
+- If unsure, return the raw line unchanged.
+
+If the input is empty or "(inaudible)", return it as given."""
 
 _LEVEL_INSTRUCTIONS: dict[str, str] = {
     "a1": (
@@ -217,8 +219,8 @@ class LMStudioClient:
             else int(settings.lm_normalize_max_tokens)
         )
         raw_wc = len(raw.strip().split())
-        # Cap output size vs input so the model cannot dump a paragraph on short utterances.
-        mt = min(mt, max(24, raw_wc * 10 + 32))
+        # Tight cap: normalizer must not emit a long invented reply.
+        mt = min(mt, max(24, raw_wc * 4 + 20))
         include_ctx = settings.lm_normalize_include_topic_context and (
             topic_context or ""
         ).strip()
@@ -244,7 +246,7 @@ def transcript_normalization_plausible(
     raw: str,
     normalized: str,
     *,
-    min_similarity: float = 0.38,
+    min_similarity: float = 0.65,
 ) -> bool:
     """
     Reject LLM output that is unrelated to the STT line (hallucinations).
@@ -256,6 +258,9 @@ def transcript_normalization_plausible(
         return False
     if raw_s.casefold() == norm_s.casefold():
         return True
+    # Block huge length inflation (model wrote a different passage)
+    if len(norm_s) > max(int(len(raw_s) * 1.35), len(raw_s) + 60):
+        return False
     a = _squish_for_compare(raw_s)
     b = _squish_for_compare(norm_s)
     if not a:
@@ -269,6 +274,14 @@ def transcript_normalization_plausible(
         return False
     if rw <= 3 and nw > rw + 6:
         return False
+    # Too many content words in output that never appeared in STT (hallucinated clause)
+    aw = a.split()
+    bw = b.split()
+    if aw:
+        raw_set = set(aw)
+        novel = [w for w in bw if w not in raw_set and len(w) > 2]
+        if len(novel) > max(2, min(6, rw // 2)):
+            return False
     return True
 
 

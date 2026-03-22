@@ -4,6 +4,12 @@ export interface ChatMessage {
   partial?: boolean;
   userAudio?: ArrayBuffer;
   aiAudio?: ArrayBuffer;
+  /** Stored recording exists server-side (fetch on play after reload / history). */
+  hasUserRecording?: boolean;
+  /** Stored TTS exists server-side. */
+  hasAiAudio?: boolean;
+  /** First assistant line (opening greeting), not a Turn — use session opening-audio API. */
+  isOpeningLine?: boolean;
   turnId?: number;
   guideline?: string;
   sessionRecap?: boolean;

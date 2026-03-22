@@ -29,6 +29,33 @@
   flex-direction: column;
 }
 
+.conv-session-detail-loading {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  color: var(--clr-text-muted);
+  font-size: var(--fs-md);
+  min-height: 200px;
+
+  .spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid var(--clr-border);
+    border-top-color: var(--clr-accent);
+    border-radius: 50%;
+    animation: conv-spin 0.75s linear infinite;
+  }
+}
+
+@keyframes conv-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .conv-error {
   display: flex;
   align-items: center;

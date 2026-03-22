@@ -83,6 +83,45 @@ export interface SessionEndScoreTurn {
 }
 
 /** POST .../conversation/sessions/{id}/end — same scoring payload shape as WebSocket session_scores. */
+export interface SessionDetailTurn {
+  turn_id: number;
+  index_in_session: number;
+  user_text: string;
+  assistant_text: string;
+  has_user_audio?: boolean;
+  has_assistant_audio?: boolean;
+  guideline?: string | null;
+  fluency?: number | null;
+  vocabulary?: number | null;
+  grammar?: number | null;
+  overall?: number | null;
+  feedback?: string | null;
+  created_at: string;
+}
+
+export interface SessionDetailOut {
+  id: number;
+  topic_id: number;
+  topic_title: string;
+  started_at: string;
+  ended_at: string | null;
+  opening_message?: string | null;
+  has_opening_audio?: boolean;
+  turns: SessionDetailTurn[];
+}
+
+export interface SessionCreatePayload {
+  topic_id: number;
+  topic_unit_id?: number | null;
+}
+
+export interface SessionCreatedOut {
+  id: number;
+  topic_id: number;
+  topic_unit_id: number | null;
+  topic_level: string | null;
+}
+
 export interface SessionEndScoresResponse {
   turns: SessionEndScoreTurn[];
   averages: {
@@ -168,6 +207,30 @@ export class ApiService {
     const body: { question: string; turn_id?: number } = { question: question.trim() };
     if (turnId != null) body.turn_id = turnId;
     return this.http.post<GuidanceResponse>(`${this.base}/conversation/guidance`, body);
+  }
+
+  /** Full session transcript + scores (for archive / detail view). */
+  getSessionDetail(sessionId: number): Observable<SessionDetailOut> {
+    return this.http.get<SessionDetailOut>(`${this.base}/conversation/sessions/${sessionId}`);
+  }
+
+  /** Create an empty session (then navigate to /conversation?sessionId=…). */
+  postCreateSession(body: SessionCreatePayload): Observable<SessionCreatedOut> {
+    return this.http.post<SessionCreatedOut>(`${this.base}/conversation/sessions`, body);
+  }
+
+  /** Learner webm or assistant TTS mp3 for a turn (requires auth). */
+  getTurnAudio(turnId: number, kind: 'user' | 'assistant'): Observable<ArrayBuffer> {
+    return this.http.get(`${this.base}/conversation/turns/${turnId}/audio`, {
+      params: { kind },
+      responseType: 'arraybuffer',
+    });
+  }
+
+  getSessionOpeningAudio(sessionId: number): Observable<ArrayBuffer> {
+    return this.http.get(`${this.base}/conversation/sessions/${sessionId}/opening-audio`, {
+      responseType: 'arraybuffer',
+    });
   }
 
   /** Session aggregates for roadmap unit completion / recap. */

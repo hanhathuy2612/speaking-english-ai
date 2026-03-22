@@ -10,7 +10,7 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { NgbPaginationModule } from '@ng-bootstrap/ng-bootstrap';
 import { finalize } from 'rxjs';
 import { ProgressSummary } from '../../shared/services/api.service';
@@ -22,11 +22,12 @@ const PAGE_SIZE = 10;
 @Component({
   selector: 'app-progress-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterLink, NgbPaginationModule],
+  imports: [CommonModule, NgbPaginationModule],
   styleUrls: ['./progress-dashboard.component.scss'],
   templateUrl: './progress-dashboard.component.html',
 })
 export class ProgressDashboardComponent implements OnInit, AfterViewInit {
+  private readonly router = inject(Router);
   readonly lineChartRef = viewChild<ElementRef<HTMLCanvasElement>>('lineChart');
   readonly radarChartRef = viewChild<ElementRef<HTMLCanvasElement>>('radarChart');
 
@@ -86,6 +87,12 @@ export class ProgressDashboardComponent implements OnInit, AfterViewInit {
     this.loadSessions(page);
   }
 
+  openSession(s: { id: number; topic_id: number; topic_title: string }): void {
+    void this.router.navigate(['/conversation'], {
+      queryParams: { topicId: s.topic_id, title: s.topic_title, sessionId: s.id },
+    });
+  }
+
   ngAfterViewInit(): void {
     const check = setInterval(() => {
       if (this.data() && typeof Chart !== 'undefined') {
@@ -96,7 +103,8 @@ export class ProgressDashboardComponent implements OnInit, AfterViewInit {
     }, 200);
   }
 
-  deleteSession(sessionId: number): void {
+  deleteSession(sessionId: number, $event?: Event): void {
+    $event?.stopPropagation();
     this.progressService.deleteSession(sessionId).subscribe({
       next: () => {
         const items = this.sessionsData()?.items ?? [];

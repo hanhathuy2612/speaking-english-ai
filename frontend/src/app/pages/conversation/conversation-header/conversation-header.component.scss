@@ -76,6 +76,34 @@
   animation: pulse 1.5s ease-in-out infinite;
 }
 
+.conv-status--ended {
+  color: var(--clr-text-muted);
+}
+
+.conv-status--ended .conv-status__dot {
+  background: var(--clr-text-muted);
+  animation: none;
+}
+
+.conv-status--loading .conv-status__dot {
+  background: var(--clr-accent);
+}
+
+.conv-header__archive-hint {
+  flex: 1 1 100%;
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--clr-text-muted);
+  line-height: 1.4;
+}
+
+.conv-header__archive-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
 .conv-status.connected .conv-status__dot {
   background: var(--clr-success);
   animation: none;

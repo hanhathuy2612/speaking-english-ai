@@ -28,6 +28,11 @@ button,
     cursor: not-allowed;
   }
 
+  &.btn--icon {
+    padding: 4px;
+    font-size: var(--fs-md);
+  }
+
   &.btn--primary {
     background: var(--clr-accent);
     color: #fff;
