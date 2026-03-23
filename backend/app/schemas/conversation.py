@@ -55,6 +55,7 @@ class SessionDetailOut(BaseModel):
     opening_message: str | None = None
     has_opening_audio: bool = False
     turns: list[TurnOut]
+    session_feedback: str | None = None
 
 
 class TopicUnitSummarySnippet(BaseModel):

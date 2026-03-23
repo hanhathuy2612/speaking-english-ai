@@ -5,7 +5,12 @@ from sqlalchemy.orm import selectinload
 
 from app.core.deps import get_current_user
 from app.db.session import get_db
-from app.models.conversation import ConversationSession, Topic, TopicUnit, Turn, TurnScore
+from app.models.conversation import (
+    ConversationSession,
+    SessionMessage,
+    Topic,
+    TopicUnit,
+)
 from app.models.user import User
 from app.schemas.progress import RecentSession, SessionsPage
 from app.schemas.roadmap import (
@@ -98,13 +103,22 @@ async def list_topic_sessions(
     recent_out: list[RecentSession] = []
     for s in recent_sessions_db:
         turns_q = await db.execute(
-            select(func.count()).select_from(Turn).where(Turn.session_id == s.id)
+            select(func.count())
+            .select_from(SessionMessage)
+            .where(
+                SessionMessage.session_id == s.id,
+                SessionMessage.kind == "chat",
+                SessionMessage.role == "user",
+            )
         )
-        tc = turns_q.scalar() or 0
+        tc = int(turns_q.scalar() or 0)
         avg_q = await db.execute(
-            select(func.avg(TurnScore.overall))
-            .join(Turn, TurnScore.turn_id == Turn.id)
-            .where(Turn.session_id == s.id)
+            select(func.avg(SessionMessage.score_overall)).where(
+                SessionMessage.session_id == s.id,
+                SessionMessage.kind == "chat",
+                SessionMessage.role == "assistant",
+                SessionMessage.score_overall.is_not(None),
+            )
         )
         avg_val = avg_q.scalar()
         recent_out.append(

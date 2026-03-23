@@ -15,7 +15,7 @@ from app.core.config import get_settings
 from app.core.ielts_levels import format_ielts_band, resolve_ielts_band
 from app.core.deps import get_current_user
 from app.db.session import get_db
-from app.models.conversation import ConversationSession, Turn
+from app.models.conversation import ConversationSession, SessionMessage
 from app.models.user import User
 from app.services.lm_client import LMStudioClient
 
@@ -134,7 +134,7 @@ async def get_guidance_for_question(
 ) -> dict:
     """
     Given a question (e.g. from the AI tutor), return suggested ways to answer.
-    If turn_id is provided and valid (turn belongs to user's session), save the guideline to that turn.
+    If turn_id is provided and valid (message belongs to user's session), save the guideline to that message.
     Returns: { "suggestions": ["I like to...", "I usually...", ...] }
     """
     question = body.question.strip()
@@ -183,14 +183,17 @@ async def get_guidance_for_question(
     guideline_text = "\n".join(suggestions)
     if body.turn_id is not None:
         result = await db.execute(
-            select(Turn)
-            .join(ConversationSession, Turn.session_id == ConversationSession.id)
-            .where(Turn.id == body.turn_id, ConversationSession.user_id == user.id)
+            select(SessionMessage)
+            .join(ConversationSession, SessionMessage.session_id == ConversationSession.id)
+            .where(
+                SessionMessage.id == body.turn_id,
+                ConversationSession.user_id == user.id,
+            )
         )
-        turn = result.scalar_one_or_none()
-        if turn is not None:
-            turn.guideline = guideline_text
+        msg = result.scalar_one_or_none()
+        if msg is not None:
+            msg.guideline = guideline_text
             await db.commit()
-        # if turn not found or not owned, we still return suggestions
+        # if message not found or not owned, we still return suggestions
 
     return {"suggestions": suggestions}

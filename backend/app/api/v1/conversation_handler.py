@@ -20,10 +20,9 @@ from app.core.config import get_settings
 from app.core.ielts_levels import resolve_ielts_band
 from app.models.conversation import (
     ConversationSession,
+    SessionMessage,
     Topic,
     TopicUnit,
-    Turn,
-    TurnScore,
 )
 import app.services.topic_roadmap_service as roadmap_svc
 from app.services.conversation_session_finalize import finalize_session_scoring
@@ -66,7 +65,7 @@ _BATCH_INTERVAL = 0.04
 _TTS_BATCH_BYTES = 4000
 _TTS_BATCH_INTERVAL = 0.05
 
-# When the tutor LM fails after the user's line was shown, we still persist a Turn so end-session scoring can run.
+    # When the tutor LM fails after the user's line was shown, we still persist a chat message so end-session scoring can run.
 _AI_UNAVAILABLE_ASSISTANT_TEXT = (
     "Sorry — I couldn't reply just now. Your answer was still saved for this session."
 )
@@ -262,16 +261,21 @@ class ConversationHandler:
         await self._send({"type": "error", "message": "max_unit_turns_reached"})
         return True
 
-    def _rebuild_lm_history(self, turns: list[Turn]) -> None:
+    def _rebuild_lm_history_from_messages(self, messages: list[SessionMessage]) -> None:
         h: list[dict[str, str]] = []
         if self._opening_text:
             h.append({"role": "assistant", "content": self._opening_text})
-        for t in turns:
-            h.append({"role": "user", "content": t.user_text})
-            h.append({"role": "assistant", "content": t.assistant_text})
+        for m in messages:
+            if m.role not in ("user", "assistant"):
+                continue
+            if m.kind == "score_feedback":
+                continue
+            h.append({"role": m.role, "content": m.text})
         self.history = h
 
-    def _client_history_messages(self, turns: list[Turn]) -> list[dict[str, Any]]:
+    def _client_history_messages_from_messages(
+        self, messages: list[SessionMessage]
+    ) -> list[dict[str, Any]]:
         out: list[dict[str, Any]] = []
         if self._opening_text:
             omsg: dict[str, Any] = {
@@ -282,20 +286,20 @@ class ConversationHandler:
             if self._opening_audio_path and str(self._opening_audio_path).strip():
                 omsg["hasAssistantAudio"] = True
             out.append(omsg)
-        for t in turns:
-            urow: dict[str, Any] = {"role": "user", "text": t.user_text, "turnId": t.id}
-            if t.user_audio_path and str(t.user_audio_path).strip():
-                urow["hasUserAudio"] = True
-            out.append(urow)
-            arow: dict[str, Any] = {
-                "role": "assistant",
-                "text": t.assistant_text,
-                "turnId": t.id,
-                "guideline": t.guideline,
+        for m in messages:
+            if m.role not in ("user", "assistant"):
+                continue
+            row: dict[str, Any] = {
+                "role": m.role,
+                "text": m.text,
+                "turnId": m.id,
+                "guideline": m.guideline,
             }
-            if t.assistant_audio_path and str(t.assistant_audio_path).strip():
-                arow["hasAssistantAudio"] = True
-            out.append(arow)
+            if m.role == "user" and m.audio_path and str(m.audio_path).strip():
+                row["hasUserAudio"] = True
+            if m.role == "assistant" and m.audio_path and str(m.audio_path).strip():
+                row["hasAssistantAudio"] = True
+            out.append(row)
         return out
 
     async def handle_start(self, db: AsyncSession, data: dict) -> bool:
@@ -340,12 +344,15 @@ class ConversationHandler:
                 await self._send({"type": "error", "message": "Session not found"})
                 return False
             topic = sess.topic
-            turns_q = await db.execute(
-                select(Turn)
-                .where(Turn.session_id == sess.id)
-                .order_by(Turn.index_in_session)
+            msg_q = await db.execute(
+                select(SessionMessage)
+                .where(
+                    SessionMessage.session_id == sess.id,
+                    SessionMessage.kind != "score_feedback",
+                )
+                .order_by(SessionMessage.index_in_session, SessionMessage.id)
             )
-            turns = list(turns_q.scalars().all())
+            messages = list(msg_q.scalars().all())
             self.session_id = sess.id
             self.topic = topic
             self.topic_unit = sess.topic_unit
@@ -359,8 +366,8 @@ class ConversationHandler:
             self._opening_audio_path = (
                 oap.strip() if isinstance(oap, str) and oap.strip() else None
             )
-            self._rebuild_lm_history(turns)
-            self.turn_index = len(turns)
+            self._rebuild_lm_history_from_messages(messages)
+            self.turn_index = len([m for m in messages if m.role == "user"])
             self.audio_buffer = bytearray()
 
             if data.get("ttsRate") is not None:
@@ -382,7 +389,10 @@ class ConversationHandler:
             await self._attach_topic_unit_ws_meta(db, status_payload)
             await self._send(status_payload)
             await self._send(
-                {"type": "history", "messages": self._client_history_messages(turns)}
+                {
+                    "type": "history",
+                    "messages": self._client_history_messages_from_messages(messages),
+                }
             )
             return True
 
@@ -460,7 +470,7 @@ class ConversationHandler:
             self._tts_voice = str(data["ttsVoice"])
 
     async def needs_opening_message(self, db: AsyncSession) -> bool:
-        """True when the session has no stored opening and no turns (new or pre-created empty)."""
+        """True when the session has no stored opening and no chat messages."""
         if not self.session_id:
             return False
         sess = await db.get(ConversationSession, self.session_id)
@@ -470,7 +480,12 @@ class ConversationHandler:
         if isinstance(om, str) and om.strip():
             return False
         r = await db.execute(
-            select(func.count()).select_from(Turn).where(Turn.session_id == self.session_id)
+            select(func.count())
+            .select_from(SessionMessage)
+            .where(
+                SessionMessage.session_id == self.session_id,
+                SessionMessage.kind == "chat",
+            )
         )
         return (r.scalar() or 0) == 0
 
@@ -658,6 +673,35 @@ class ConversationHandler:
 
         self.history.append({"role": "assistant", "content": assistant_text})
 
+        user_msg = SessionMessage(
+            session_id=self.session_id,
+            index_in_session=self.turn_index * 2,
+            role="user",
+            kind="chat",
+            text=user_text,
+            audio_path=str(audio_path),
+        )
+        db.add(user_msg)
+        await db.commit()
+        assistant_msg = SessionMessage(
+            session_id=self.session_id,
+            index_in_session=self.turn_index * 2 + 1,
+            role="assistant",
+            kind="chat",
+            text=assistant_text,
+            audio_path=None,
+        )
+        db.add(assistant_msg)
+        await db.commit()
+        await db.refresh(assistant_msg)
+        await self._send(
+            {
+                "type": "turn_saved",
+                "turnId": assistant_msg.id,
+                "indexInSession": self.turn_index,
+            }
+        )
+
         tts_path = user_dir / f"turn_{self.turn_index}_ai.mp3"
         tts_bytes = await stream_tts(
             self._send,
@@ -668,25 +712,8 @@ class ConversationHandler:
         )
         if tts_bytes:
             tts_path.write_bytes(tts_bytes)
-
-        turn = Turn(
-            session_id=self.session_id,
-            index_in_session=self.turn_index,
-            user_text=user_text,
-            assistant_text=assistant_text,
-            user_audio_path=str(audio_path),
-            assistant_audio_path=str(tts_path) if tts_bytes else None,
-        )
-        db.add(turn)
-        await db.commit()
-        await db.refresh(turn)
-        await self._send(
-            {
-                "type": "turn_saved",
-                "turnId": turn.id,
-                "indexInSession": turn.index_in_session,
-            }
-        )
+            assistant_msg.audio_path = str(tts_path)
+            await db.commit()
         self.turn_index += 1
         return True
 
@@ -737,6 +764,35 @@ class ConversationHandler:
 
         self.history.append({"role": "assistant", "content": assistant_text})
 
+        user_msg = SessionMessage(
+            session_id=self.session_id,
+            index_in_session=self.turn_index * 2,
+            role="user",
+            kind="chat",
+            text=user_text,
+            audio_path=None,
+        )
+        db.add(user_msg)
+        await db.commit()
+        assistant_msg = SessionMessage(
+            session_id=self.session_id,
+            index_in_session=self.turn_index * 2 + 1,
+            role="assistant",
+            kind="chat",
+            text=assistant_text,
+            audio_path=None,
+        )
+        db.add(assistant_msg)
+        await db.commit()
+        await db.refresh(assistant_msg)
+        await self._send(
+            {
+                "type": "turn_saved",
+                "turnId": assistant_msg.id,
+                "indexInSession": self.turn_index,
+            }
+        )
+
         user_dir = AUDIO_DIR / str(self._user_id) / str(self.session_id)
         user_dir.mkdir(parents=True, exist_ok=True)
         tts_path = user_dir / f"turn_{self.turn_index}_ai.mp3"
@@ -749,25 +805,8 @@ class ConversationHandler:
         )
         if tts_bytes:
             tts_path.write_bytes(tts_bytes)
-
-        turn = Turn(
-            session_id=self.session_id,
-            index_in_session=self.turn_index,
-            user_text=user_text,
-            assistant_text=assistant_text,
-            user_audio_path=None,
-            assistant_audio_path=str(tts_path) if tts_bytes else None,
-        )
-        db.add(turn)
-        await db.commit()
-        await db.refresh(turn)
-        await self._send(
-            {
-                "type": "turn_saved",
-                "turnId": turn.id,
-                "indexInSession": turn.index_in_session,
-            }
-        )
+            assistant_msg.audio_path = str(tts_path)
+            await db.commit()
         self.turn_index += 1
         return True
 
@@ -826,16 +865,10 @@ class ConversationHandler:
         sid = self.session_id
         old_ti = self.turn_index
         user_dir = AUDIO_DIR / str(self._user_id) / str(sid)
-
-        subq = select(Turn.id).where(
-            Turn.session_id == sid,
-            Turn.index_in_session >= turn_index,
-        )
-        await db.execute(delete(TurnScore).where(TurnScore.turn_id.in_(subq)))
         await db.execute(
-            delete(Turn).where(
-                Turn.session_id == sid,
-                Turn.index_in_session >= turn_index,
+            delete(SessionMessage).where(
+                SessionMessage.session_id == sid,
+                SessionMessage.index_in_session >= turn_index * 2,
             )
         )
         await db.commit()
@@ -851,14 +884,21 @@ class ConversationHandler:
 
         self.turn_index = turn_index
 
-        r = await db.execute(
-            select(Turn).where(Turn.session_id == sid).order_by(Turn.index_in_session)
+        r_msg = await db.execute(
+            select(SessionMessage)
+            .where(
+                SessionMessage.session_id == sid,
+                SessionMessage.kind != "score_feedback",
+            )
+            .order_by(SessionMessage.index_in_session, SessionMessage.id)
         )
-        turns = list(r.scalars().all())
-        self._rebuild_lm_history(turns)
-
+        messages = list(r_msg.scalars().all())
+        self._rebuild_lm_history_from_messages(messages)
         await self._send(
-            {"type": "history", "messages": self._client_history_messages(turns)}
+            {
+                "type": "history",
+                "messages": self._client_history_messages_from_messages(messages),
+            }
         )
 
         status_payload: dict[str, Any] = {

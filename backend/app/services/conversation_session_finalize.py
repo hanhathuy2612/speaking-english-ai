@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 import app.services.topic_roadmap_service as roadmap_svc
-from app.models.conversation import ConversationSession, Turn, TurnScore
+from app.models.conversation import ConversationSession, SessionMessage
 from app.services.scoring_service import ScoringService
 
 
@@ -60,7 +60,7 @@ async def finalize_session_scoring(
     scorer: ScoringService,
 ) -> dict[str, Any] | None:
     """
-    Verify session owner, score turns missing TurnScore, set ended_at, run roadmap auto-complete.
+    Verify session owner, score unscored message pairs, set ended_at, run roadmap auto-complete.
 
     Returns a dict suitable for WebSocket session_scores + metadata, or None if session not found.
     Keys: turns, averages, session_feedback, roadmap_unit_completed, topic_unit_id
@@ -82,61 +82,57 @@ async def finalize_session_scoring(
 
     score_topic = await _score_topic_string(db, session)
 
-    r_turns = await db.execute(
-        select(Turn)
-        .where(Turn.session_id == session_id)
-        .order_by(Turn.index_in_session)
-        .options(selectinload(Turn.score))
-    )
-    turns = list(r_turns.scalars().all())
-
-    for t in turns:
-        if t.score is not None:
-            continue
-        sc = await scorer.score(t.user_text, score_topic, 0.0)
-        db.add(
-            TurnScore(
-                turn_id=t.id,
-                fluency=sc.get("fluency", 5),
-                vocabulary=sc.get("vocabulary", 5),
-                grammar=sc.get("grammar", 5),
-                overall=sc.get("overall", 5),
-                feedback=sc.get("feedback"),
-            )
+    r_messages = await db.execute(
+        select(SessionMessage)
+        .where(
+            SessionMessage.session_id == session_id,
+            SessionMessage.kind == "chat",
         )
-    await db.commit()
-
-    r2 = await db.execute(
-        select(Turn)
-        .where(Turn.session_id == session_id)
-        .order_by(Turn.index_in_session)
-        .options(selectinload(Turn.score))
+        .order_by(SessionMessage.index_in_session, SessionMessage.id)
     )
-    all_with_scores = [t for t in r2.scalars().all() if t.score is not None]
+    chat_messages = list(r_messages.scalars().all())
 
     turns_out: list[dict[str, Any]] = []
     flu: list[float] = []
     voc: list[float] = []
     gram: list[float] = []
     ovl: list[float] = []
-    for t in all_with_scores:
-        ts = t.score
-        if ts is None:
+    turn_pairs: list[tuple[str, str]] = []
+
+    pending_user: SessionMessage | None = None
+    for m in chat_messages:
+        if m.role == "user":
+            pending_user = m
             continue
-        turns_out.append(
-            {
-                "turnId": t.id,
-                "fluency": ts.fluency,
-                "vocabulary": ts.vocabulary,
-                "grammar": ts.grammar,
-                "overall": ts.overall,
-                "feedback": ts.feedback or "",
-            }
-        )
-        flu.append(ts.fluency)
-        voc.append(ts.vocabulary)
-        gram.append(ts.grammar)
-        ovl.append(ts.overall)
+        if m.role != "assistant":
+            continue
+        if pending_user is None:
+            continue
+        if m.score_overall is None:
+            sc = await scorer.score(pending_user.text, score_topic, 0.0)
+            m.score_fluency = float(sc.get("fluency", 5))
+            m.score_vocabulary = float(sc.get("vocabulary", 5))
+            m.score_grammar = float(sc.get("grammar", 5))
+            m.score_overall = float(sc.get("overall", 5))
+            m.score_feedback = sc.get("feedback")
+        if m.score_overall is not None:
+            turns_out.append(
+                {
+                    "turnId": m.id,
+                    "fluency": m.score_fluency or 0.0,
+                    "vocabulary": m.score_vocabulary or 0.0,
+                    "grammar": m.score_grammar or 0.0,
+                    "overall": m.score_overall or 0.0,
+                    "feedback": m.score_feedback or "",
+                }
+            )
+            flu.append(float(m.score_fluency or 0.0))
+            voc.append(float(m.score_vocabulary or 0.0))
+            gram.append(float(m.score_grammar or 0.0))
+            ovl.append(float(m.score_overall or 0.0))
+            turn_pairs.append((pending_user.text, m.text))
+        pending_user = None
+    await db.commit()
 
     averages: dict[str, float] | None = None
     if turns_out:
@@ -148,7 +144,6 @@ async def finalize_session_scoring(
             "overall": sum(ovl) / n,
         }
 
-    turn_pairs = [(t.user_text, t.assistant_text) for t in all_with_scores]
     session_feedback = ""
     if averages is not None and turn_pairs:
         session_feedback = await scorer.session_feedback_message(
@@ -160,6 +155,29 @@ async def finalize_session_scoring(
             "nên chưa có điểm hay nhận xét chi tiết. "
             "Nếu bạn đã thấy chữ nhận dạng giọng nói nhưng AI báo lỗi, hãy thử nói lại hoặc kiểm tra kết nối tới máy chủ AI."
         )
+
+    if session_feedback.strip():
+        recap_q = await db.execute(
+            select(SessionMessage)
+            .where(
+                SessionMessage.session_id == session_id,
+                SessionMessage.kind == "score_feedback",
+            )
+            .order_by(SessionMessage.id.desc())
+        )
+        recap = recap_q.scalars().first()
+        if recap is None:
+            max_idx = max((m.index_in_session for m in chat_messages), default=-1)
+            recap = SessionMessage(
+                session_id=session_id,
+                index_in_session=max_idx + 1,
+                role="assistant",
+                kind="score_feedback",
+                text=session_feedback,
+            )
+            db.add(recap)
+        else:
+            recap.text = session_feedback
 
     session.ended_at = datetime.now(timezone.utc)
     await db.commit()

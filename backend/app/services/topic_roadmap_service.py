@@ -10,9 +10,8 @@ from sqlalchemy.orm import selectinload
 
 from app.models.conversation import (
     ConversationSession,
+    SessionMessage,
     TopicUnit,
-    Turn,
-    TurnScore,
     UserTopicUnitProgress,
 )
 
@@ -34,9 +33,13 @@ def unit_auto_complete_thresholds_met(
 async def count_scored_turns_in_session(db: AsyncSession, session_id: int) -> int:
     r = await db.execute(
         select(func.count())
-        .select_from(Turn)
-        .join(TurnScore, TurnScore.turn_id == Turn.id)
-        .where(Turn.session_id == session_id)
+        .select_from(SessionMessage)
+        .where(
+            SessionMessage.session_id == session_id,
+            SessionMessage.kind == "chat",
+            SessionMessage.role == "assistant",
+            SessionMessage.score_overall.is_not(None),
+        )
     )
     return int(r.scalar() or 0)
 
@@ -44,7 +47,13 @@ async def count_scored_turns_in_session(db: AsyncSession, session_id: int) -> in
 async def count_turns_in_session(db: AsyncSession, session_id: int) -> int:
     """Practice turns (user+assistant rows) in the session, scored or not."""
     r = await db.execute(
-        select(func.count()).select_from(Turn).where(Turn.session_id == session_id)
+        select(func.count())
+        .select_from(SessionMessage)
+        .where(
+            SessionMessage.session_id == session_id,
+            SessionMessage.kind == "chat",
+            SessionMessage.role == "user",
+        )
     )
     return int(r.scalar() or 0)
 
@@ -55,15 +64,18 @@ async def scored_turn_averages_for_session(
     """Count of scored turns and avg overall / fluency / vocabulary / grammar."""
     r = await db.execute(
         select(
-            func.count(TurnScore.turn_id),
-            func.avg(TurnScore.overall),
-            func.avg(TurnScore.fluency),
-            func.avg(TurnScore.vocabulary),
-            func.avg(TurnScore.grammar),
+            func.count(SessionMessage.id),
+            func.avg(SessionMessage.score_overall),
+            func.avg(SessionMessage.score_fluency),
+            func.avg(SessionMessage.score_vocabulary),
+            func.avg(SessionMessage.score_grammar),
         )
-        .select_from(Turn)
-        .join(TurnScore, TurnScore.turn_id == Turn.id)
-        .where(Turn.session_id == session_id)
+        .where(
+            SessionMessage.session_id == session_id,
+            SessionMessage.kind == "chat",
+            SessionMessage.role == "assistant",
+            SessionMessage.score_overall.is_not(None),
+        )
     )
     row = r.one()
     cnt = int(row[0] or 0)

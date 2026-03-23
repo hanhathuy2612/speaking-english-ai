@@ -6,6 +6,7 @@ export function mapSessionDetailTurnsToMessages(
   turns: SessionDetailTurn[],
   openingMessage?: string | null,
   openingHasAudio?: boolean,
+  sessionFeedback?: string | null,
 ): ChatMessage[] {
   const out: ChatMessage[] = [];
   const open = typeof openingMessage === 'string' ? openingMessage.trim() : '';
@@ -30,6 +31,14 @@ export function mapSessionDetailTurnsToMessages(
       turnId: t.turn_id,
       ...(t.has_assistant_audio ? { hasAiAudio: true } : {}),
       ...(t.guideline ? { guideline: t.guideline } : {}),
+    });
+  }
+  const recap = typeof sessionFeedback === 'string' ? sessionFeedback.trim() : '';
+  if (recap) {
+    out.push({
+      role: 'ai',
+      text: recap,
+      sessionRecap: true,
     });
   }
   return out;

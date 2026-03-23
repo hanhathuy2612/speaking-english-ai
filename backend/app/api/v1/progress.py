@@ -7,7 +7,11 @@ from sqlalchemy.orm import selectinload
 
 from app.core.deps import get_current_user
 from app.db.session import get_db
-from app.models.conversation import ConversationSession, Turn, TurnScore, Topic
+from app.models.conversation import (
+    ConversationSession,
+    SessionMessage,
+    Topic,
+)
 from app.models.user import User
 from app.schemas.progress import (
     DailyMinutes,
@@ -33,26 +37,34 @@ async def get_summary(
     )
     total_sessions = sess_q.scalar() or 0
 
-    # Total turns
+    # Total turns (message-based first, legacy fallback)
     turn_q = await db.execute(
         select(func.count())
-        .select_from(Turn)
-        .join(ConversationSession, Turn.session_id == ConversationSession.id)
-        .where(ConversationSession.user_id == user.id)
+        .select_from(SessionMessage)
+        .join(ConversationSession, SessionMessage.session_id == ConversationSession.id)
+        .where(
+            ConversationSession.user_id == user.id,
+            SessionMessage.kind == "chat",
+            SessionMessage.role == "user",
+        )
     )
-    total_turns = turn_q.scalar() or 0
+    total_turns = int(turn_q.scalar() or 0)
 
     # Avg scores
     score_q = await db.execute(
         select(
-            func.avg(TurnScore.fluency),
-            func.avg(TurnScore.vocabulary),
-            func.avg(TurnScore.grammar),
-            func.avg(TurnScore.overall),
+            func.avg(SessionMessage.score_fluency),
+            func.avg(SessionMessage.score_vocabulary),
+            func.avg(SessionMessage.score_grammar),
+            func.avg(SessionMessage.score_overall),
         )
-        .join(Turn, TurnScore.turn_id == Turn.id)
-        .join(ConversationSession, Turn.session_id == ConversationSession.id)
-        .where(ConversationSession.user_id == user.id)
+        .join(ConversationSession, SessionMessage.session_id == ConversationSession.id)
+        .where(
+            ConversationSession.user_id == user.id,
+            SessionMessage.kind == "chat",
+            SessionMessage.role == "assistant",
+            SessionMessage.score_overall.is_not(None),
+        )
     )
     row = score_q.one_or_none()
     avg_scores: ScoreAvg | None = None
@@ -129,13 +141,22 @@ async def list_sessions(
     recent_out = []
     for s in recent_sessions_db:
         turns_q = await db.execute(
-            select(func.count()).select_from(Turn).where(Turn.session_id == s.id)
+            select(func.count())
+            .select_from(SessionMessage)
+            .where(
+                SessionMessage.session_id == s.id,
+                SessionMessage.kind == "chat",
+                SessionMessage.role == "user",
+            )
         )
-        tc = turns_q.scalar() or 0
+        tc = int(turns_q.scalar() or 0)
         avg_q = await db.execute(
-            select(func.avg(TurnScore.overall))
-            .join(Turn, TurnScore.turn_id == Turn.id)
-            .where(Turn.session_id == s.id)
+            select(func.avg(SessionMessage.score_overall)).where(
+                SessionMessage.session_id == s.id,
+                SessionMessage.kind == "chat",
+                SessionMessage.role == "assistant",
+                SessionMessage.score_overall.is_not(None),
+            )
         )
         avg_val = avg_q.scalar()
         recent_out.append(

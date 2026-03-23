@@ -97,41 +97,29 @@ class ConversationSession(Base):
     topic_unit: Mapped["TopicUnit | None"] = relationship(
         back_populates="sessions",
     )
-    turns: Mapped[list["Turn"]] = relationship(
+    messages: Mapped[list["SessionMessage"]] = relationship(
         back_populates="session", cascade="all, delete-orphan"
     )
 
 
-class Turn(Base):
-    __tablename__ = "turns"
+class SessionMessage(Base):
+    __tablename__ = "session_messages"
 
     id: Mapped[int_pk]
-    session_id: Mapped[int] = mapped_column(ForeignKey("sessions.id"))
+    session_id: Mapped[int] = mapped_column(
+        ForeignKey("sessions.id", ondelete="CASCADE")
+    )
     index_in_session: Mapped[int]
-    user_text: Mapped[str] = mapped_column(Text())
-    assistant_text: Mapped[str] = mapped_column(Text())
-    guideline: Mapped[str | None] = mapped_column(Text(), nullable=True)  # hints when user clicks AI question
-    user_audio_path: Mapped[str | None] = mapped_column(String(512), nullable=True)
-    assistant_audio_path: Mapped[str | None] = mapped_column(String(512), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=_utc_now
-    )
+    role: Mapped[str] = mapped_column(String(20))
+    kind: Mapped[str] = mapped_column(String(40), default="chat")
+    text: Mapped[str] = mapped_column(Text())
+    audio_path: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    guideline: Mapped[str | None] = mapped_column(Text(), nullable=True)
+    score_fluency: Mapped[float | None] = mapped_column(nullable=True)
+    score_vocabulary: Mapped[float | None] = mapped_column(nullable=True)
+    score_grammar: Mapped[float | None] = mapped_column(nullable=True)
+    score_overall: Mapped[float | None] = mapped_column(nullable=True)
+    score_feedback: Mapped[str | None] = mapped_column(Text(), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utc_now)
 
-    session: Mapped["ConversationSession"] = relationship(back_populates="turns")
-    score: Mapped["TurnScore | None"] = relationship(
-        back_populates="turn", uselist=False, cascade="all, delete-orphan"
-    )
-
-
-class TurnScore(Base):
-    __tablename__ = "scores"
-
-    id: Mapped[int_pk]
-    turn_id: Mapped[int] = mapped_column(ForeignKey("turns.id"), unique=True)
-    fluency: Mapped[float]
-    vocabulary: Mapped[float]
-    grammar: Mapped[float]
-    overall: Mapped[float]
-    feedback: Mapped[str | None] = mapped_column(Text(), nullable=True)
-
-    turn: Mapped["Turn"] = relationship(back_populates="score")
+    session: Mapped["ConversationSession"] = relationship(back_populates="messages")

@@ -180,10 +180,13 @@ export class ConversationComponent implements OnInit, OnDestroy {
   feedbackRequestPending = signal(false);
   sessionEndedWithFeedback = signal(false);
   unitCompleteSummary = signal<UnitStepSummary | null>(null);
+  /** Number of user turns sent but not yet acknowledged by turn_saved. */
+  pendingTurnSaves = signal(0);
 
   endConversationFeedbackEnabled = computed(() => {
     if (this.sessionEndedWithFeedback()) return false;
     if (this.feedbackRequestPending()) return false;
+    if (this.pendingTurnSaves() > 0) return false;
     if (!this.connected()) return false;
     const sid = this._activeSessionId();
     if (sid <= 0) return false;
@@ -217,6 +220,7 @@ export class ConversationComponent implements OnInit, OnDestroy {
         this.lastUserRecording = null;
       }
       this.messages.update((m) => [...m, userMsg]);
+      this.pendingTurnSaves.update((n) => n + 1);
       this.pendingAiMsgIndex = -1;
       if (this.unitStepMeta()) {
         this.unitStepMeta.update((meta) =>
@@ -263,6 +267,7 @@ export class ConversationComponent implements OnInit, OnDestroy {
       this.messages.set(mergeTurnScoresAndSessionFeedback(this.messages(), turns, sessionFeedback));
     },
     onTurnSaved: (turnId, indexInSession) => {
+      this.pendingTurnSaves.update((n) => (n > 0 ? n - 1 : 0));
       this.messages.update((list) => {
         const hasOpening = list.length > 0 && list[0].isOpeningLine === true;
         const offset = hasOpening ? 1 : 0;
@@ -320,6 +325,7 @@ export class ConversationComponent implements OnInit, OnDestroy {
       const gen = ++this._sessionBootstrapGen;
       this.messages.set([]);
       this.sessionEndedWithFeedback.set(false);
+      this.pendingTurnSaves.set(0);
       this.startSentForConnection = false;
       this.userPrefsApplied.set(false);
       this.liveSessionId.set(0);
@@ -347,6 +353,7 @@ export class ConversationComponent implements OnInit, OnDestroy {
                   detail.turns,
                   detail.opening_message,
                   detail.has_opening_audio,
+                  detail.session_feedback,
                 ),
               );
               this.sessionEndedWithFeedback.set(true);
@@ -549,6 +556,11 @@ export class ConversationComponent implements OnInit, OnDestroy {
     }
     if (!this.ws.isOpen()) {
       this.errorMessage.set('Not connected.');
+      this.cdr.markForCheck();
+      return;
+    }
+    if (this.pendingTurnSaves() > 0) {
+      this.errorMessage.set('Please wait a moment, your latest turn is still being saved.');
       this.cdr.markForCheck();
       return;
     }

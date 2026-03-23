@@ -5,10 +5,15 @@ import {
   Component,
   effect,
   ElementRef,
+  inject,
   input,
   output,
   viewChild,
 } from '@angular/core';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { marked } from 'marked';
+
+marked.setOptions({ gfm: true, breaks: true });
 
 @Component({
   selector: 'app-conversation-message-list',
@@ -19,6 +24,8 @@ import {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ConversationMessageListComponent {
+  private readonly sanitizer = inject(DomSanitizer);
+
   messages = input.required<ChatMessage[]>();
   connected = input.required<boolean>();
   transcribing = input.required<boolean>();
@@ -60,5 +67,12 @@ export class ConversationMessageListComponent {
     } catch {
       /* ignore */
     }
+  }
+
+  renderMarkdown(text: string | null | undefined): SafeHtml {
+    const raw = (text ?? '').trim();
+    if (!raw) return this.sanitizer.bypassSecurityTrustHtml('');
+    const html = marked(raw, { async: false }) as string;
+    return this.sanitizer.bypassSecurityTrustHtml(html);
   }
 }

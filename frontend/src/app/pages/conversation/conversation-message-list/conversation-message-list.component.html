@@ -31,7 +31,11 @@
         [title]="m.role === 'ai' && !m.partial && !m.sessionRecap ? 'Click for tips' : null"
       >
         @if (!m.partial) {
-          <span>{{ m.text }}</span>
+          @if (m.role === 'ai') {
+            <div class="bubble__markdown" [innerHTML]="renderMarkdown(m.text)"></div>
+          } @else {
+            <span>{{ m.text }}</span>
+          }
         } @else {
           <span>{{ m.text }}</span>
           <span class="typing" aria-hidden="true">

@@ -109,6 +109,7 @@ export interface SessionDetailOut {
   opening_message?: string | null;
   has_opening_audio?: boolean;
   turns: SessionDetailTurn[];
+  session_feedback?: string | null;
 }
 
 export interface SessionCreatePayload {

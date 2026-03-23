@@ -1,3 +1,4 @@
+import asyncio
 from pathlib import Path
 from typing import Any, Literal
 
@@ -9,7 +10,7 @@ from sqlalchemy.orm import selectinload
 
 from app.core.deps import get_current_user
 from app.db.session import get_db
-from app.models.conversation import ConversationSession, Topic, TopicUnit, Turn
+from app.models.conversation import ConversationSession, SessionMessage, Topic, TopicUnit
 from app.models.user import User
 from app.services.conversation_session_finalize import finalize_session_scoring
 from app.services.lm_client import LMStudioClient
@@ -130,16 +131,16 @@ async def patch_turn_guideline(
     user: User = Depends(get_current_user),
 ) -> dict[str, bool]:
     """Save guide-panel content for a turn (e.g. after turn id is known on the client)."""
-    turn_q = await db.execute(
-        select(Turn)
-        .join(ConversationSession, Turn.session_id == ConversationSession.id)
-        .where(Turn.id == turn_id, ConversationSession.user_id == user.id)
-    )
-    turn = turn_q.scalar_one_or_none()
-    if not turn:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Turn not found")
     g = body.guideline.strip()
-    turn.guideline = g if g else None
+    msg_q = await db.execute(
+        select(SessionMessage)
+        .join(ConversationSession, SessionMessage.session_id == ConversationSession.id)
+        .where(SessionMessage.id == turn_id, ConversationSession.user_id == user.id)
+    )
+    msg = msg_q.scalar_one_or_none()
+    if not msg:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Turn not found")
+    msg.guideline = g if g else None
     await db.commit()
     return {"ok": True}
 
@@ -152,16 +153,17 @@ async def get_turn_audio(
     user: User = Depends(get_current_user),
 ) -> FileResponse:
     """Serve stored audio for a turn (same user as session owner only)."""
-    turn_q = await db.execute(
-        select(Turn)
-        .join(ConversationSession, Turn.session_id == ConversationSession.id)
-        .where(Turn.id == turn_id, ConversationSession.user_id == user.id)
+    msg_q = await db.execute(
+        select(SessionMessage)
+        .join(ConversationSession, SessionMessage.session_id == ConversationSession.id)
+        .where(SessionMessage.id == turn_id, ConversationSession.user_id == user.id)
     )
-    turn = turn_q.scalar_one_or_none()
-    if not turn:
+    msg = msg_q.scalar_one_or_none()
+    if not msg:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Turn not found")
-    raw = turn.user_audio_path if kind == "user" else turn.assistant_audio_path
-    path = _resolved_audio_file(raw)
+    if (kind == "user" and msg.role != "user") or (kind == "assistant" and msg.role != "assistant"):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Audio not found")
+    path = _resolved_audio_file(msg.audio_path)
     media = "audio/webm" if kind == "user" else "audio/mpeg"
     return FileResponse(path, media_type=media)
 
@@ -178,6 +180,20 @@ async def end_session_and_score(
     Use when the WebSocket is already closed (e.g. client disconnected first).
     """
     out = await finalize_session_scoring(db, session_id, user.id, scorer)
+    # In practice, /end can race with the final WS turn commit on slower environments.
+    # Retry briefly before returning "no turns saved" feedback.
+    if (
+        out is not None
+        and not out.get("turns")
+        and not out.get("averages")
+    ):
+        for delay_s in (0.35, 0.65):
+            await asyncio.sleep(delay_s)
+            out = await finalize_session_scoring(db, session_id, user.id, scorer)
+            if out is None:
+                break
+            if out.get("turns") or out.get("averages"):
+                break
     if out is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
     return out
@@ -201,7 +217,15 @@ async def list_sessions(
     sessions = result.scalars().all()
     out = []
     for s in sessions:
-        count_result = await db.execute(select(func.count()).select_from(Turn).where(Turn.session_id == s.id))
+        count_result = await db.execute(
+            select(func.count())
+            .select_from(SessionMessage)
+            .where(
+                SessionMessage.session_id == s.id,
+                SessionMessage.kind == "chat",
+                SessionMessage.role == "user",
+            )
+        )
         turn_count = count_result.scalar() or 0
         out.append(
             SessionOut(
@@ -283,7 +307,6 @@ async def get_session(
         select(ConversationSession)
         .options(
             selectinload(ConversationSession.topic),
-            selectinload(ConversationSession.turns).selectinload(Turn.score),
         )
         .where(ConversationSession.id == session_id, ConversationSession.user_id == user.id)
     )
@@ -291,26 +314,55 @@ async def get_session(
     if not session:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
 
+    msg_q = await db.execute(
+        select(SessionMessage)
+        .where(
+            SessionMessage.session_id == session.id,
+            SessionMessage.kind == "chat",
+        )
+        .order_by(SessionMessage.index_in_session, SessionMessage.id)
+    )
+    messages = list(msg_q.scalars().all())
     turns_out = []
-    for t in sorted(session.turns, key=lambda x: x.index_in_session):
-        score = t.score
+    pending_user: SessionMessage | None = None
+    t_idx = 0
+    for m in messages:
+        if m.role == "user":
+            pending_user = m
+            continue
+        if m.role != "assistant" or pending_user is None:
+            continue
         turns_out.append(
             TurnOut(
-                turn_id=t.id,
-                index_in_session=t.index_in_session,
-                user_text=t.user_text,
-                assistant_text=t.assistant_text,
-                has_user_audio=bool(t.user_audio_path and str(t.user_audio_path).strip()),
-                has_assistant_audio=bool(t.assistant_audio_path and str(t.assistant_audio_path).strip()),
-                guideline=t.guideline,
-                fluency=score.fluency if score else None,
-                vocabulary=score.vocabulary if score else None,
-                grammar=score.grammar if score else None,
-                overall=score.overall if score else None,
-                feedback=score.feedback if score else None,
-                created_at=t.created_at,
+                turn_id=m.id,
+                index_in_session=t_idx,
+                user_text=pending_user.text,
+                assistant_text=m.text,
+                has_user_audio=bool(
+                    pending_user.audio_path and str(pending_user.audio_path).strip()
+                ),
+                has_assistant_audio=bool(m.audio_path and str(m.audio_path).strip()),
+                guideline=m.guideline,
+                fluency=m.score_fluency,
+                vocabulary=m.score_vocabulary,
+                grammar=m.score_grammar,
+                overall=m.score_overall,
+                feedback=m.score_feedback,
+                created_at=m.created_at,
             )
         )
+        t_idx += 1
+        pending_user = None
+
+    recap_q = await db.execute(
+        select(SessionMessage)
+        .where(
+            SessionMessage.session_id == session.id,
+            SessionMessage.kind == "score_feedback",
+        )
+        .order_by(SessionMessage.id.desc())
+    )
+    recap = recap_q.scalars().first()
 
     return SessionDetailOut(
         id=session.id,
@@ -323,4 +375,5 @@ async def get_session(
             session.opening_audio_path and str(session.opening_audio_path).strip()
         ),
         turns=turns_out,
+        session_feedback=recap.text if recap is not None else None,
     )
