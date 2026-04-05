@@ -18,12 +18,10 @@ from sqlalchemy.orm import selectinload
 
 from app.core.config import get_settings
 from app.core.ielts_levels import resolve_ielts_band
-from app.models.conversation import (
-    ConversationSession,
-    SessionMessage,
-    Topic,
-    TopicUnit,
-)
+from app.models.session import Session
+from app.models.session_message import SessionMessage
+from app.models.topic import Topic
+from app.models.topic_unit import TopicUnit
 import app.services.topic_roadmap_service as roadmap_svc
 from app.services.conversation_session_finalize import finalize_session_scoring
 from app.services.lm_client import LMStudioClient, transcript_normalization_plausible
@@ -329,14 +327,14 @@ class ConversationHandler:
         if resume_id > 0:
             # Resume existing session: must belong to user and match topic
             sess_q = await db.execute(
-                select(ConversationSession)
+                select(Session)
                 .where(
-                    ConversationSession.id == resume_id,
-                    ConversationSession.user_id == self._user_id,
+                    Session.id == resume_id,
+                    Session.user_id == self._user_id,
                 )
                 .options(
-                    selectinload(ConversationSession.topic),
-                    selectinload(ConversationSession.topic_unit),
+                    selectinload(Session.topic),
+                    selectinload(Session.topic_unit),
                 )
             )
             sess = sess_q.scalar_one_or_none()
@@ -424,7 +422,7 @@ class ConversationHandler:
             await roadmap_svc.ensure_unit_started(db, self._user_id, uid)
             topic_unit_id = uid
 
-        sess = ConversationSession(
+        sess = Session(
             user_id=self._user_id,
             topic_id=topic_id,
             topic_unit_id=topic_unit_id,
@@ -473,7 +471,7 @@ class ConversationHandler:
         """True when the session has no stored opening and no chat messages."""
         if not self.session_id:
             return False
-        sess = await db.get(ConversationSession, self.session_id)
+        sess = await db.get(Session, self.session_id)
         if sess is None:
             return False
         om = sess.opening_message
@@ -495,7 +493,7 @@ class ConversationHandler:
             return
         if not self.session_id:
             return
-        sess_row = await db.get(ConversationSession, self.session_id)
+        sess_row = await db.get(Session, self.session_id)
         if sess_row is not None:
             existing = sess_row.opening_message
             if isinstance(existing, str) and existing.strip():
@@ -566,8 +564,8 @@ class ConversationHandler:
                 opening_audio_path = str(opath)
             self._opening_audio_path = opening_audio_path
             await db.execute(
-                update(ConversationSession)
-                .where(ConversationSession.id == self.session_id)
+                update(Session)
+                .where(Session.id == self.session_id)
                 .values(
                     opening_message=opening_text,
                     opening_audio_path=opening_audio_path,
@@ -919,7 +917,7 @@ class ConversationHandler:
             await self._score_pending_turns_and_send_summary(db)
         elif sid:
             sess_q = await db.execute(
-                select(ConversationSession).where(ConversationSession.id == sid)
+                select(Session).where(Session.id == sid)
             )
             sess = sess_q.scalar_one_or_none()
             if sess is not None:

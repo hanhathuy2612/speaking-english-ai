@@ -3,7 +3,6 @@ import {
   Component,
   computed,
   inject,
-  Injector,
   OnInit,
   signal,
   TemplateRef,
@@ -15,7 +14,6 @@ import { NgbModal, NgbModalModule } from '@ng-bootstrap/ng-bootstrap';
 import { NgSelectComponent } from '@ng-select/ng-select';
 import { finalize } from 'rxjs';
 import { LEVEL_OPTIONS } from '../../conversation/conversation.constants';
-import { AccountService } from '../../../shared/services/account.service';
 import {
   ApiService,
   RoadmapOut,
@@ -27,11 +25,6 @@ import {
   normalizeIeltsLevelInput,
   resolveIeltsBand,
 } from '../../../shared/ielts-levels';
-import {
-  TOPIC_UNIT_FORM_MODAL_DATA,
-  TopicUnitFormModalComponent,
-} from '../topic-unit-form-modal/topic-unit-form-modal.component';
-
 @Component({
   selector: 'app-topic-roadmap',
   standalone: true,
@@ -46,8 +39,6 @@ export class TopicRoadmapComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly api = inject(ApiService);
   private readonly modal = inject(NgbModal);
-  private readonly injector = inject(Injector);
-  readonly account = inject(AccountService);
 
   readonly levelOptions = LEVEL_OPTIONS;
 
@@ -123,37 +114,6 @@ export class TopicRoadmapComponent implements OnInit {
       next: () => this.loadRoadmap(tid),
       error: () => this.actionUnitId.set(null),
       complete: () => this.actionUnitId.set(null),
-    });
-  }
-
-  suggestedNextSortOrder(): number {
-    const u = this.roadmap()?.units ?? [];
-    if (!u.length) return 1;
-    return Math.max(...u.map((x) => x.unit.sort_order), 0) + 1;
-  }
-
-  openCreateUnitModal(): void {
-    const topicId = this.topicId();
-    const inj = Injector.create({
-      providers: [
-        {
-          provide: TOPIC_UNIT_FORM_MODAL_DATA,
-          useValue: {
-            topicId,
-            suggestedSortOrder: this.suggestedNextSortOrder(),
-          },
-        },
-      ],
-      parent: this.injector,
-    });
-    const ref = this.modal.open(TopicUnitFormModalComponent, {
-      size: 'lg',
-      backdrop: 'static',
-      keyboard: false,
-      injector: inj,
-    });
-    ref.closed.subscribe((created: unknown) => {
-      if (created != null) this.loadRoadmap(topicId);
     });
   }
 

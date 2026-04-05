@@ -51,6 +51,7 @@ class Settings(BaseSettings):
     jwt_secret_key: str = "CHANGE_ME_SECRET_KEY"
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 60
+    refresh_token_expire_days: int = 14
 
     # Database — change in backend/.env (DATABASE_URL variable). Watch .env.example.
     # Format: postgresql+asyncpg://USER:PASSWORD@HOST:PORT/DATABASE

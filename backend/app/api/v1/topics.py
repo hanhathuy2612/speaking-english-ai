@@ -5,12 +5,10 @@ from sqlalchemy.orm import selectinload
 
 from app.core.deps import get_current_user
 from app.db.session import get_db
-from app.models.conversation import (
-    ConversationSession,
-    SessionMessage,
-    Topic,
-    TopicUnit,
-)
+from app.models.session import Session
+from app.models.session_message import SessionMessage
+from app.models.topic import Topic
+from app.models.topic_unit import TopicUnit
 from app.models.user import User
 from app.schemas.progress import RecentSession, SessionsPage
 from app.schemas.roadmap import (
@@ -79,22 +77,22 @@ async def list_topic_sessions(
 
     total_q = await db.execute(
         select(func.count())
-        .select_from(ConversationSession)
+        .select_from(Session)
         .where(
-            ConversationSession.user_id == user.id,
-            ConversationSession.topic_id == topic_id,
+            Session.user_id == user.id,
+            Session.topic_id == topic_id,
         )
     )
     total = total_q.scalar() or 0
 
     recent_q = await db.execute(
-        select(ConversationSession)
-        .options(selectinload(ConversationSession.topic))
+        select(Session)
+        .options(selectinload(Session.topic))
         .where(
-            ConversationSession.user_id == user.id,
-            ConversationSession.topic_id == topic_id,
+            Session.user_id == user.id,
+            Session.topic_id == topic_id,
         )
-        .order_by(ConversationSession.started_at.desc())
+        .order_by(Session.started_at.desc())
         .offset(offset)
         .limit(limit)
     )

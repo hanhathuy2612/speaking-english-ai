@@ -4,19 +4,17 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   NavigationEnd,
   Router,
-  RouterLink,
-  RouterLinkActive,
-  RouterModule,
   RouterOutlet,
 } from '@angular/router';
 import { filter } from 'rxjs';
+import { NavbarComponent } from './shared/components/navbar/navbar.component';
 import { AccountService } from './shared/services/account.service';
 import { AuthService } from './shared/services/auth.service';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, RouterModule, RouterLinkActive, RouterLink, RouterOutlet],
+  imports: [CommonModule, NavbarComponent, RouterOutlet],
   templateUrl: './app.html',
   styleUrls: ['./app.scss'],
 })
@@ -26,8 +24,8 @@ export class App implements OnInit {
   private readonly router = inject(Router);
   private readonly document = inject(DOCUMENT);
 
-  /** Mobile hamburger drawer */
-  readonly mobileMenuOpen = signal(false);
+  /** Left sidebar open/close state. */
+  readonly mobileMenuOpen = signal(true);
 
   constructor() {
     this.router.events
@@ -36,20 +34,15 @@ export class App implements OnInit {
         takeUntilDestroyed(),
       )
       .subscribe(() => {
-        this.mobileMenuOpen.set(false);
+        if (this.isMobileViewport()) {
+          this.mobileMenuOpen.set(false);
+        }
         this.syncConversationScrollLock();
       });
   }
 
-  toggleMobileMenu(): void {
-    this.mobileMenuOpen.update((open) => !open);
-  }
-
-  closeMobileMenu(): void {
-    this.mobileMenuOpen.set(false);
-  }
-
   ngOnInit(): void {
+    this.mobileMenuOpen.set(!this.isMobileViewport());
     this.syncConversationScrollLock();
     if (this.auth.isLoggedIn()) {
       this.account.refreshFromServer().subscribe({ error: () => {} });
@@ -69,5 +62,9 @@ export class App implements OnInit {
 
   hiddenNavbar(): boolean {
     return this.router.url.includes('/conversation');
+  }
+
+  private isMobileViewport(): boolean {
+    return this.document.defaultView?.matchMedia('(max-width: 767.98px)').matches ?? false;
   }
 }

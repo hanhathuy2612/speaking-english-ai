@@ -1,0 +1,19 @@
+.breadcrumb {
+  padding: 24px 0 0;
+  font-size: 0.875rem;
+  color: var(--clr-text-muted);
+
+  a {
+    color: var(--clr-accent);
+    text-decoration: none;
+  }
+
+  .sep {
+    margin: 0 8px;
+    opacity: 0.5;
+  }
+
+  .current {
+    color: var(--clr-text);
+  }
+}

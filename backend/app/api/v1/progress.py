@@ -7,11 +7,9 @@ from sqlalchemy.orm import selectinload
 
 from app.core.deps import get_current_user
 from app.db.session import get_db
-from app.models.conversation import (
-    ConversationSession,
-    SessionMessage,
-    Topic,
-)
+from app.models.session import Session
+from app.models.session_message import SessionMessage
+from app.models.topic import Topic
 from app.models.user import User
 from app.schemas.progress import (
     DailyMinutes,
@@ -32,8 +30,8 @@ async def get_summary(
     # Total sessions
     sess_q = await db.execute(
         select(func.count())
-        .select_from(ConversationSession)
-        .where(ConversationSession.user_id == user.id)
+        .select_from(Session)
+        .where(Session.user_id == user.id)
     )
     total_sessions = sess_q.scalar() or 0
 
@@ -41,9 +39,9 @@ async def get_summary(
     turn_q = await db.execute(
         select(func.count())
         .select_from(SessionMessage)
-        .join(ConversationSession, SessionMessage.session_id == ConversationSession.id)
+        .join(Session, SessionMessage.session_id == Session.id)
         .where(
-            ConversationSession.user_id == user.id,
+            Session.user_id == user.id,
             SessionMessage.kind == "chat",
             SessionMessage.role == "user",
         )
@@ -58,9 +56,9 @@ async def get_summary(
             func.avg(SessionMessage.score_grammar),
             func.avg(SessionMessage.score_overall),
         )
-        .join(ConversationSession, SessionMessage.session_id == ConversationSession.id)
+        .join(Session, SessionMessage.session_id == Session.id)
         .where(
-            ConversationSession.user_id == user.id,
+            Session.user_id == user.id,
             SessionMessage.kind == "chat",
             SessionMessage.role == "assistant",
             SessionMessage.score_overall.is_not(None),
@@ -79,12 +77,12 @@ async def get_summary(
     # Daily minutes (last 30 days)
     since = datetime.now(timezone.utc) - timedelta(days=30)
     sessions_q = await db.execute(
-        select(ConversationSession)
+        select(Session)
         .where(
-            ConversationSession.user_id == user.id,
-            ConversationSession.started_at >= since,
+            Session.user_id == user.id,
+            Session.started_at >= since,
         )
-        .order_by(ConversationSession.started_at)
+        .order_by(Session.started_at)
     )
     sessions = sessions_q.scalars().all()
 
@@ -123,16 +121,16 @@ async def list_sessions(
 
     total_q = await db.execute(
         select(func.count())
-        .select_from(ConversationSession)
-        .where(ConversationSession.user_id == user.id)
+        .select_from(Session)
+        .where(Session.user_id == user.id)
     )
     total = total_q.scalar() or 0
 
     recent_q = await db.execute(
-        select(ConversationSession)
-        .options(selectinload(ConversationSession.topic))
-        .where(ConversationSession.user_id == user.id)
-        .order_by(ConversationSession.started_at.desc())
+        select(Session)
+        .options(selectinload(Session.topic))
+        .where(Session.user_id == user.id)
+        .order_by(Session.started_at.desc())
         .offset(offset)
         .limit(limit)
     )
@@ -180,7 +178,7 @@ async def delete_session(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> None:
-    session = await db.get(ConversationSession, session_id)
+    session = await db.get(Session, session_id)
     if not session or session.user_id != user.id:
         raise HTTPException(status_code=404, detail="Session not found")
     await db.delete(session)

@@ -1,6 +1,6 @@
 """
 HTTP endpoint: get answer suggestions for a given question (for the right-side guide panel).
-Optionally save the guideline to a turn when turn_id is provided.
+Optionally save the guideline to a message when message_id is provided.
 """
 
 import logging
@@ -15,7 +15,8 @@ from app.core.config import get_settings
 from app.core.ielts_levels import format_ielts_band, resolve_ielts_band
 from app.core.deps import get_current_user
 from app.db.session import get_db
-from app.models.conversation import ConversationSession, SessionMessage
+from app.models.session import Session
+from app.models.session_message import SessionMessage
 from app.models.user import User
 from app.services.lm_client import LMStudioClient
 
@@ -26,8 +27,11 @@ router = APIRouter()
 
 class GuidanceRequest(BaseModel):
     question: str = Field(..., min_length=1, max_length=2000)
+    message_id: int | None = Field(
+        None, description="If set, save the returned guideline to this message"
+    )
     turn_id: int | None = Field(
-        None, description="If set, save the returned guideline to this turn"
+        None, description="Deprecated alias of message_id"
     )
     level: str | None = Field(
         None,
@@ -134,7 +138,8 @@ async def get_guidance_for_question(
 ) -> dict:
     """
     Given a question (e.g. from the AI tutor), return suggested ways to answer.
-    If turn_id is provided and valid (message belongs to user's session), save the guideline to that message.
+    If message_id (or deprecated turn_id) is provided and valid,
+    save the guideline to that message.
     Returns: { "suggestions": ["I like to...", "I usually...", ...] }
     """
     question = body.question.strip()
@@ -181,13 +186,14 @@ async def get_guidance_for_question(
         )
 
     guideline_text = "\n".join(suggestions)
-    if body.turn_id is not None:
+    target_message_id = body.message_id if body.message_id is not None else body.turn_id
+    if target_message_id is not None:
         result = await db.execute(
             select(SessionMessage)
-            .join(ConversationSession, SessionMessage.session_id == ConversationSession.id)
+            .join(Session, SessionMessage.session_id == Session.id)
             .where(
-                SessionMessage.id == body.turn_id,
-                ConversationSession.user_id == user.id,
+                SessionMessage.id == target_message_id,
+                Session.user_id == user.id,
             )
         )
         msg = result.scalar_one_or_none()

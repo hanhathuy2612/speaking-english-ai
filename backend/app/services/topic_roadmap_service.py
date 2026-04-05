@@ -8,12 +8,10 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models.conversation import (
-    ConversationSession,
-    SessionMessage,
-    TopicUnit,
-    UserTopicUnitProgress,
-)
+from app.models.session import Session
+from app.models.session_message import SessionMessage
+from app.models.topic_unit import TopicUnit
+from app.models.user_topic_unit_progress import UserTopicUnitProgress
 
 RoadmapUnitStatus = str  # locked | available | in_progress | completed
 
@@ -223,9 +221,9 @@ async def try_auto_complete_unit_for_session(
 ) -> bool:
     """If session is tied to a unit with thresholds, mark complete when met. Returns True if completed."""
     sess = await db.get(
-        ConversationSession,
+        Session,
         session_id,
-        options=[selectinload(ConversationSession.topic_unit)],
+        options=[selectinload(Session.topic_unit)],
     )
     if (
         not sess

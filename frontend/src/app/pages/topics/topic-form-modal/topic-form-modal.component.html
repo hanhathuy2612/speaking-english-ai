@@ -1,9 +1,34 @@
-<div class="modal-header">
-  <h2 class="modal-title" id="topic-form-modal-title">{{ modalTitle() }}</h2>
-  <button type="button" class="btn-close" (click)="cancel()" aria-label="Close"></button>
-</div>
-<div class="modal-body">
+@if (isModalShell) {
+  <div class="modal-header">
+    <h2 class="modal-title" id="topic-form-modal-title">{{ modalTitle() }}</h2>
+    <button type="button" class="btn-close" (click)="cancel()" aria-label="Close"></button>
+  </div>
+}
+<div [class.modal-body]="isModalShell" [class.topic-form-modal__page-body]="!isModalShell">
   <form (ngSubmit)="submit()" class="topic-form-modal__form">
+    @if (!isEdit()) {
+      <div class="field">
+        <label for="topic-form-ai-idea">AI idea (optional)</label>
+        <textarea
+          id="topic-form-ai-idea"
+          [value]="aiIdea()"
+          (input)="aiIdea.set($any($event.target).value)"
+          placeholder="e.g. Topic about airport travel for IELTS band 6.5"
+          rows="2"
+        ></textarea>
+        <div class="topic-form-modal__ai-actions">
+          <button
+            type="button"
+            class="btn btn--secondary"
+            [disabled]="aiGenerating() || saving()"
+            (click)="generateWithAi()"
+          >
+            {{ aiGenerating() ? 'Generating…' : 'Generate by AI' }}
+          </button>
+        </div>
+      </div>
+    }
+
     <div class="field">
       <label for="topic-form-title">Title</label>
       <input

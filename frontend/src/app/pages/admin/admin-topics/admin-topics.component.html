@@ -1,0 +1,93 @@
+<div class="page">
+  <div class="container">
+    <app-breadcrumb [items]="breadcrumbItems"></app-breadcrumb>
+
+    <header class="hero">
+      <div>
+        <h1>Topics</h1>
+        <p class="muted">Manage topic catalog and roadmap ownership.</p>
+      </div>
+      <button type="button" class="btn btn--primary" (click)="openCreateForm()">Add topic</button>
+    </header>
+
+    @if (error()) {
+      <p class="error">{{ error() }}</p>
+    }
+
+    @if (loading()) {
+      <div class="loading">
+        <div class="spinner"></div>
+        <span>Loading…</span>
+      </div>
+    }
+
+    @if (!loading() && topics().length === 0 && !error()) {
+      <p class="muted">No topics yet.</p>
+    }
+
+    @if (!loading() && topics().length > 0) {
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Title</th>
+              <th>Description</th>
+              <th>Level</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (t of topics(); track t.id) {
+              <tr>
+                <td>{{ t.id }}</td>
+                <td>
+                  <strong>{{ t.title }}</strong>
+                </td>
+                <td class="desc">{{ t.description || '—' }}</td>
+                <td>{{ topicLevelLabel(t) }}</td>
+                <td>
+                  <div class="actions">
+                    <button
+                      type="button"
+                      class="btn btn--ghost btn--sm btn--icon"
+                      title="Manage steps"
+                      aria-label="Manage steps"
+                      (click)="openManageSteps(t)"
+                    >
+                      <i class="bi bi-list-task" aria-hidden="true"></i>
+                    </button>
+                    <a
+                      class="btn btn--ghost btn--sm btn--icon"
+                      [routerLink]="['/admin/topics', t.id, 'edit']"
+                      title="Edit topic"
+                      aria-label="Edit topic"
+                    >
+                      <i class="bi bi-pencil" aria-hidden="true"></i>
+                    </a>
+                    <button
+                      type="button"
+                      class="btn btn--secondary btn--sm btn--icon"
+                      title="Delete topic"
+                      [attr.aria-label]="
+                        deletingTopicId() === t.id ? 'Deleting topic' : 'Delete topic'
+                      "
+                      [disabled]="deletingTopicId() === t.id"
+                      (click)="deleteTopic(t)"
+                    >
+                      @if (deletingTopicId() === t.id) {
+                        <i class="bi bi-arrow-repeat actions__icon-spin" aria-hidden="true"></i>
+                      } @else {
+                        <i class="bi bi-trash" aria-hidden="true"></i>
+                      }
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+</div>

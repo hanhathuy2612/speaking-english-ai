@@ -1,17 +1,17 @@
+import {
+  BreadcrumbComponent,
+  BreadcrumbItem,
+} from '@/app/shared/components/breadcrumb/breadcrumb.component';
 import { CommonModule } from '@angular/common';
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
-import {
-  AdminUserOut,
-  ApiService,
-} from '../../../shared/services/api.service';
+import { AdminUserOut, ApiService } from '../../../shared/services/api.service';
 
 @Component({
   selector: 'app-admin-users',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, BreadcrumbComponent],
   templateUrl: './admin-users.component.html',
   styleUrls: ['./admin-users.component.scss'],
 })
@@ -25,6 +25,11 @@ export class AdminUsersComponent implements OnInit {
   loading = signal(false);
   error = signal('');
   savingId = signal<number | null>(null);
+
+  readonly breadcrumbItems: readonly BreadcrumbItem[] = [
+    { label: 'Admin', link: '/admin' },
+    { label: 'Users', link: '/admin/users' },
+  ];
 
   ngOnInit(): void {
     this.load();
@@ -71,11 +76,13 @@ export class AdminUsersComponent implements OnInit {
 
   toggleAdmin(u: AdminUserOut): void {
     const hasAdmin = u.roles.includes('admin');
-    const nextRoles = hasAdmin
-      ? u.roles.filter((r) => r !== 'admin').length
-        ? u.roles.filter((r) => r !== 'admin')
-        : ['user']
-      : [...new Set([...u.roles, 'admin'])];
+    let nextRoles: string[];
+    if (hasAdmin) {
+      const withoutAdmin = u.roles.filter((r) => r !== 'admin');
+      nextRoles = withoutAdmin.length > 0 ? withoutAdmin : ['user'];
+    } else {
+      nextRoles = [...new Set([...u.roles, 'admin'])];
+    }
     this.savingId.set(u.id);
     this.api
       .adminPatchUser(u.id, { role_slugs: nextRoles })

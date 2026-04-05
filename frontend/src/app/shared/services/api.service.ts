@@ -1,7 +1,7 @@
 import { environment } from '@/environments/environment';
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
+import { map, Observable } from 'rxjs';
 
 export interface Topic {
   id: number;
@@ -152,6 +152,41 @@ export interface AdminUserListOut {
   total: number;
 }
 
+/** Admin: all users' sessions on one topic. */
+export interface AdminTopicSessionItem {
+  id: number;
+  topic_id: number;
+  topic_title: string;
+  user_id: number;
+  user_email: string;
+  user_username: string;
+  topic_unit_title: string | null;
+  started_at: string;
+  ended_at: string | null;
+  turn_count: number;
+  avg_overall: number | null;
+}
+
+export interface AdminTopicSessionsPage {
+  items: AdminTopicSessionItem[];
+  total: number;
+}
+
+export interface AITopicDraftOut {
+  title: string;
+  description: string | null;
+  level: string | null;
+}
+
+export interface AITopicUnitDraftOut {
+  title: string;
+  objective: string;
+  prompt_hint: string;
+  min_turns_to_complete: number | null;
+  min_avg_overall: number | null;
+  max_scored_turns: number | null;
+}
+
 @Injectable({ providedIn: 'root' })
 export class ApiService {
   private readonly base = environment.apiBaseUrl;
@@ -204,20 +239,20 @@ export class ApiService {
     });
   }
 
-  /** Get answer suggestions for a question (for the guide panel). Optionally pass turnId to save guideline to that turn. */
-  getGuidance(question: string, turnId?: number, level?: string | null): Observable<GuidanceResponse> {
-    const body: { question: string; turn_id?: number; level?: string } = {
+  /** Get answer suggestions for a question (for the guide panel). Optionally pass messageId to save guideline. */
+  getGuidance(question: string, messageId?: number, level?: string | null): Observable<GuidanceResponse> {
+    const body: { question: string; message_id?: number; level?: string } = {
       question: question.trim(),
     };
-    if (turnId != null) body.turn_id = turnId;
+    if (messageId != null) body.message_id = messageId;
     const lv = (level ?? '').trim();
     if (lv !== '') body.level = lv;
     return this.http.post<GuidanceResponse>(`${this.base}/conversation/guidance`, body);
   }
 
-  /** Persist guide text on a turn (used when guideline was generated before turn id existed). */
-  patchTurnGuideline(turnId: number, guideline: string): Observable<{ ok: boolean }> {
-    return this.http.patch<{ ok: boolean }>(`${this.base}/conversation/turns/${turnId}/guideline`, {
+  /** Persist guide text on a message (used when guideline was generated before message id existed). */
+  patchMessageGuideline(messageId: number, guideline: string): Observable<{ ok: boolean }> {
+    return this.http.patch<{ ok: boolean }>(`${this.base}/conversation/messages/${messageId}/guideline`, {
       guideline,
     });
   }
@@ -232,9 +267,9 @@ export class ApiService {
     return this.http.post<SessionCreatedOut>(`${this.base}/conversation/sessions`, body);
   }
 
-  /** Learner webm or assistant TTS mp3 for a turn (requires auth). */
-  getTurnAudio(turnId: number, kind: 'user' | 'assistant'): Observable<ArrayBuffer> {
-    return this.http.get(`${this.base}/conversation/turns/${turnId}/audio`, {
+  /** Learner webm or assistant TTS mp3 for a message (requires auth). */
+  getMessageAudio(messageId: number, kind: 'user' | 'assistant'): Observable<ArrayBuffer> {
+    return this.http.get(`${this.base}/conversation/messages/${messageId}/audio`, {
       params: { kind },
       responseType: 'arraybuffer',
     });
@@ -289,5 +324,121 @@ export class ApiService {
     },
   ): Observable<TopicUnitDto> {
     return this.http.post<TopicUnitDto>(`${this.base}/admin/topics/${topicId}/units`, body);
+  }
+
+  adminUpdateTopicUnit(
+    topicId: number,
+    unitId: number,
+    body: {
+      sort_order?: number;
+      title?: string;
+      objective?: string;
+      prompt_hint?: string;
+      min_turns_to_complete?: number | null;
+      min_avg_overall?: number | null;
+      max_scored_turns?: number | null;
+    },
+  ): Observable<TopicUnitDto> {
+    return this.http.patch<TopicUnitDto>(`${this.base}/admin/topics/${topicId}/units/${unitId}`, body);
+  }
+
+  adminDeleteTopicUnit(topicId: number, unitId: number): Observable<void> {
+    return this.http.delete<void>(`${this.base}/admin/topics/${topicId}/units/${unitId}`);
+  }
+
+  adminDeleteTopic(topicId: number): Observable<void> {
+    return this.http.delete<void>(`${this.base}/admin/topics/${topicId}`);
+  }
+
+  adminListTopicSessions(
+    topicId: number,
+    page: number,
+    limit: number,
+    topicUnitId?: number | null,
+  ): Observable<AdminTopicSessionsPage> {
+    const q = new URLSearchParams({
+      page: String(page),
+      limit: String(limit),
+    });
+    if (topicUnitId != null && topicUnitId > 0) {
+      q.set('topic_unit_id', String(topicUnitId));
+    }
+    return this.http.get<AdminTopicSessionsPage>(
+      `${this.base}/admin/topics/${topicId}/sessions?${q}`,
+    );
+  }
+
+  /** Admin: all sessions, optional filters by user and/or topic. */
+  adminListAllSessions(
+    page: number,
+    limit: number,
+    filters?: { userId?: number | null; topicId?: number | null },
+  ): Observable<AdminTopicSessionsPage> {
+    const q = new URLSearchParams({
+      page: String(page),
+      limit: String(limit),
+    });
+    if (filters?.userId != null && filters.userId > 0) {
+      q.set('user_id', String(filters.userId));
+    }
+    if (filters?.topicId != null && filters.topicId > 0) {
+      q.set('topic_id', String(filters.topicId));
+    }
+    return this.http.get<AdminTopicSessionsPage>(`${this.base}/admin/sessions?${q}`);
+  }
+
+  adminDeleteTopicSession(topicId: number, sessionId: number): Observable<void> {
+    return this.http.delete<void>(
+      `${this.base}/admin/topics/${topicId}/sessions/${sessionId}`,
+    );
+  }
+
+  adminGenerateTopicDraft(idea?: string | null): Observable<AITopicDraftOut> {
+    return this.http
+      .post<Record<string, unknown>>(`${this.base}/admin/ai/topic-draft`, {
+        idea: (idea ?? '').trim() || null,
+      })
+      .pipe(map((raw) => this.normalizeAiTopicDraft(raw)));
+  }
+
+  adminGenerateTopicUnitDraft(topicId: number, idea?: string | null): Observable<AITopicUnitDraftOut> {
+    return this.http
+      .post<Record<string, unknown>>(`${this.base}/admin/ai/topics/${topicId}/unit-draft`, {
+        idea: (idea ?? '').trim() || null,
+      })
+      .pipe(map((raw) => this.normalizeAiTopicUnitDraft(raw)));
+  }
+
+  private normalizeAiTopicDraft(raw: Record<string, unknown>): AITopicDraftOut {
+    return {
+      title: String(raw['title'] ?? '').trim(),
+      description: this.asNullableString(raw['description'] ?? raw['desc']),
+      level: this.asNullableString(raw['level']),
+    };
+  }
+
+  private normalizeAiTopicUnitDraft(raw: Record<string, unknown>): AITopicUnitDraftOut {
+    return {
+      title: String(raw['title'] ?? '').trim(),
+      objective: String(raw['objective'] ?? '').trim(),
+      prompt_hint: String(raw['prompt_hint'] ?? raw['promptHint'] ?? '').trim(),
+      min_turns_to_complete: this.asNullableNumber(
+        raw['min_turns_to_complete'] ?? raw['minTurnsToComplete'],
+      ),
+      min_avg_overall: this.asNullableNumber(raw['min_avg_overall'] ?? raw['minAvgOverall']),
+      max_scored_turns: this.asNullableNumber(raw['max_scored_turns'] ?? raw['maxScoredTurns']),
+    };
+  }
+
+  private asNullableString(value: unknown): string | null {
+    if (value == null) return null;
+    const s = String(value).trim();
+    return s ? s : null;
+  }
+
+  private asNullableNumber(value: unknown): number | null {
+    if (value == null) return null;
+    const n = Number(value);
+    return Number.isFinite(n) ? n : null;
   }
 }

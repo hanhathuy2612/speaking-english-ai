@@ -1,8 +1,6 @@
-import { AccountService } from '@/app/shared/services/account.service';
 import { CommonModule } from '@angular/common';
-import { Component, inject, Injector, OnInit, signal } from '@angular/core';
+import { Component, inject, OnInit, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { NgbModal, NgbModalModule, NgbModalRef } from '@ng-bootstrap/ng-bootstrap';
 import { finalize } from 'rxjs';
 import {
   formatIeltsBand,
@@ -10,22 +8,17 @@ import {
   resolveIeltsBand,
 } from '../../shared/ielts-levels';
 import { ApiService, Topic } from '../../shared/services/api.service';
-import {
-  TOPIC_FORM_MODAL_DATA,
-  TopicFormModalComponent,
-} from './topic-form-modal/topic-form-modal.component';
 
 @Component({
   selector: 'app-topic-list',
   standalone: true,
-  imports: [CommonModule, NgbModalModule],
+  imports: [CommonModule],
   styleUrls: ['./topic-list.component.scss'],
   templateUrl: './topic-list.component.html',
 })
 export class TopicListComponent implements OnInit {
   topics = signal<Topic[]>([]);
   loading = signal(false);
-  account = inject(AccountService);
 
   readonly ieltsTier = ieltsTier;
 
@@ -39,9 +32,6 @@ export class TopicListComponent implements OnInit {
 
   readonly api = inject(ApiService);
   readonly router = inject(Router);
-  private readonly injector = inject(Injector);
-  private readonly modalService = inject(NgbModal);
-  private modalRef: NgbModalRef | null = null;
 
   ngOnInit(): void {
     this.loadTopics();
@@ -60,46 +50,5 @@ export class TopicListComponent implements OnInit {
 
   openRoadmap(topic: Topic): void {
     this.router.navigate(['/topics', topic.id, 'roadmap']);
-  }
-
-  openCreateForm(): void {
-    this.modalRef = this.modalService.open(TopicFormModalComponent, {
-      size: 'lg',
-      backdrop: 'static',
-      keyboard: false,
-    });
-    this.modalRef.closed.subscribe((created) => {
-      this.modalRef = null;
-      if (created != null) {
-        this.topics.update((list) => [...list, created as Topic]);
-      }
-    });
-    this.modalRef.dismissed.subscribe(() => {
-      this.modalRef = null;
-    });
-  }
-
-  openEditForm(topic: Topic): void {
-    const modalInjector = Injector.create({
-      providers: [{ provide: TOPIC_FORM_MODAL_DATA, useValue: topic }],
-      parent: this.injector,
-    });
-    this.modalRef = this.modalService.open(TopicFormModalComponent, {
-      size: 'lg',
-      backdrop: 'static',
-      keyboard: false,
-      injector: modalInjector,
-    });
-    this.modalRef.closed.subscribe((updated) => {
-      this.modalRef = null;
-      if (updated != null) {
-        this.topics.update((list) =>
-          list.map((t) => (t.id === (updated as Topic).id ? (updated as Topic) : t)),
-        );
-      }
-    });
-    this.modalRef.dismissed.subscribe(() => {
-      this.modalRef = null;
-    });
   }
 }

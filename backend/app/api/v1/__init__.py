@@ -1,14 +1,20 @@
 from fastapi import APIRouter
 
-from app.api.v1 import admin, auth, conversation, guidance, progress, sessions, topics, tts, users
+from app.api.v1 import admin, auth, conversation, guidance, messages, progress, sessions, topics, tts, users
 
 router = APIRouter(prefix="/api/v1")
+conversation_http_router = APIRouter(prefix="/conversation", tags=["conversation"])
+conversation_http_router.include_router(sessions.router)
+conversation_http_router.include_router(messages.router)
+conversation_http_router.include_router(guidance.router)
+conversation_ws_router = APIRouter(prefix="/ws", tags=["conversation"])
+conversation_ws_router.include_router(conversation.router)
+
 router.include_router(auth.router, prefix="/auth", tags=["auth"])
 router.include_router(users.router, prefix="/users", tags=["users"])
 router.include_router(admin.router, prefix="/admin", tags=["admin"])
 router.include_router(topics.router, prefix="/topics", tags=["topics"])
 router.include_router(progress.router, prefix="/progress", tags=["progress"])
-router.include_router(sessions.router)
+router.include_router(conversation_http_router)
 router.include_router(tts.router)
-router.include_router(conversation.router, tags=["conversation"])
-router.include_router(guidance.router, prefix="/conversation", tags=["conversation"])
+router.include_router(conversation_ws_router)

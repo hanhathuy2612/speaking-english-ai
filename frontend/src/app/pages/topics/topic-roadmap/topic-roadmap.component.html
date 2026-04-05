@@ -23,11 +23,6 @@
           <span class="roadmap-band-btn__value">{{ topicBandLabel() }}</span>
           <i class="bi bi-pencil-square" aria-hidden="true"></i>
         </button>
-        @if (account.isAdmin()) {
-          <button type="button" class="btn btn--primary" (click)="openCreateUnitModal()">
-            Add step
-          </button>
-        }
         <a [routerLink]="['/topics', topicId(), 'sessions']" class="btn btn--secondary">
           Session history
         </a>

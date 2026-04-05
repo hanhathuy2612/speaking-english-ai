@@ -1,0 +1,41 @@
+<div class="page">
+  <div class="container">
+    <nav class="breadcrumb">
+      <a routerLink="/topics">Topics</a>
+      <span class="sep" aria-hidden="true">/</span>
+      <a routerLink="/admin/topics">Admin</a>
+      <span class="sep" aria-hidden="true">/</span>
+      <a [routerLink]="['/admin/topics', topicId(), 'units']">Steps</a>
+      <span class="sep" aria-hidden="true">/</span>
+      <span class="current">{{ isEdit() ? 'Edit' : 'New' }}</span>
+    </nav>
+
+    @if (loading()) {
+      <div class="loading">
+        <div class="spinner"></div>
+        <span>Loading…</span>
+      </div>
+    }
+
+    @if (!loading() && error()) {
+      <p class="error">{{ error() }}</p>
+      <p>
+        <a [routerLink]="['/admin/topics', topicId(), 'units']" class="btn btn--secondary"
+          >Back to steps</a
+        >
+      </p>
+    }
+
+    @if (!loading() && formPayload()) {
+      <header class="hero">
+        <div>
+          <h1>{{ isEdit() ? 'Edit step' : 'Add step' }}</h1>
+          <p class="muted">
+            {{ isEdit() ? 'Update roadmap step details.' : 'Create a new guided step for this topic.' }}
+          </p>
+        </div>
+      </header>
+      <app-topic-unit-form-modal [embeddedData]="formPayload()!" />
+    }
+  </div>
+</div>

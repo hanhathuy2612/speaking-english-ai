@@ -1,4 +1,8 @@
 /* Chỉ style form trong modal — modal chung nằm ở styles.scss */
+.topic-form-modal__page-body {
+  padding: 0;
+}
+
 .topic-form-modal {
   &__form {
     display: flex;
@@ -53,6 +57,12 @@
     color: var(--clr-danger);
     font-size: 0.875rem;
     margin: 0;
+  }
+
+  &__ai-actions {
+    margin-top: 8px;
+    display: flex;
+    justify-content: flex-start;
   }
 
   &__actions {

@@ -1,0 +1,13 @@
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  @for (item of items(); track $index; let isLast = $last) {
+    @if (!isLast && item.link != null) {
+      <a [routerLink]="item.link">{{ item.label }}</a>
+      <span class="sep" aria-hidden="true">/</span>
+    } @else {
+      <span class="current">{{ item.label }}</span>
+      @if (!isLast) {
+        <span class="sep" aria-hidden="true">/</span>
+      }
+    }
+  }
+</nav>

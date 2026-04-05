@@ -1,0 +1,95 @@
+@use '../../../../styles/breakpoints' as bp;
+
+.page {
+  min-height: 60vh;
+}
+
+.hero {
+  padding: 16px 0 24px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+
+  @include bp.max-sm {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin: 0 0 8px;
+  }
+
+  .muted {
+    color: var(--clr-text-muted);
+    margin: 0;
+  }
+}
+
+.error {
+  color: var(--clr-danger, #c62828);
+  margin-bottom: 16px;
+}
+
+.loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 32px 0;
+  color: var(--clr-text-muted);
+}
+
+.table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius);
+  margin-bottom: 24px;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+
+  th,
+  td {
+    padding: 12px 14px;
+    text-align: left;
+    border-bottom: 1px solid var(--clr-border);
+
+    @include bp.max-sm {
+      padding: 10px 10px;
+      font-size: 0.8125rem;
+    }
+  }
+
+  th {
+    font-weight: 600;
+    background: var(--clr-bg-elevated);
+    white-space: nowrap;
+  }
+}
+
+.desc {
+  min-width: 220px;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  white-space: nowrap;
+  align-items: center;
+}
+
+.actions__icon-spin {
+  display: inline-block;
+  animation: admin-topics-actions-spin 0.7s linear infinite;
+}
+
+@keyframes admin-topics-actions-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

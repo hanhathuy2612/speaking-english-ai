@@ -1,12 +1,6 @@
 <div class="page">
   <div class="container">
-    <nav class="breadcrumb">
-      <a routerLink="/topics">Topics</a>
-      <span class="sep" aria-hidden="true">/</span>
-      <span class="current">Admin</span>
-      <span class="sep" aria-hidden="true">/</span>
-      <span class="current">Users</span>
-    </nav>
+    <app-breadcrumb [items]="breadcrumbItems"></app-breadcrumb>
 
     <header class="hero">
       <h1>Users</h1>

@@ -1,0 +1,171 @@
+<div class="page">
+  <div class="container">
+    <nav class="breadcrumb">
+      <a routerLink="/topics">Topics</a>
+      <span class="sep" aria-hidden="true">/</span>
+      <a routerLink="/admin/users">Admin</a>
+      <span class="sep" aria-hidden="true">/</span>
+      <span class="current">Sessions</span>
+    </nav>
+
+    <header class="hero">
+      <h1>Sessions</h1>
+      <p class="muted">
+        Search practice sessions across all learners. Filter by user and/or topic; leave filters on
+        “All” to list every session (paginated).
+      </p>
+    </header>
+
+    <div class="filters-card">
+      <div class="filters-row">
+        <label class="filter-field">
+          <span class="filter-label">User</span>
+          <ng-select
+            class="filter-ng-select"
+            [items]="userSelectItems()"
+            bindLabel="label"
+            bindValue="id"
+            placeholder="All users"
+            [clearable]="true"
+            [searchable]="true"
+            [loading]="metaLoading()"
+            [disabled]="metaLoading()"
+            [ngModel]="filterUserId()"
+            (ngModelChange)="onUserFilterChange($event)"
+            appendTo="body"
+          >
+          </ng-select>
+        </label>
+        <label class="filter-field">
+          <span class="filter-label">Topic</span>
+          <ng-select
+            class="filter-ng-select"
+            [items]="topics()"
+            bindLabel="title"
+            bindValue="id"
+            placeholder="All topics"
+            [clearable]="true"
+            [searchable]="true"
+            [loading]="metaLoading()"
+            [disabled]="metaLoading()"
+            [ngModel]="filterTopicId()"
+            (ngModelChange)="onTopicFilterChange($event)"
+            appendTo="body"
+          >
+          </ng-select>
+        </label>
+        <button
+          type="button"
+          class="btn btn--ghost btn--sm filters-clear"
+          (click)="clearFilters()"
+          [disabled]="metaLoading() || (filterUserId() == null && filterTopicId() == null)"
+        >
+          Clear filters
+        </button>
+      </div>
+      @if (!metaLoading() && users().length >= usersFilterLimit) {
+        <p class="filters-hint">
+          User list shows the first {{ usersFilterLimit }} accounts. Narrow with filters or use Users
+          admin to find an id.
+        </p>
+      }
+    </div>
+
+    @if (error()) {
+      <p class="error">{{ error() }}</p>
+    }
+
+    <div class="table-wrap">
+      @if (sessionsLoading()) {
+        <div class="table-loading">
+          <div class="spinner"></div>
+          <span>Loading sessions…</span>
+        </div>
+      }
+      <div [class.table-dimmed]="sessionsLoading()">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>User</th>
+              <th>Topic</th>
+              <th>Step</th>
+              <th>Started</th>
+              <th>Status</th>
+              <th>Turns</th>
+              <th>Avg</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (s of sessionsData()?.items ?? []; track s.id) {
+              <tr>
+                <td>
+                  <div class="cell-user">
+                    <span class="cell-user__email">{{ s.user_email }}</span>
+                    <span class="cell-user__meta">&#64;{{ s.user_username }} · id {{ s.user_id }}</span>
+                  </div>
+                </td>
+                <td>
+                  <a class="topic-link" [routerLink]="['/admin/topics', s.topic_id, 'units']">{{
+                    s.topic_title
+                  }}</a>
+                </td>
+                <td>{{ s.topic_unit_title ?? '—' }}</td>
+                <td>{{ s.started_at | date: 'medium' }}</td>
+                <td>
+                  @if (s.ended_at) {
+                    <span class="status-ended">Ended</span>
+                  } @else {
+                    <span class="status-active">In progress</span>
+                  }
+                </td>
+                <td>{{ s.turn_count }}</td>
+                <td>{{ s.avg_overall != null ? (s.avg_overall | number: '1.1-1') : '—' }}</td>
+                <td class="col-actions">
+                  <button
+                    type="button"
+                    class="btn btn--ghost btn--icon btn--sm"
+                    title="Delete session"
+                    [attr.aria-label]="
+                      deletingSessionId() === s.id ? 'Deleting session' : 'Delete session'
+                    "
+                    [disabled]="deletingSessionId() === s.id"
+                    (click)="deleteSession(s.topic_id, s.id, $event)"
+                  >
+                    @if (deletingSessionId() === s.id) {
+                      <i class="bi bi-arrow-repeat row-spin" aria-hidden="true"></i>
+                    } @else {
+                      <i class="bi bi-trash" aria-hidden="true"></i>
+                    }
+                  </button>
+                </td>
+              </tr>
+            }
+            @if (!sessionsLoading() && (sessionsData()?.items?.length ?? 0) === 0 && !error()) {
+              <tr>
+                <td colspan="8" class="empty-cell">No sessions match the current filters.</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    @if ((sessionsData()?.total ?? 0) > pageSize) {
+      <div class="pagination-bar" [class.pagination-bar--busy]="sessionsLoading()">
+        <span class="pagination-info">
+          Showing {{ paginationRange().start }}–{{ paginationRange().end }} of
+          {{ paginationRange().total }}
+        </span>
+        <ngb-pagination
+          [collectionSize]="sessionsData()?.total ?? 0"
+          [page]="currentPage()"
+          [pageSize]="pageSize"
+          [maxSize]="5"
+          [boundaryLinks]="true"
+          (pageChange)="goToPage($event)"
+        />
+      </div>
+    }
+  </div>
+</div>

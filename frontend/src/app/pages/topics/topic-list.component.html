@@ -1,15 +1,10 @@
 <div class="page">
   <div class="container">
-    <header class="hero hero--row">
+    <header class="hero">
       <div>
         <h1>Choose a topic</h1>
         <p>Pick a topic and practise IELTS Speaking with your AI tutor.</p>
       </div>
-      @if (account.isAdmin()) {
-        <button type="button" class="btn btn--primary" (click)="openCreateForm()">
-          <i class="bi bi-plus-lg" aria-hidden="true"></i> New topic
-        </button>
-      }
     </header>
 
     @if (loading()) {
@@ -32,15 +27,6 @@
             <div class="topic-card__body">
               <div class="topic-card__header">
                 <h2 class="topic-title">{{ t.title }}</h2>
-                <button
-                  type="button"
-                  class="btn btn--ghost btn--icon topic-card__edit"
-                  (click)="openEditForm(t); $event.stopPropagation()"
-                  title="Edit topic"
-                  aria-label="Edit topic"
-                >
-                  <i class="bi bi-pencil" aria-hidden="true"></i>
-                </button>
               </div>
               <p class="topic-desc">{{ t.description }}</p>
               <span

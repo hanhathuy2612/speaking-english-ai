@@ -1,0 +1,114 @@
+<div class="page">
+  <div class="container">
+    <nav class="breadcrumb">
+      <a routerLink="/topics">Topics</a>
+      <span class="sep" aria-hidden="true">/</span>
+      <a routerLink="/admin/users">Admin</a>
+      <span class="sep" aria-hidden="true">/</span>
+      <span class="current">Topic steps</span>
+    </nav>
+
+    <header class="hero">
+      <div>
+        <h1>Topic steps</h1>
+        <p class="muted">
+          Manage guided steps and review <strong>all users’</strong> practice sessions for
+          <strong>{{ topicTitle() }}</strong
+          >. Learners only see their own sessions under Topics → Session history.
+        </p>
+      </div>
+      <div class="hero__actions">
+        <a
+          class="btn btn--primary text-nowrap"
+          [routerLink]="['/admin/topics', topicId(), 'units', 'new']"
+          >Add step</a
+        >
+      </div>
+    </header>
+
+    @if (error()) {
+      <p class="error">{{ error() }}</p>
+    }
+
+    @if (loading()) {
+      <div class="loading">
+        <div class="spinner"></div>
+        <span>Loading steps…</span>
+      </div>
+    }
+
+    @if (!loading() && units().length === 0 && !error()) {
+      <p class="muted">No steps yet for this topic.</p>
+    }
+
+    @if (!loading() && units().length > 0) {
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Order</th>
+              <th>Title</th>
+              <th>Objective</th>
+              <th>Rules</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (u of units(); track u.id) {
+              <tr>
+                <td>{{ u.sort_order }}</td>
+                <td>
+                  <strong>{{ u.title }}</strong>
+                </td>
+                <td>{{ u.objective }}</td>
+                <td class="rules">
+                  <div>Min turns: {{ u.min_turns_to_complete ?? '—' }}</div>
+                  <div>Min avg overall: {{ u.min_avg_overall ?? '—' }}</div>
+                  <div>Max scored turns: {{ u.max_scored_turns ?? '—' }}</div>
+                </td>
+                <td>
+                  <div class="actions">
+                    <a
+                      class="btn btn--ghost btn--sm btn--icon"
+                      [routerLink]="['/admin/topics', topicId(), 'units']"
+                      [queryParams]="{ unit: u.id }"
+                      fragment="sessions"
+                      title="View sessions for this step"
+                      aria-label="View sessions for this step"
+                    >
+                      <i class="bi bi-clock-history" aria-hidden="true"></i>
+                    </a>
+                    <a
+                      class="btn btn--ghost btn--sm btn--icon"
+                      [routerLink]="['/admin/topics', topicId(), 'units', u.id, 'edit']"
+                      title="Edit step"
+                      aria-label="Edit step"
+                    >
+                      <i class="bi bi-pencil" aria-hidden="true"></i>
+                    </a>
+                    <button
+                      type="button"
+                      class="btn btn--secondary btn--sm btn--icon"
+                      title="Delete step"
+                      [attr.aria-label]="
+                        deletingUnitId() === u.id ? 'Deleting step' : 'Delete step'
+                      "
+                      [disabled]="deletingUnitId() === u.id"
+                      (click)="deleteUnit(u)"
+                    >
+                      @if (deletingUnitId() === u.id) {
+                        <i class="bi bi-arrow-repeat actions__icon-spin" aria-hidden="true"></i>
+                      } @else {
+                        <i class="bi bi-trash" aria-hidden="true"></i>
+                      }
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+</div>

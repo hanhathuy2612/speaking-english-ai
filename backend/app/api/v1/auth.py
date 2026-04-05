@@ -1,13 +1,23 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-
 from app.core.deps import role_slugs_for_user
-from app.core.security import create_access_token, hash_password, verify_password
+from app.core.security import (
+    create_access_token,
+    create_refresh_token,
+    decode_token,
+    hash_password,
+    verify_password,
+)
 from app.db.session import get_db
 from app.models.role import ROLE_USER, Role, UserRole
 from app.models.user import User
-from app.schemas.auth import LoginRequest, RegisterRequest, TokenResponse
+from app.schemas.auth import (
+    LoginRequest,
+    RefreshRequest,
+    RegisterRequest,
+    TokenResponse,
+)
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter()
 
@@ -46,9 +56,11 @@ async def register(
         await db.commit()
 
     roles = await role_slugs_for_user(db, user.id)
-    token = create_access_token({"sub": str(user.id)})
+    access_token = create_access_token({"sub": str(user.id)})
+    refresh_token = create_refresh_token({"sub": str(user.id)})
     return TokenResponse(
-        access_token=token,
+        access_token=access_token,
+        refresh_token=refresh_token,
         user_id=user.id,
         username=user.username,
         roles=roles,
@@ -67,9 +79,50 @@ async def login(
         )
 
     roles = await role_slugs_for_user(db, user.id)
-    token = create_access_token({"sub": str(user.id)})
+    access_token = create_access_token({"sub": str(user.id)})
+    refresh_token = create_refresh_token({"sub": str(user.id)})
     return TokenResponse(
-        access_token=token,
+        access_token=access_token,
+        refresh_token=refresh_token,
+        user_id=user.id,
+        username=user.username,
+        roles=roles,
+    )
+
+
+@router.post("/refresh", response_model=TokenResponse)
+async def refresh_tokens(
+    body: RefreshRequest, db: AsyncSession = Depends(get_db)
+) -> TokenResponse:
+    try:
+        payload = decode_token(body.refresh_token)
+        token_type = str(payload.get("typ", ""))
+        if token_type != "refresh":
+            raise ValueError("Invalid token type")
+        user_id = int(payload.get("sub", 0))
+    except (ValueError, TypeError):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token"
+        )
+
+    if user_id <= 0:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token"
+        )
+
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if user is None or not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found"
+        )
+
+    roles = await role_slugs_for_user(db, user.id)
+    access_token = create_access_token({"sub": str(user.id)})
+    refresh_token = create_refresh_token({"sub": str(user.id)})
+    return TokenResponse(
+        access_token=access_token,
+        refresh_token=refresh_token,
         user_id=user.id,
         username=user.username,
         roles=roles,

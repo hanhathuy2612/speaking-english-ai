@@ -13,11 +13,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 import app.services.topic_roadmap_service as roadmap_svc
-from app.models.conversation import ConversationSession, SessionMessage
+from app.models.session import Session
+from app.models.session_message import SessionMessage
 from app.services.scoring_service import ScoringService
 
 
-async def _score_topic_string(db: AsyncSession, session: ConversationSession) -> str:
+async def _score_topic_string(db: AsyncSession, session: Session) -> str:
     """Same context string as ConversationHandler._topic_context_for_llm (for scoring)."""
     topic = session.topic
     if topic is None:
@@ -66,14 +67,14 @@ async def finalize_session_scoring(
     Keys: turns, averages, session_feedback, roadmap_unit_completed, topic_unit_id
     """
     r = await db.execute(
-        select(ConversationSession)
+        select(Session)
         .options(
-            selectinload(ConversationSession.topic),
-            selectinload(ConversationSession.topic_unit),
+            selectinload(Session.topic),
+            selectinload(Session.topic_unit),
         )
         .where(
-            ConversationSession.id == session_id,
-            ConversationSession.user_id == user_id,
+            Session.id == session_id,
+            Session.user_id == user_id,
         )
     )
     session = r.scalar_one_or_none()

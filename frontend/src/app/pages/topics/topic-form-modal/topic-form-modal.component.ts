@@ -3,11 +3,14 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
   Component,
+  computed,
   inject,
   InjectionToken,
+  input,
+  OnInit,
   signal,
-  computed,
 } from '@angular/core';
+import { Router } from '@angular/router';
 import { NgbActiveModal, NgbModalModule } from '@ng-bootstrap/ng-bootstrap';
 import { finalize } from 'rxjs';
 import {
@@ -35,12 +38,20 @@ function normalizeLevel(level: string | null | undefined): string {
   styleUrls: ['./topic-form-modal.component.scss'],
   templateUrl: './topic-form-modal.component.html',
 })
-export class TopicFormModalComponent {
-  private readonly activeModal = inject(NgbActiveModal);
+export class TopicFormModalComponent implements OnInit {
+  private readonly activeModal = inject(NgbActiveModal, { optional: true });
+  private readonly router = inject(Router);
   private readonly api = inject(ApiService);
-  private readonly topic: Topic | null = inject(TOPIC_FORM_MODAL_DATA, { optional: true }) ?? null;
+  private readonly injectedTopic = inject(TOPIC_FORM_MODAL_DATA, { optional: true }) ?? null;
 
-  readonly isEdit = computed(() => this.topic != null);
+  /** Khi nhúng ở trang admin (không dùng modal), truyền topic qua input. */
+  embeddedTopic = input<Topic | null>(null);
+
+  readonly isModalShell = this.activeModal != null;
+
+  readonly formTopic = computed(() => this.embeddedTopic() ?? this.injectedTopic);
+
+  readonly isEdit = computed(() => this.formTopic() != null);
   readonly modalTitle = computed(() => (this.isEdit() ? 'Edit topic' : 'Create new topic'));
   readonly submitLabel = computed(() =>
     this.saving()
@@ -53,11 +64,24 @@ export class TopicFormModalComponent {
   );
 
   readonly levelOptions = LEVEL_OPTIONS;
-  readonly title = signal(this.topic?.title ?? '');
-  readonly description = signal(this.topic?.description ?? '');
-  readonly level = signal(normalizeLevel(this.topic?.level ?? ''));
+  readonly title = signal('');
+  readonly description = signal('');
+  readonly level = signal('');
   readonly error = signal('');
   readonly saving = signal(false);
+  readonly aiIdea = signal('');
+  readonly aiGenerating = signal(false);
+
+  ngOnInit(): void {
+    const t = this.formTopic();
+    if (t) this.patchFromTopic(t);
+  }
+
+  private patchFromTopic(t: Topic): void {
+    this.title.set(t.title ?? '');
+    this.description.set(t.description ?? '');
+    this.level.set(normalizeLevel(t.level ?? ''));
+  }
 
   onTitleInput(value: string): void {
     this.title.set(value);
@@ -72,7 +96,27 @@ export class TopicFormModalComponent {
   }
 
   cancel(): void {
-    this.activeModal.dismiss();
+    if (this.activeModal) this.activeModal.dismiss();
+    else void this.router.navigate(['/admin/topics']);
+  }
+
+  generateWithAi(): void {
+    if (this.aiGenerating()) return;
+    this.error.set('');
+    this.aiGenerating.set(true);
+    this.api
+      .adminGenerateTopicDraft(this.aiIdea())
+      .pipe(finalize(() => this.aiGenerating.set(false)))
+      .subscribe({
+        next: (draft) => {
+          this.title.set(draft.title ?? '');
+          this.description.set(draft.description ?? '');
+          this.level.set(normalizeLevel(draft.level ?? ''));
+        },
+        error: (err) => {
+          this.error.set(err?.error?.detail ?? 'Failed to generate topic draft with AI.');
+        },
+      });
   }
 
   submit(): void {
@@ -88,12 +132,16 @@ export class TopicFormModalComponent {
       description: this.description().trim() || null,
       level: this.level().trim() || null,
     };
-    if (this.topic) {
+    const topic = this.formTopic();
+    if (topic) {
       this.api
-        .updateTopic(this.topic.id, payload)
+        .updateTopic(topic.id, payload)
         .pipe(finalize(() => this.saving.set(false)))
         .subscribe({
-          next: (updated) => this.activeModal.close(updated),
+          next: (updated) => {
+            if (this.activeModal) this.activeModal.close(updated);
+            else void this.router.navigate(['/admin/topics']);
+          },
           error: (err) => {
             this.error.set(err?.error?.detail ?? 'Failed to update topic.');
           },
@@ -103,7 +151,10 @@ export class TopicFormModalComponent {
         .createTopic(payload)
         .pipe(finalize(() => this.saving.set(false)))
         .subscribe({
-          next: (created) => this.activeModal.close(created),
+          next: (created) => {
+            if (this.activeModal) this.activeModal.close(created);
+            else void this.router.navigate(['/admin/topics']);
+          },
           error: (err) => {
             this.error.set(err?.error?.detail ?? 'Failed to create topic.');
           },

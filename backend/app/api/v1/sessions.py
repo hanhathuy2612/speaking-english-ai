@@ -1,8 +1,7 @@
 import asyncio
-from pathlib import Path
-from typing import Any, Literal
+from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import FileResponse
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,45 +9,27 @@ from sqlalchemy.orm import selectinload
 
 from app.core.deps import get_current_user
 from app.db.session import get_db
-from app.models.conversation import ConversationSession, SessionMessage, Topic, TopicUnit
+from app.models.session import Session
+from app.models.session_message import SessionMessage
+from app.models.topic import Topic
+from app.models.topic_unit import TopicUnit
 from app.models.user import User
 from app.services.conversation_session_finalize import finalize_session_scoring
 from app.services.lm_client import LMStudioClient
 from app.services.scoring_service import ScoringService
 import app.services.topic_roadmap_service as roadmap_svc
+from .conversation_audio import resolve_audio_file
 from app.schemas.conversation import (
     SessionCreateIn,
     SessionCreatedOut,
     SessionDetailOut,
     SessionOut,
     TopicUnitSummarySnippet,
-    TurnGuidelinePatchIn,
     TurnOut,
     UnitStepSummaryOut,
 )
 
-router = APIRouter(prefix="/conversation", tags=["conversation"])
-
-_AUDIO_ROOT = Path("audio")
-
-
-def _resolved_audio_file(path_str: str | None) -> Path:
-    if not path_str or not str(path_str).strip():
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No audio for this turn")
-    p = Path(path_str)
-    if not p.is_absolute():
-        p = Path.cwd() / p
-    try:
-        p = p.resolve()
-    except OSError:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Audio not found")
-    try:
-        p.relative_to(_AUDIO_ROOT.resolve())
-    except ValueError:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid audio path")
-    if not p.is_file():
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Audio not found")
-    return p
+router = APIRouter()
 
 
 def get_scoring_service() -> ScoringService:
@@ -66,27 +47,37 @@ async def create_session(
     Matches roadmap / unit rules used by the WebSocket start handler.
     """
     if body.topic_id <= 0:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid topic_id")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid topic_id"
+        )
 
     topic_q = await db.execute(select(Topic).where(Topic.id == body.topic_id))
     topic = topic_q.scalar_one_or_none()
     if not topic:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Topic not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Topic not found"
+        )
 
     topic_unit_id: int | None = None
     if body.topic_unit_id is not None:
         uid = body.topic_unit_id
         if uid <= 0:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid topic_unit_id")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid topic_unit_id"
+            )
         unit = await db.get(TopicUnit, uid)
         if not unit or unit.topic_id != body.topic_id:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Topic unit not found")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Topic unit not found"
+            )
         if not await roadmap_svc.is_unit_unlocked_for_user(db, user.id, unit):
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="This step is locked")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, detail="This step is locked"
+            )
         await roadmap_svc.ensure_unit_started(db, user.id, uid)
         topic_unit_id = uid
 
-    sess = ConversationSession(
+    sess = Session(
         user_id=user.id,
         topic_id=body.topic_id,
         topic_unit_id=topic_unit_id,
@@ -111,61 +102,18 @@ async def get_session_opening_audio(
 ) -> FileResponse:
     """Serve stored TTS for the session opening line (not a Turn row)."""
     sess_q = await db.execute(
-        select(ConversationSession).where(
-            ConversationSession.id == session_id,
-            ConversationSession.user_id == user.id,
+        select(Session).where(
+            Session.id == session_id,
+            Session.user_id == user.id,
         )
     )
     session = sess_q.scalar_one_or_none()
     if not session:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
-    path = _resolved_audio_file(session.opening_audio_path)
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Session not found"
+        )
+    path = resolve_audio_file(session.opening_audio_path)
     return FileResponse(path, media_type="audio/mpeg")
-
-
-@router.patch("/turns/{turn_id}/guideline")
-async def patch_turn_guideline(
-    turn_id: int,
-    body: TurnGuidelinePatchIn,
-    db: AsyncSession = Depends(get_db),
-    user: User = Depends(get_current_user),
-) -> dict[str, bool]:
-    """Save guide-panel content for a turn (e.g. after turn id is known on the client)."""
-    g = body.guideline.strip()
-    msg_q = await db.execute(
-        select(SessionMessage)
-        .join(ConversationSession, SessionMessage.session_id == ConversationSession.id)
-        .where(SessionMessage.id == turn_id, ConversationSession.user_id == user.id)
-    )
-    msg = msg_q.scalar_one_or_none()
-    if not msg:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Turn not found")
-    msg.guideline = g if g else None
-    await db.commit()
-    return {"ok": True}
-
-
-@router.get("/turns/{turn_id}/audio")
-async def get_turn_audio(
-    turn_id: int,
-    kind: Literal["user", "assistant"] = Query(..., description="user = learner recording, assistant = TTS mp3"),
-    db: AsyncSession = Depends(get_db),
-    user: User = Depends(get_current_user),
-) -> FileResponse:
-    """Serve stored audio for a turn (same user as session owner only)."""
-    msg_q = await db.execute(
-        select(SessionMessage)
-        .join(ConversationSession, SessionMessage.session_id == ConversationSession.id)
-        .where(SessionMessage.id == turn_id, ConversationSession.user_id == user.id)
-    )
-    msg = msg_q.scalar_one_or_none()
-    if not msg:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Turn not found")
-    if (kind == "user" and msg.role != "user") or (kind == "assistant" and msg.role != "assistant"):
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Audio not found")
-    path = _resolved_audio_file(msg.audio_path)
-    media = "audio/webm" if kind == "user" else "audio/mpeg"
-    return FileResponse(path, media_type=media)
 
 
 @router.post("/sessions/{session_id}/end")
@@ -182,11 +130,7 @@ async def end_session_and_score(
     out = await finalize_session_scoring(db, session_id, user.id, scorer)
     # In practice, /end can race with the final WS turn commit on slower environments.
     # Retry briefly before returning "no turns saved" feedback.
-    if (
-        out is not None
-        and not out.get("turns")
-        and not out.get("averages")
-    ):
+    if out is not None and not out.get("turns") and not out.get("averages"):
         for delay_s in (0.35, 0.65):
             await asyncio.sleep(delay_s)
             out = await finalize_session_scoring(db, session_id, user.id, scorer)
@@ -195,7 +139,9 @@ async def end_session_and_score(
             if out.get("turns") or out.get("averages"):
                 break
     if out is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Session not found"
+        )
     return out
 
 
@@ -208,10 +154,10 @@ async def list_sessions(
     if limit < 1 or limit > 100:
         limit = 20
     result = await db.execute(
-        select(ConversationSession)
-        .options(selectinload(ConversationSession.topic))
-        .where(ConversationSession.user_id == user.id)
-        .order_by(ConversationSession.started_at.desc())
+        select(Session)
+        .options(selectinload(Session.topic))
+        .where(Session.user_id == user.id)
+        .order_by(Session.started_at.desc())
         .limit(limit)
     )
     sessions = result.scalars().all()
@@ -251,19 +197,21 @@ async def get_unit_step_summary(
 ) -> UnitStepSummaryOut:
     """Averages and roadmap thresholds for one session (e.g. after unit auto-complete)."""
     result = await db.execute(
-        select(ConversationSession)
+        select(Session)
         .options(
-            selectinload(ConversationSession.topic),
-            selectinload(ConversationSession.topic_unit),
+            selectinload(Session.topic),
+            selectinload(Session.topic_unit),
         )
-        .where(ConversationSession.id == session_id, ConversationSession.user_id == user.id)
+        .where(Session.id == session_id, Session.user_id == user.id)
     )
     session = result.scalar_one_or_none()
     if not session:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Session not found"
+        )
 
-    cnt, avg_o, avg_f, avg_v, avg_g = await roadmap_svc.scored_turn_averages_for_session(
-        db, session_id
+    cnt, avg_o, avg_f, avg_v, avg_g = (
+        await roadmap_svc.scored_turn_averages_for_session(db, session_id)
     )
     unit = session.topic_unit
     thresholds_met = False
@@ -304,15 +252,17 @@ async def get_session(
     user: User = Depends(get_current_user),
 ) -> SessionDetailOut:
     result = await db.execute(
-        select(ConversationSession)
+        select(Session)
         .options(
-            selectinload(ConversationSession.topic),
+            selectinload(Session.topic),
         )
-        .where(ConversationSession.id == session_id, ConversationSession.user_id == user.id)
+        .where(Session.id == session_id, Session.user_id == user.id)
     )
     session = result.scalar_one_or_none()
     if not session:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Session not found"
+        )
 
     msg_q = await db.execute(
         select(SessionMessage)

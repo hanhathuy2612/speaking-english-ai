@@ -1,0 +1,244 @@
+@use '../../../../styles/breakpoints' as bp;
+
+.page {
+  min-height: 60vh;
+
+  @include bp.max-sm {
+    padding-bottom: 24px;
+  }
+}
+
+.breadcrumb {
+  padding: 24px 0 0;
+  font-size: 0.875rem;
+  color: var(--clr-text-muted);
+
+  a {
+    color: var(--clr-accent);
+    text-decoration: none;
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  .sep {
+    margin: 0 8px;
+    opacity: 0.5;
+  }
+
+  .current {
+    color: var(--clr-text);
+  }
+}
+
+.hero {
+  padding: 16px 0 20px;
+
+  h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin: 0 0 8px;
+  }
+
+  .muted {
+    color: var(--clr-text-muted);
+    margin: 0;
+    max-width: 62ch;
+    line-height: 1.5;
+  }
+}
+
+.filters-card {
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius);
+  background: var(--clr-bg-elevated);
+  padding: 16px 20px;
+  margin-bottom: 20px;
+}
+
+.filters-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 16px;
+}
+
+.filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: min(100%, 240px);
+}
+
+.filter-label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--clr-text-muted);
+}
+
+.filter-ng-select {
+  display: block;
+  min-width: min(100%, 280px);
+}
+
+.filters-clear {
+  align-self: flex-end;
+}
+
+.filters-hint {
+  margin: 12px 0 0;
+  font-size: 0.8125rem;
+  color: var(--clr-text-muted);
+}
+
+.error {
+  color: var(--clr-danger, #c62828);
+  margin-bottom: 16px;
+}
+
+.table-wrap {
+  position: relative;
+  overflow-x: auto;
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius);
+  margin-bottom: 16px;
+}
+
+.table-loading {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: color-mix(in srgb, var(--clr-bg-elevated) 88%, transparent);
+  backdrop-filter: blur(2px);
+  font-size: 0.875rem;
+  color: var(--clr-text-muted);
+}
+
+.table-dimmed {
+  opacity: 0.45;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+
+  th,
+  td {
+    padding: 12px 14px;
+    text-align: left;
+    border-bottom: 1px solid var(--clr-border);
+    vertical-align: top;
+  }
+
+  th {
+    font-weight: 600;
+    background: var(--clr-bg-elevated);
+    white-space: nowrap;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--clr-text-muted);
+  }
+}
+
+.cell-user {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 140px;
+}
+
+.cell-user__email {
+  font-weight: 500;
+  word-break: break-all;
+}
+
+.cell-user__meta {
+  font-size: 0.75rem;
+  color: var(--clr-text-muted);
+}
+
+.topic-link {
+  color: var(--clr-accent);
+  text-decoration: none;
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.status-ended {
+  color: var(--clr-text-muted);
+}
+
+.status-active {
+  color: var(--clr-accent);
+  font-weight: 600;
+}
+
+.col-actions {
+  width: 1%;
+  white-space: nowrap;
+}
+
+.empty-cell {
+  text-align: center;
+  color: var(--clr-text-muted);
+  padding: 28px 16px;
+}
+
+.row-spin {
+  display: inline-block;
+  animation: admin-sessions-spin 0.7s linear infinite;
+}
+
+@keyframes admin-sessions-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.pagination-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 0.8125rem;
+  color: var(--clr-text-muted);
+
+  &--busy {
+    opacity: 0.55;
+    pointer-events: none;
+  }
+
+  ::ng-deep ngb-pagination .page-link {
+    color: var(--clr-text);
+    background: var(--clr-bg-elevated);
+    border-color: var(--clr-border);
+    &:hover {
+      background: var(--clr-surface-2);
+    }
+  }
+
+  ::ng-deep ngb-pagination .page-item.active .page-link {
+    background: var(--clr-accent);
+    border-color: var(--clr-accent);
+    color: #fff;
+  }
+}
+
+.spinner {
+  width: 22px;
+  height: 22px;
+  border: 2px solid var(--clr-border);
+  border-top-color: var(--clr-accent);
+  border-radius: 50%;
+  animation: admin-sessions-spin 0.7s linear infinite;
+}

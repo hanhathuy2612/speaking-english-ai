@@ -19,6 +19,9 @@ async def get_current_user(
     token = credentials.credentials
     try:
         payload = decode_token(token)
+        token_type = str(payload.get("typ", "access"))
+        if token_type != "access":
+            raise ValueError("Invalid token type")
         user_id: int = int(payload.get("sub", 0))
     except (ValueError, TypeError):
         raise HTTPException(

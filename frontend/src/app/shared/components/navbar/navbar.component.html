@@ -1,0 +1,78 @@
+<button
+  type="button"
+  class="app-nav-toggle"
+  [class.app-nav-toggle--with-sidebar]="menuOpen"
+  (click)="toggleMobileMenu()"
+  [attr.aria-expanded]="menuOpen"
+  aria-controls="app-sidebar-nav"
+  [attr.aria-label]="menuOpen ? 'Close sidebar' : 'Open sidebar'"
+>
+  @if (menuOpen) {
+    <i class="bi bi-layout-sidebar-inset" aria-hidden="true"></i>
+  } @else {
+    <i class="bi bi-layout-sidebar" aria-hidden="true"></i>
+  }
+</button>
+
+<header class="app-nav-mobile-header" role="banner">
+  <button
+    type="button"
+    class="app-nav-mobile-header__menu"
+    (click)="toggleMobileMenu()"
+    [attr.aria-expanded]="menuOpen"
+    aria-controls="app-sidebar-nav"
+    [attr.aria-label]="menuOpen ? 'Close menu' : 'Open menu'"
+  >
+    @if (menuOpen) {
+      <i class="bi bi-x-lg" aria-hidden="true"></i>
+    } @else {
+      <i class="bi bi-list" aria-hidden="true"></i>
+    }
+  </button>
+  <a routerLink="/topics" class="app-nav-mobile-header__title" (click)="onNavLinkClick()">SpeakAI</a>
+</header>
+
+<nav id="app-sidebar-nav" class="app-nav" [class.app-nav--open]="menuOpen" aria-label="Main">
+  <div class="app-nav__header">
+    <a
+      routerLink="/topics"
+      class="app-nav__logo"
+      routerLinkActive="active"
+      (click)="onNavLinkClick()"
+    >
+      <i class="bi bi-mic-fill app-nav__logo-icon" aria-hidden="true"></i>
+      <span>SpeakAI</span>
+    </a>
+  </div>
+
+  <div class="app-nav__links">
+    <a routerLink="/topics" routerLinkActive="active" (click)="onNavLinkClick()">Topics</a>
+    <a routerLink="/progress" routerLinkActive="active" (click)="onNavLinkClick()">Progress</a>
+    @if (account.isAdmin()) {
+      <div class="app-nav__group">
+        <span class="app-nav__group-title">Admin</span>
+        <a routerLink="/admin/users" routerLinkActive="active" (click)="onNavLinkClick()">Users</a>
+        <a routerLink="/admin/sessions" routerLinkActive="active" (click)="onNavLinkClick()"
+          >Sessions</a
+        >
+        <a routerLink="/admin/topics" routerLinkActive="active" (click)="onNavLinkClick()"
+          >Topics</a
+        >
+      </div>
+    }
+  </div>
+
+  <div class="app-nav__footer">
+    <span class="app-nav__username">{{ auth.getUsername() }}</span>
+    <button type="button" class="btn btn--ghost btn--sm" (click)="onLogoutClick()">Logout</button>
+  </div>
+</nav>
+
+@if (menuOpen) {
+  <button
+    type="button"
+    class="app-nav__backdrop"
+    aria-label="Close sidebar"
+    (click)="closeMobileMenu()"
+  ></button>
+}

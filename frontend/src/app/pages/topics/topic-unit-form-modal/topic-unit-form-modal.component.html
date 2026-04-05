@@ -1,64 +1,133 @@
-<div class="modal-header">
-  <h2 class="modal-title">Add roadmap step</h2>
-  <button type="button" class="btn-close" aria-label="Close" (click)="cancel()">
-    <i class="bi bi-x-lg" aria-hidden="true"></i>
-  </button>
-</div>
-<div class="modal-body">
-  @if (error) {
-    <p class="form-error">{{ error }}</p>
-  }
-  <label class="field">
-    <span>Sort order</span>
-    <input type="number" class="input" [(ngModel)]="sortOrder" min="0" />
-  </label>
-  <label class="field">
-    <span>Title</span>
-    <input type="text" class="input" [(ngModel)]="title" maxlength="255" />
-  </label>
-  <label class="field">
-    <span>Objective (for the learner)</span>
-    <textarea class="input input--textarea" rows="3" [(ngModel)]="objective"></textarea>
-  </label>
-  <label class="field">
-    <span>Tutor hint (for the AI)</span>
-    <textarea class="input input--textarea" rows="3" [(ngModel)]="promptHint"></textarea>
-  </label>
-  <label class="field">
-    <span>Min scored turns to auto-complete (optional)</span>
-    <input type="number" class="input" [(ngModel)]="minTurns" min="1" placeholder="e.g. 3" />
-    <small class="field-hint"
-      >Each turn is one of your spoken (or typed) lines that gets a score—not “AI questions.”</small
-    >
-  </label>
-  <label class="field">
-    <span>Min average overall score (optional, 0–10)</span>
-    <input
-      type="number"
-      class="input"
-      [(ngModel)]="minAvg"
-      min="0"
-      max="10"
-      step="0.1"
-      placeholder="e.g. 6"
-    />
-  </label>
-  <label class="field">
-    <span>Max scored turns per session (optional)</span>
-    <input
-      type="number"
-      class="input"
-      [(ngModel)]="maxScoredTurns"
-      min="1"
-      placeholder="e.g. 12 — block more practice in one sitting"
-    />
-  </label>
-</div>
-<div class="modal-footer">
-  <button type="button" class="btn btn--ghost" [disabled]="saving" (click)="cancel()">
-    Cancel
-  </button>
-  <button type="button" class="btn btn--primary" [disabled]="saving" (click)="submit()">
-    {{ saving ? 'Creating…' : 'Create' }}
-  </button>
-</div>
+@if (isModalShell) {
+  <div class="modal-header">
+    <h2 class="modal-title">{{ modalTitle() }}</h2>
+    <button type="button" class="btn-close" aria-label="Close" (click)="cancel()">
+      <i class="bi bi-x-lg" aria-hidden="true"></i>
+    </button>
+  </div>
+}
+<form (submit)="onFormSubmit($event)">
+  <div [class.modal-body]="isModalShell" [class.topic-unit-form__page-body]="!isModalShell">
+    @if (errorSignal()) {
+      <p class="form-error">{{ errorSignal() }}</p>
+    }
+    @if (!isEdit()) {
+      <label class="field" for="topic-unit-ai-idea">
+        <span>AI idea (optional)</span>
+        <textarea
+          id="topic-unit-ai-idea"
+          class="input input--textarea"
+          rows="2"
+          [formField]="unitForm.aiIdea"
+          placeholder="e.g. Beginner step about introducing yourself at work"
+        ></textarea>
+        <div class="ai-actions">
+          <button
+            type="button"
+            class="btn btn--secondary btn--sm"
+            [disabled]="saving() || aiGenerating()"
+            (click)="generateWithAi()"
+          >
+            {{ aiGenerating() ? 'Generating…' : 'Generate by AI' }}
+          </button>
+        </div>
+      </label>
+    }
+    <label class="field" for="topic-unit-sort-order">
+      <span>Sort order</span>
+      <input id="topic-unit-sort-order" type="number" class="input" [formField]="unitForm.sortOrder" />
+      @if (unitForm.sortOrder().touched() && unitForm.sortOrder().invalid()) {
+        <ul class="field-errors">
+          @for (err of unitForm.sortOrder().errors(); track err.message) {
+            <li>{{ err.message }}</li>
+          }
+        </ul>
+      }
+    </label>
+    <label class="field" for="topic-unit-title">
+      <span>Title</span>
+      <input id="topic-unit-title" type="text" class="input" [formField]="unitForm.title" />
+      @if (unitForm.title().touched() && unitForm.title().invalid()) {
+        <ul class="field-errors">
+          @for (err of unitForm.title().errors(); track err.message) {
+            <li>{{ err.message }}</li>
+          }
+        </ul>
+      }
+    </label>
+    <label class="field" for="topic-unit-objective">
+      <span>Objective (for the learner)</span>
+      <textarea
+        id="topic-unit-objective"
+        class="input input--textarea"
+        rows="3"
+        [formField]="unitForm.objective"
+      ></textarea>
+      @if (unitForm.objective().touched() && unitForm.objective().invalid()) {
+        <ul class="field-errors">
+          @for (err of unitForm.objective().errors(); track err.message) {
+            <li>{{ err.message }}</li>
+          }
+        </ul>
+      }
+    </label>
+    <label class="field" for="topic-unit-prompt-hint">
+      <span>Tutor hint (for the AI)</span>
+      <textarea
+        id="topic-unit-prompt-hint"
+        class="input input--textarea"
+        rows="3"
+        [formField]="unitForm.promptHint"
+      ></textarea>
+      @if (unitForm.promptHint().touched() && unitForm.promptHint().invalid()) {
+        <ul class="field-errors">
+          @for (err of unitForm.promptHint().errors(); track err.message) {
+            <li>{{ err.message }}</li>
+          }
+        </ul>
+      }
+    </label>
+    <label class="field" for="topic-unit-min-turns">
+      <span>Min scored turns to auto-complete (optional)</span>
+      <input
+        id="topic-unit-min-turns"
+        type="number"
+        class="input"
+        [formField]="unitForm.minTurns"
+        placeholder="e.g. 3"
+      />
+      <small class="field-hint"
+        >Each turn is one of your spoken (or typed) lines that gets a score—not “AI questions.”</small
+      >
+    </label>
+    <label class="field" for="topic-unit-min-avg">
+      <span>Min average overall score (optional, 0–10)</span>
+      <input
+        id="topic-unit-min-avg"
+        type="number"
+        class="input"
+        [formField]="unitForm.minAvg"
+        step="0.1"
+        placeholder="e.g. 6"
+      />
+    </label>
+    <label class="field" for="topic-unit-max-scored">
+      <span>Max scored turns per session (optional)</span>
+      <input
+        id="topic-unit-max-scored"
+        type="number"
+        class="input"
+        [formField]="unitForm.maxScoredTurns"
+        placeholder="e.g. 12 — block more practice in one sitting"
+      />
+    </label>
+  </div>
+  <div [class.modal-footer]="isModalShell" [class.topic-unit-form__page-footer]="!isModalShell">
+    <button type="button" class="btn btn--ghost" [disabled]="saving()" (click)="cancel()">
+      Cancel
+    </button>
+    <button type="submit" class="btn btn--primary" [disabled]="saving() || aiGenerating()">
+      {{ submitLabel() }}
+    </button>
+  </div>
+</form>

@@ -34,7 +34,7 @@ from .conversation_handler import ConversationHandler
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/ws", tags=["conversation"])
+router = APIRouter()
 
 
 def _authenticate_ws(token: str) -> int:

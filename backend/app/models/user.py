@@ -2,12 +2,12 @@ from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Annotated
 
 from app.db.session import Base
-from app.models.conversation import ConversationSession
+from app.models.session import Session
 from sqlalchemy import DateTime, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 if TYPE_CHECKING:
-    from app.models.conversation import UserTopicUnitProgress
+    from app.models.user_topic_unit_progress import UserTopicUnitProgress
     from app.models.role import UserRole
 
 int_pk = Annotated[int, mapped_column(primary_key=True, index=True)]
@@ -32,7 +32,7 @@ class User(Base):
     tts_voice: Mapped[str | None] = mapped_column(String(120), nullable=True)
     tts_rate: Mapped[str | None] = mapped_column(String(20), nullable=True)
 
-    sessions: Mapped[list["ConversationSession"]] = relationship(
+    sessions: Mapped[list["Session"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
     )
     topic_unit_progress_rows: Mapped[list["UserTopicUnitProgress"]] = relationship(

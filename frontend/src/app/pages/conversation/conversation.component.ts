@@ -283,7 +283,7 @@ export class ConversationComponent implements OnInit, OnDestroy {
           next[aiIdx] = { ...ai, turnId };
           const g = ai.guideline;
           if (g != null && String(g).trim() !== '') {
-            this.api.patchTurnGuideline(turnId, g).subscribe({ error: () => {} });
+            this.api.patchMessageGuideline(turnId, g).subscribe({ error: () => {} });
           }
         }
         return next;
@@ -778,7 +778,7 @@ export class ConversationComponent implements OnInit, OnDestroy {
       if (!canFetchUser && !canFetchAi) return;
       const apiKind = kind === 'user' ? 'user' : 'assistant';
       try {
-        buf = await firstValueFrom(this.api.getTurnAudio(msg.turnId, apiKind));
+        buf = await firstValueFrom(this.api.getMessageAudio(msg.turnId, apiKind));
       } catch {
         this.errorMessage.set('Could not load audio for this message.');
         this.cdr.markForCheck();

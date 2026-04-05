@@ -1,5 +1,6 @@
 from app.core.config import get_settings
-from app.models.conversation import Topic, TopicUnit
+from app.models.topic import Topic
+from app.models.topic_unit import TopicUnit
 from app.models.role import ROLE_ADMIN, ROLE_USER, Role, UserRole
 from app.models.user import User
 from sqlalchemy import select

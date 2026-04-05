@@ -1,0 +1,35 @@
+<div class="page">
+  <div class="container">
+    <nav class="breadcrumb">
+      <a routerLink="/topics">Topics</a>
+      <span class="sep" aria-hidden="true">/</span>
+      <a routerLink="/admin/topics">Admin</a>
+      <span class="sep" aria-hidden="true">/</span>
+      <a routerLink="/admin/topics">Topics</a>
+      <span class="sep" aria-hidden="true">/</span>
+      <span class="current">Edit</span>
+    </nav>
+
+    @if (loading()) {
+      <div class="loading">
+        <div class="spinner"></div>
+        <span>Loading…</span>
+      </div>
+    }
+
+    @if (!loading() && error()) {
+      <p class="error">{{ error() }}</p>
+      <p><a routerLink="/admin/topics" class="btn btn--secondary">Back to topics</a></p>
+    }
+
+    @if (!loading() && topic()) {
+      <header class="hero">
+        <div>
+          <h1>Edit topic</h1>
+          <p class="muted">Update title, description, and target level.</p>
+        </div>
+      </header>
+      <app-topic-form-modal [embeddedTopic]="topic()!" />
+    }
+  </div>
+</div>
