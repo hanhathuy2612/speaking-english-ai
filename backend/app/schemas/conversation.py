@@ -10,7 +10,10 @@ class MessageGuidelinePatchIn(BaseModel):
 
 
 class TurnOut(BaseModel):
+    """turn_id = assistant message row id (scores, TTS, guidelines). user_message_id = user row id (recordings)."""
+
     turn_id: int
+    user_message_id: int
     index_in_session: int
     user_text: str
     assistant_text: str

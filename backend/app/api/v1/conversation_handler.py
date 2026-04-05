@@ -691,11 +691,16 @@ class ConversationHandler:
         )
         db.add(assistant_msg)
         await db.commit()
+        await db.refresh(user_msg)
         await db.refresh(assistant_msg)
         await self._send(
             {
                 "type": "turn_saved",
                 "turnId": assistant_msg.id,
+                "userMessageId": user_msg.id,
+                "hasUserAudio": bool(
+                    user_msg.audio_path and str(user_msg.audio_path).strip()
+                ),
                 "indexInSession": self.turn_index,
             }
         )
@@ -782,11 +787,16 @@ class ConversationHandler:
         )
         db.add(assistant_msg)
         await db.commit()
+        await db.refresh(user_msg)
         await db.refresh(assistant_msg)
         await self._send(
             {
                 "type": "turn_saved",
                 "turnId": assistant_msg.id,
+                "userMessageId": user_msg.id,
+                "hasUserAudio": bool(
+                    user_msg.audio_path and str(user_msg.audio_path).strip()
+                ),
                 "indexInSession": self.turn_index,
             }
         )

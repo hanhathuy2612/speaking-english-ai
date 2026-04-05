@@ -22,7 +22,7 @@ export function mapSessionDetailTurnsToMessages(
     out.push({
       role: 'user',
       text: t.user_text,
-      turnId: t.turn_id,
+      turnId: t.user_message_id,
       ...(t.has_user_audio ? { hasUserRecording: true } : {}),
     });
     out.push({

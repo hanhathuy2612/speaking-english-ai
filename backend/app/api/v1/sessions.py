@@ -285,6 +285,7 @@ async def get_session(
         turns_out.append(
             TurnOut(
                 turn_id=m.id,
+                user_message_id=pending_user.id,
                 index_in_session=t_idx,
                 user_text=pending_user.text,
                 assistant_text=m.text,

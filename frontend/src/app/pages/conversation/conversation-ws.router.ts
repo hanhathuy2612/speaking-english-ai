@@ -25,8 +25,13 @@ export interface ConversationWsSink {
   onAssistantAudioChunk(bytes: ArrayBuffer): void;
   /** session_scores */
   onSessionScores(turns: SessionScoreTurn[], sessionFeedback: string | undefined): void;
-  /** turn_saved — server committed a Turn; client attaches turnId to transcript messages */
-  onTurnSaved(turnId: number, indexInSession: number): void;
+  /** turn_saved — assistantMessageId for AI bubble; userMessageId for user bubble (recordings). */
+  onTurnSaved(
+    assistantMessageId: number,
+    userMessageId: number,
+    hasUserAudio: boolean,
+    indexInSession: number,
+  ): void;
 }
 
 export function routeConversationWsMessage(
@@ -75,10 +80,19 @@ export function routeConversationWsMessage(
       );
       break;
     case 'turn_saved': {
-      const tid = msg['turnId'];
+      const assistantId = msg['turnId'];
+      const userId = msg['userMessageId'];
       const idx = msg['indexInSession'];
-      if (typeof tid === 'number' && Number.isFinite(tid) && typeof idx === 'number' && Number.isFinite(idx)) {
-        sink.onTurnSaved(tid, idx);
+      const hasUserAudio = msg['hasUserAudio'] === true;
+      if (
+        typeof assistantId === 'number' &&
+        Number.isFinite(assistantId) &&
+        typeof idx === 'number' &&
+        Number.isFinite(idx)
+      ) {
+        const uid =
+          typeof userId === 'number' && Number.isFinite(userId) ? userId : assistantId;
+        sink.onTurnSaved(assistantId, uid, hasUserAudio, idx);
       }
       break;
     }

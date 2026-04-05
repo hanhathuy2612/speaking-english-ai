@@ -86,6 +86,8 @@ export interface SessionEndScoreTurn {
 /** POST .../conversation/sessions/{id}/end — same scoring payload shape as WebSocket session_scores. */
 export interface SessionDetailTurn {
   turn_id: number;
+  /** DB id of the user message row (voice recording); use for user audio fetch. */
+  user_message_id: number;
   index_in_session: number;
   user_text: string;
   assistant_text: string;

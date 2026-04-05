@@ -11,11 +11,10 @@ export function mergeTurnScoresAndSessionFeedback(
   let ti = 0;
   for (let i = 0; i < list.length && ti < turns.length; i++) {
     if (list[i].role !== 'user') continue;
+    if (i + 1 >= list.length || list[i + 1].role !== 'ai') continue;
     const sc = turns[ti++];
-    list[i] = { ...list[i], turnId: sc.turnId };
-    if (i + 1 < list.length && list[i + 1].role === 'ai') {
-      list[i + 1] = { ...list[i + 1], turnId: sc.turnId };
-    }
+    // sc.turnId is the assistant message id; only the AI bubble should use it for API calls.
+    list[i + 1] = { ...list[i + 1], turnId: sc.turnId };
   }
 
   if (rawFb) {

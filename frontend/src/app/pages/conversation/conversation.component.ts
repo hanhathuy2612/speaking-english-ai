@@ -266,7 +266,7 @@ export class ConversationComponent implements OnInit, OnDestroy {
     onSessionScores: (turns, sessionFeedback) => {
       this.messages.set(mergeTurnScoresAndSessionFeedback(this.messages(), turns, sessionFeedback));
     },
-    onTurnSaved: (turnId, indexInSession) => {
+    onTurnSaved: (assistantMessageId, userMessageId, hasUserAudio, indexInSession) => {
       this.pendingTurnSaves.update((n) => (n > 0 ? n - 1 : 0));
       this.messages.update((list) => {
         const hasOpening = list.length > 0 && list[0].isOpeningLine === true;
@@ -276,14 +276,18 @@ export class ConversationComponent implements OnInit, OnDestroy {
         if (userIdx < 0 || aiIdx >= list.length) return list;
         const next = [...list];
         if (next[userIdx]?.role === 'user') {
-          next[userIdx] = { ...next[userIdx], turnId };
+          next[userIdx] = {
+            ...next[userIdx],
+            turnId: userMessageId,
+            ...(hasUserAudio ? { hasUserRecording: true } : {}),
+          };
         }
         const ai = next[aiIdx];
         if (ai?.role === 'ai' && !ai.isOpeningLine) {
-          next[aiIdx] = { ...ai, turnId };
+          next[aiIdx] = { ...ai, turnId: assistantMessageId };
           const g = ai.guideline;
           if (g != null && String(g).trim() !== '') {
-            this.api.patchMessageGuideline(turnId, g).subscribe({ error: () => {} });
+            this.api.patchMessageGuideline(assistantMessageId, g).subscribe({ error: () => {} });
           }
         }
         return next;
