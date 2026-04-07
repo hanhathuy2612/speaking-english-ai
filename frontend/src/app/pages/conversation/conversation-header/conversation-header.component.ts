@@ -1,4 +1,4 @@
-import { LEVEL_OPTIONS, TTS_RATE_OPTIONS } from '../conversation.constants';
+import { LEVEL_OPTIONS, TTS_RATE_OPTIONS } from '../model/constants';
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { FormsModule } from '@angular/forms';

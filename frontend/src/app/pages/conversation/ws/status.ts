@@ -1,5 +1,5 @@
-import type { TopicUnitWsMeta } from './conversation.models';
-import { topicUnitFromWsPayload } from './conversation.ws-helpers';
+import type { TopicUnitWsMeta } from '../model/models';
+import { topicUnitFromWsPayload } from './helpers';
 
 export interface StatusRouter {
   clearError(): void;

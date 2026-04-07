@@ -1,7 +1,7 @@
-import type { WsHistoryRow } from './conversation-history.mapper';
-import { mapWsHistoryToChatMessages } from './conversation-history.mapper';
-import { handleWsStatusPayload, type StatusRouter } from './conversation-ws-status';
-import type { SessionScoreTurn } from './conversation.models';
+import type { WsHistoryRow } from '../mappers/history.mapper';
+import { mapWsHistoryToChatMessages } from '../mappers/history.mapper';
+import type { SessionScoreTurn } from '../model/models';
+import { handleWsStatusPayload, type StatusRouter } from './status';
 
 const MAX_UNIT_TURNS_MSG =
   'You reached the maximum practice turns for this step in this session. Open the roadmap to continue or start again later.';

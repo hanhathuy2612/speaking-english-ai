@@ -1,4 +1,4 @@
-import type { ChatMessage } from '../conversation.models';
+import type { ChatMessage } from '../model/models';
 import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,

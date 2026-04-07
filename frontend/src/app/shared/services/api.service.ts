@@ -1,6 +1,6 @@
 import { environment } from '@/environments/environment';
 import { HttpClient } from '@angular/common/http';
-import { Injectable } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
 import { map, Observable } from 'rxjs';
 
 export interface Topic {
@@ -192,8 +192,7 @@ export interface AITopicUnitDraftOut {
 @Injectable({ providedIn: 'root' })
 export class ApiService {
   private readonly base = environment.apiBaseUrl;
-
-  constructor(private http: HttpClient) {}
+  private readonly http = inject(HttpClient);
 
   getTopics(): Observable<Topic[]> {
     return this.http.get<Topic[]>(`${this.base}/topics`);

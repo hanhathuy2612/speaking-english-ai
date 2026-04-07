@@ -1,4 +1,4 @@
-import type { TopicUnitWsMeta } from '../conversation.models';
+import type { TopicUnitWsMeta } from '../model/models';
 import { CollapseComponent } from '@/shared/ui';
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 

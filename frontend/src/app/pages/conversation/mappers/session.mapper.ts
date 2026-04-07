@@ -1,5 +1,5 @@
 import type { SessionDetailTurn } from '@/services/api.service';
-import type { ChatMessage } from './conversation.models';
+import type { ChatMessage } from '../model/models';
 
 /** Build chat transcript from GET /conversation/sessions/{id} (ended or in-progress). */
 export function mapSessionDetailTurnsToMessages(

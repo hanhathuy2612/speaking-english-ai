@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, DOCUMENT, inject, Input, Output, EventEmitter } from '@angular/core';
+import { Component, DOCUMENT, inject, model } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterModule } from '@angular/router';
 import { AccountService } from '../../services/account.service';
 import { AuthService } from '../../services/auth.service';
@@ -12,12 +12,11 @@ import { AuthService } from '../../services/auth.service';
   styleUrls: ['./navbar.component.scss'],
 })
 export class NavbarComponent {
-  auth = inject(AuthService);
-  account = inject(AccountService);
+  readonly auth = inject(AuthService);
+  readonly account = inject(AccountService);
   private readonly document = inject(DOCUMENT);
 
-  @Input() menuOpen = true;
-  @Output() menuOpenChange = new EventEmitter<boolean>();
+  readonly menuOpen = model(true);
 
   onNavLinkClick(): void {
     if (this.isMobileViewport()) {
@@ -26,7 +25,7 @@ export class NavbarComponent {
   }
 
   toggleMobileMenu(): void {
-    this.setMenuOpen(!this.menuOpen);
+    this.menuOpen.update((v) => !v);
   }
 
   closeMobileMenu(): void {
@@ -41,7 +40,7 @@ export class NavbarComponent {
   }
 
   private setMenuOpen(next: boolean): void {
-    this.menuOpenChange.emit(next);
+    this.menuOpen.set(next);
   }
 
   private isMobileViewport(): boolean {

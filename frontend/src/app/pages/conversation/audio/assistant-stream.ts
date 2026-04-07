@@ -1,4 +1,4 @@
-import type { ChatMessage } from './conversation.models';
+import type { ChatMessage } from '../model/models';
 
 /** Apply one assistant_partial WebSocket frame; returns new messages + streaming indices. */
 export function applyAssistantPartialFrame(

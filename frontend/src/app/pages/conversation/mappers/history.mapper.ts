@@ -1,4 +1,4 @@
-import type { ChatMessage } from './conversation.models';
+import type { ChatMessage } from '../model/models';
 
 export interface WsHistoryRow {
   role: string;

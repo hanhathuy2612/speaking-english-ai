@@ -82,13 +82,44 @@ Các lượt (học viên nói → gia sư trả lời), theo thứ tự:
 - Ngữ pháp: {gram:.1f}
 - Tổng thể: {ov:.1f}
 
-Viết MỘT tin nhắn duy nhất bằng tiếng Việt (giọng thân thiện), gồm:
-1) Một đoạn ngắn nêu lại điểm trung bình cả phiên (thang 10) cho: speaking/độ trôi chảy, từ vựng, ngữ pháp, tổng thể — dùng đúng các số đã cho ở trên (có thể gạch đầu dòng).
-2) Phần nhận xét: điểm mạnh/yếu nổi bật qua các lượt; chỉ ra lỗi sai cụ thể nếu có (ngữ pháp, từ vựng, cách nói).
-3) Gợi ý cách cải thiện rõ ràng theo từng mặt (nói, từ vựng, ngữ pháp) tùy mức điểm.
-4) Kết: một câu động viên.
+Viết MỘT tin nhắn duy nhất bằng tiếng Việt (giọng thân thiện), theo ĐÚNG cấu trúc sau:
 
-Không dùng markdown, không dùng JSON, không lặp lại toàn bộ hội thoại. Tối đa ~280 từ.
+Tổng kết điểm:
+- Speaking/độ trôi chảy: ...
+- Từ vựng: ...
+- Ngữ pháp: ...
+- Tổng thể: ...
+
+Điểm mạnh:
+- (2-3 ý, bám vào nội dung thật trong hội thoại)
+
+Lỗi phổ biến trong phiên:
+- (3-5 lỗi thường gặp, ví dụ: thì động từ, collocation, mạo từ, giới từ, word choice)
+- Mỗi lỗi nên nêu mẫu ngắn kiểu: "dùng X thay vì Y trong ngữ cảnh ..."
+
+Lỗi chi tiết theo từng câu:
+- Mỗi dòng theo mẫu:
+  [Lượt N] Câu gốc: "..."
+  -> Gợi ý: "..."
+  -> Lý do ngắn: ...
+- Chỉ liệt kê các lỗi thật sự có trong lời người học; tối thiểu 3 dòng nếu có đủ dữ liệu.
+- Nếu một câu đã tự nhiên, có thể ghi:
+  [Lượt N] Câu gốc: "..."
+  -> Đánh giá: Câu này ổn, tự nhiên.
+
+Kế hoạch cải thiện:
+- Speaking/độ trôi chảy: ...
+- Từ vựng: ...
+- Ngữ pháp: ...
+
+Kết:
+- 1 câu động viên ngắn.
+
+Quy tắc quan trọng:
+- PHẢI chỉ ra lỗi cụ thể theo từng câu, không nhận xét chung chung.
+- Không bịa nội dung không có trong hội thoại.
+- Không dùng markdown, không dùng JSON, không lặp lại toàn bộ hội thoại.
+- Giới hạn khoảng 320-520 từ để đủ chi tiết nhưng vẫn gọn.
 """
 
 
@@ -237,14 +268,26 @@ class ScoringService:
 
     def _fallback_session_feedback_vi(self, averages: dict[str, float]) -> str:
         return (
-            "📊 Điểm trung bình phiên (thang 10)\n"
-            f"• Speaking (độ trôi chảy): {averages['fluency']:.1f}\n"
-            f"• Từ vựng: {averages['vocabulary']:.1f}\n"
-            f"• Ngữ pháp: {averages['grammar']:.1f}\n"
-            f"• Tổng thể: {averages['overall']:.1f}\n\n"
-            "Hãy xem lại các câu bạn đã nói: thử nối ý bằng because / so / but, "
-            "dùng đúng thì động từ với chủ ngữ, và mở rộng từ vựng theo chủ đề. "
-            "Luyện nói thêm từng câu hoàn chỉnh — bạn đang tiến bộ!"
+            "Tổng kết điểm:\n"
+            f"- Speaking/độ trôi chảy: {averages['fluency']:.1f}\n"
+            f"- Từ vựng: {averages['vocabulary']:.1f}\n"
+            f"- Ngữ pháp: {averages['grammar']:.1f}\n"
+            f"- Tổng thể: {averages['overall']:.1f}\n\n"
+            "Điểm mạnh:\n"
+            "- Bạn đã duy trì được mạch trả lời và bám đúng chủ đề.\n\n"
+            "Lỗi phổ biến trong phiên:\n"
+            "- Dễ gặp lỗi chọn từ theo kiểu dịch trực tiếp từ tiếng Việt.\n"
+            "- Một số câu có thể chưa tự nhiên về collocation.\n"
+            "- Đôi lúc thiếu chi tiết cụ thể nên câu trả lời chưa đủ thuyết phục.\n\n"
+            "Lỗi chi tiết theo từng câu:\n"
+            "- Do hệ thống tóm tắt dự phòng, hiện chưa trích được từng câu sai tự động.\n"
+            "- Vui lòng xem lại từng lượt gần nhất và ưu tiên sửa: thì động từ, word choice, collocation.\n\n"
+            "Kế hoạch cải thiện:\n"
+            "- Speaking/độ trôi chảy: tập trả lời theo khung 2-3 ý + ví dụ ngắn.\n"
+            "- Từ vựng: học theo cụm từ (collocations), không học từ rời.\n"
+            "- Ngữ pháp: kiểm tra nhanh chủ ngữ-thì-động từ trước khi kết câu.\n\n"
+            "Kết:\n"
+            "- Bạn đang tiến bộ tốt, chỉ cần luyện đều để câu trả lời tự nhiên và chính xác hơn."
         )
 
     async def session_feedback_message(

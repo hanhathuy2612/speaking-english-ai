@@ -18,30 +18,27 @@ import {
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { finalize, firstValueFrom } from 'rxjs';
-import {
-  applyAssistantPartialFrame,
-  attachConcatenatedAiAudio,
-} from './conversation-assistant-stream';
+import { applyAssistantPartialFrame, attachConcatenatedAiAudio } from './audio/assistant-stream';
 import { ConversationControlsComponent } from './conversation-controls/conversation-controls.component';
 import { ConversationGuidePanelComponent } from './conversation-guide-panel/conversation-guide-panel.component';
-import { parseGuidelineSections, stringifyGuidelineSections } from './conversation-guidelines';
+import { parseGuidelineSections, stringifyGuidelineSections } from './audio/guidelines';
 import { ConversationHeaderComponent } from './conversation-header/conversation-header.component';
 import { ConversationMessageListComponent } from './conversation-message-list/conversation-message-list.component';
-import { mergeTurnScoresAndSessionFeedback } from './conversation-session-scoring';
-import { mapSessionDetailTurnsToMessages } from './conversation-session.mapper';
-import { mergeTurnSavedIntoMessages } from './conversation-turn-saved.merge';
-import { ConversationUnitBannerComponent } from './conversation-unit-banner/conversation-unit-banner.component';
-import { ConversationUnitCompleteModalComponent } from './conversation-unit-complete-modal/conversation-unit-complete-modal.component';
-import { routeConversationWsMessage, type ConversationWsSink } from './conversation-ws.router';
+import { mapSessionDetailTurnsToMessages } from './mappers/session.mapper';
+import { mergeTurnSavedIntoMessages } from './mappers/turn-saved.merge';
 import {
   GUIDE_PANEL_DEFAULT_W,
   GUIDE_PANEL_MAX_W,
   GUIDE_PANEL_MIN_W,
   GUIDE_PANEL_WIDTH_LS,
   NOOP,
-} from './conversation.constants';
-import type { ChatMessage, SessionScoreTurn, TopicUnitWsMeta } from './conversation.models';
-import { ConversationWsStartPayload } from './conversation.ws-helpers';
+} from './model/constants';
+import type { ChatMessage, SessionScoreTurn, TopicUnitWsMeta } from './model/models';
+import { mergeTurnScoresAndSessionFeedback } from './scoring/session-scoring';
+import { ConversationUnitBannerComponent } from './conversation-unit-banner/conversation-unit-banner.component';
+import { ConversationUnitCompleteModalComponent } from './conversation-unit-complete-modal/conversation-unit-complete-modal.component';
+import { routeConversationWsMessage, type ConversationWsSink } from './ws/router';
+import { ConversationWsStartPayload } from './ws/helpers';
 
 function messageFromHttpErrorDetail(err: { error?: { detail?: unknown } }): string | null {
   const d = err.error?.detail;
@@ -535,7 +532,7 @@ export class ConversationComponent implements OnInit, OnDestroy {
     this.ttsEnabled.update((v) => !v);
   }
 
-  onLevelChange(level: string | null): void {
+  onLevelChange(level: string | null = ''): void {
     const value = level ?? '';
     this.conversationLevel.set(value);
     if (this.connected()) {
@@ -811,6 +808,16 @@ export class ConversationComponent implements OnInit, OnDestroy {
     }
   }
 
+  /**
+   * Backend sends TTS chunks before text. Buffer playback until the first `assistant_partial`
+   * for this turn. After a completed assistant message, `lastAiMessageIndex` is not -1, so
+   * never use that alone as the guard — use "last bubble is still the user's line".
+   */
+  private _assistantAudioShouldWaitForFirstTextChunk(): boolean {
+    const last = this.messages().at(-1);
+    return last?.role === 'user';
+  }
+
   private _onWsUserTranscript(text: string, userAudio: ArrayBuffer | undefined): void {
     const userMsg: ChatMessage = { role: 'user', text };
     if (userAudio != null) {
@@ -819,6 +826,8 @@ export class ConversationComponent implements OnInit, OnDestroy {
       userMsg.userAudio = this.lastUserRecording;
       this.lastUserRecording = null;
     }
+    this.preTextAiAudioChunks = [];
+    this.preTextAiAudioEnded = false;
     this.messages.update((m) => [...m, userMsg]);
     this.pendingTurnSaves.update((n) => n + 1);
     this.pendingAiMsgIndex = -1;
@@ -870,7 +879,7 @@ export class ConversationComponent implements OnInit, OnDestroy {
   }
 
   private _onWsAssistantAudioEnd(): void {
-    if (this.lastAiMessageIndex === -1 && this.pendingAiMsgIndex === -1) {
+    if (this._assistantAudioShouldWaitForFirstTextChunk()) {
       this.preTextAiAudioEnded = true;
       return;
     }
@@ -878,7 +887,7 @@ export class ConversationComponent implements OnInit, OnDestroy {
   }
 
   private _onWsAssistantAudioChunk(bytes: ArrayBuffer): void {
-    if (this.lastAiMessageIndex === -1 && this.pendingAiMsgIndex === -1) {
+    if (this._assistantAudioShouldWaitForFirstTextChunk()) {
       this.preTextAiAudioChunks.push(bytes);
       return;
     }

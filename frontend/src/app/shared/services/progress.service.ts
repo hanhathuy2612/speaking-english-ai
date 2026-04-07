@@ -1,6 +1,6 @@
 import { environment } from '@/environments/environment';
 import { HttpClient } from '@angular/common/http';
-import { Injectable } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ProgressSummary } from './api.service';
 
@@ -22,8 +22,7 @@ export interface SessionsPageResponse {
 @Injectable({ providedIn: 'root' })
 export class ProgressService {
   private readonly base = environment.apiBaseUrl;
-
-  constructor(private http: HttpClient) {}
+  private readonly http = inject(HttpClient);
 
   getProgressSummary(): Observable<ProgressSummary> {
     return this.http.get<ProgressSummary>(`${this.base}/progress/summary`);

@@ -6,9 +6,7 @@
     </div>
   }
   @if (deviceChangedNotice()) {
-    <div class="conv-notice" role="status">
-      {{ deviceChangedNotice() }}
-    </div>
+    <output class="conv-notice" aria-live="polite">{{ deviceChangedNotice() }}</output>
   }
 
   <app-conversation-header
@@ -55,10 +53,10 @@
 
   <div class="conv-body">
     @if (sessionDetailLoading()) {
-      <div class="conv-session-detail-loading" role="status">
+      <output class="conv-session-detail-loading" >
         <div class="spinner"></div>
         <span>Loading conversation…</span>
-      </div>
+      </output>
     } @else {
       <div class="conv-main">
         <app-conversation-message-list

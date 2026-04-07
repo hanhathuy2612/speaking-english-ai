@@ -1,4 +1,4 @@
-import type { ChatMessage, SessionScoreTurn } from './conversation.models';
+import type { ChatMessage, SessionScoreTurn } from '../model/models';
 
 export function mergeTurnScoresAndSessionFeedback(
   messages: ChatMessage[],

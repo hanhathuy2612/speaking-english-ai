@@ -1,4 +1,4 @@
-import type { TopicUnitWsMeta } from './conversation.models';
+import type { TopicUnitWsMeta } from '../model/models';
 
 export interface ConversationWsStartPayload {
   type: 'start';
@@ -6,7 +6,7 @@ export interface ConversationWsStartPayload {
   ttsRate: string;
   ttsVoice: string;
   /**
-   * IELTS band override from the chat header. Omit entirely to use the topic’s stored default
+   * IELTS band override from the chat header. Omit entirely to use the topic's stored default
    * (server loads `topics.level` — the model never sees this JSON, only the built system prompt).
    */
   level?: string;

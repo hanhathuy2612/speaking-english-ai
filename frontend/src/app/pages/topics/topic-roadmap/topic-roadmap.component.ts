@@ -5,7 +5,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { NgbModal, NgbModalModule } from '@ng-bootstrap/ng-bootstrap';
 import { NgSelectComponent } from '@ng-select/ng-select';
 import { finalize } from 'rxjs';
-import { LEVEL_OPTIONS } from '../../conversation/conversation.constants';
+import { LEVEL_OPTIONS } from '../../conversation/model/constants';
 import {
   ApiService,
   RoadmapOut,
