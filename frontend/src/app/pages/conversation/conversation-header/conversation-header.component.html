@@ -57,9 +57,8 @@
     }
     @if (!archiveView()) {
       <div class="conv-header__tts-controls">
-        <div
+        <section
           class="conv-header__end-feedback"
-          role="region"
           [attr.aria-label]="
             sessionEndedWithFeedback() ? 'Start a new conversation' : 'End session and review'
           "
@@ -97,10 +96,12 @@
               }
             </button>
           }
-        </div>
-        <label class="conv-header__label">
+        </section>
+        <label class="conv-header__label" for="ielts-band-select">
           IELTS band
           <ng-select
+            id="ielts-band-select"
+            class="conv-header__band-dropdown"
             [items]="levelOptions"
             bindLabel="label"
             bindValue="value"
@@ -114,9 +115,11 @@
           </ng-select>
         </label>
 
-        <label class="conv-header__label">
+        <label class="conv-header__label" for="tts-rate-select">
           Speed
           <ng-select
+            id="tts-rate-select"
+            class="conv-header__tts-rate-dropdown"
             [items]="ttsRateOptions"
             [ngModel]="ttsRate()"
             (ngModelChange)="ttsRateChange.emit($event)"
@@ -127,9 +130,10 @@
           >
           </ng-select>
         </label>
-        <label class="conv-header__label">
+        <label class="conv-header__label" for="tts-voice-select">
           <span class="conv-header__voice-label">Voice</span>
           <ng-select
+            id="tts-voice-select"
             class="conv-header__voice-dropdown"
             [items]="ttsVoices()"
             bindLabel="name"

@@ -41,7 +41,10 @@
     } @else if (suggestions().length > 0) {
       <div class="conv-guide-panel__blocks">
         @for (s of suggestions(); track $index) {
-          <div class="conv-guide-panel__block conv-guide-markdown" [innerHTML]="s | markdownHtml"></div>
+          <div
+            class="conv-guide-panel__block conv-guide-markdown"
+            [innerHTML]="s | markdownHtml"
+          ></div>
         }
       </div>
     } @else {

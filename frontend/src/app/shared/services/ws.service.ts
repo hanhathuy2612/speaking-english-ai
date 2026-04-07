@@ -1,4 +1,4 @@
-import { Injectable, NgZone, OnDestroy } from '@angular/core';
+import { inject, Injectable, NgZone, OnDestroy } from '@angular/core';
 import { Subject } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { AuthService } from './auth.service';
@@ -19,11 +19,8 @@ export class WsService implements OnDestroy {
   readonly messages$ = new Subject<WsMessage>();
   readonly connected$ = new Subject<boolean>();
   readonly reconnecting$ = new Subject<boolean>();
-
-  constructor(
-    private auth: AuthService,
-    private zone: NgZone,
-  ) {}
+  private readonly zone = inject(NgZone);
+  private readonly auth = inject(AuthService);
 
   connect(topicId: number): void {
     this.intentionalClose = false;
@@ -31,6 +28,7 @@ export class WsService implements OnDestroy {
     this.reconnectAttempt = 0;
     this._clearReconnectTimer();
     this.reconnecting$.next(false);
+    this.connected$.next(false);
     this._doConnect(topicId);
   }
 
@@ -42,11 +40,14 @@ export class WsService implements OnDestroy {
       this.ws = null;
     }
     const token = this.auth.getToken() ?? '';
-    const wsBase =
-      environment.wsBaseUrl ||
-      (typeof location !== 'undefined'
-        ? (location.protocol === 'https:' ? 'wss:' : 'ws:') + '//' + location.host + '/api/v1'
-        : '/api/v1');
+    const hasLocation = typeof location !== 'undefined';
+    let fallbackWsBase = '/api/v1';
+    if (hasLocation) {
+      const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      fallbackWsBase = `${protocol}//${location.host}/api/v1`;
+    }
+    const wsBase = environment.wsBaseUrl || fallbackWsBase;
+
     const url = `${wsBase}/ws/conversation?token=${encodeURIComponent(token)}&topic_id=${topicId}`;
     this.ws = new WebSocket(url);
     this.ws.binaryType = 'arraybuffer';

@@ -12,22 +12,22 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
 
-from sqlalchemy import delete, func, select, update
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
-
+import app.services.topic_roadmap_service as roadmap_svc
 from app.core.config import get_settings
 from app.core.ielts_levels import resolve_ielts_band
 from app.models.session import Session
 from app.models.session_message import SessionMessage
 from app.models.topic import Topic
 from app.models.topic_unit import TopicUnit
-import app.services.topic_roadmap_service as roadmap_svc
 from app.services.conversation_session_finalize import finalize_session_scoring
-from app.services.lm_client import LMStudioClient, transcript_normalization_plausible
+from app.services.lm_client import (LMStudioClient,
+                                    transcript_normalization_plausible)
 from app.services.scoring_service import ScoringService
 from app.services.stt_service import STTService
 from app.services.tts_service import TTSService
+from sqlalchemy import delete, func, select, update
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +55,7 @@ def _lm_max_reply_tokens(base: int, level_raw: str) -> int:
         return min(base, 150)
     return min(base, 180)
 
+
 AUDIO_DIR = Path("audio")
 AUDIO_DIR.mkdir(exist_ok=True)
 
@@ -62,45 +63,79 @@ _BATCH_CHARS = 12
 _BATCH_INTERVAL = 0.04
 _TTS_BATCH_BYTES = 4000
 _TTS_BATCH_INTERVAL = 0.05
+_TEXT_BASE_CHARS_PER_SEC = 18.0
+_TEXT_MIN_CHARS_PER_SEC = 6.0
+_TEXT_MAX_CHARS_PER_SEC = 42.0
 
-    # When the tutor LM fails after the user's line was shown, we still persist a chat message so end-session scoring can run.
+# When the tutor LM fails after the user's line was shown, we still persist a chat message so end-session scoring can run.
 _AI_UNAVAILABLE_ASSISTANT_TEXT = (
     "Sorry — I couldn't reply just now. Your answer was still saved for this session."
 )
 
 
-async def stream_llm(
-    send: Callable[[dict], Any],
+async def generate_llm_text(
     lm: LMStudioClient,
     messages: list[dict[str, str]],
     *,
     temperature: float = 0.7,
     max_tokens: int = 256,
 ) -> str:
-    """Stream LLM response to client via assistant_partial; return full text."""
-    full = ""
+    """Get full assistant text first (no incremental WS text frames)."""
+    return await lm.generate_text(
+        messages, temperature=temperature, max_tokens=max_tokens
+    )
+
+
+def _tts_rate_to_multiplier(rate: str | None) -> float:
+    """
+    Map Azure-like TTS rate string (e.g. '+20%', '-10%') into a speed multiplier.
+    Falls back to 1.0 when parsing fails.
+    """
+    if rate is None:
+        return 1.0
+    s = str(rate).strip()
+    if s == "":
+        return 1.0
+    if s.endswith("%"):
+        s = s[:-1].strip()
+    try:
+        pct = float(s)
+    except ValueError:
+        return 1.0
+    mult = 1.0 + (pct / 100.0)
+    return max(0.35, min(mult, 3.0))
+
+
+def _paced_chars_per_second(rate: str | None) -> float:
+    cps = _TEXT_BASE_CHARS_PER_SEC * _tts_rate_to_multiplier(rate)
+    return max(_TEXT_MIN_CHARS_PER_SEC, min(cps, _TEXT_MAX_CHARS_PER_SEC))
+
+
+async def emit_text_chunks(
+    send: Callable[[dict], Any], text: str, *, rate: str | None = None
+) -> None:
+    """Send assistant text in paced chunks after audio is fully sent."""
+    cps = _paced_chars_per_second(rate)
     batch = ""
     last_sent = time.monotonic()
-    async for chunk in lm.generate_stream(
-        messages, temperature=temperature, max_tokens=max_tokens
-    ):
-        full += chunk
-        batch += chunk
+    for ch in text:
+        batch += ch
         now = time.monotonic()
         if (
             len(batch) >= _BATCH_CHARS
             or "\n" in batch
             or (now - last_sent) >= _BATCH_INTERVAL
         ):
-            if batch:
-                await send({"type": "assistant_partial", "text": batch, "done": False})
-                await asyncio.sleep(0.02)
+            out = batch
+            await send({"type": "assistant_partial", "text": out, "done": False})
             batch = ""
             last_sent = now
+            await asyncio.sleep(max(0.015, min(len(out) / cps, 0.30)))
     if batch:
-        await send({"type": "assistant_partial", "text": batch, "done": False})
+        out = batch
+        await send({"type": "assistant_partial", "text": out, "done": False})
+        await asyncio.sleep(max(0.015, min(len(out) / cps, 0.30)))
     await send({"type": "assistant_partial", "text": "", "done": True})
-    return full
 
 
 async def stream_tts(
@@ -133,7 +168,6 @@ async def stream_tts(
                     )
                     batch.clear()
                     last_sent = now
-                await asyncio.sleep(0.03)
         if batch:
             await send(
                 {
@@ -522,8 +556,7 @@ class ConversationHandler:
         )
         max_open_tokens = _opening_max_tokens(effective)
         try:
-            opening_text = await stream_llm(
-                self._send,
+            opening_text = await generate_llm_text(
                 self._lm,
                 messages,
                 temperature=0.7,
@@ -536,13 +569,6 @@ class ConversationHandler:
                 if self.topic_unit
                 else f"Hi! Let's talk about {self.topic.title}. What would you like to say?"
             )
-            await self._send(
-                {
-                    "type": "assistant_partial",
-                    "text": opening_text,
-                    "done": True,
-                }
-            )
         self.history.append({"role": "assistant", "content": opening_text})
         self._opening_text = opening_text or None
         tts_bytes = b""
@@ -554,6 +580,7 @@ class ConversationHandler:
                 voice=self._tts_voice,
                 rate=self._tts_rate,
             )
+            await emit_text_chunks(self._send, opening_text, rate=self._tts_rate)
         opening_audio_path: str | None = None
         if opening_text and self.session_id:
             user_dir = AUDIO_DIR / str(self._user_id) / str(self.session_id)
@@ -650,11 +677,12 @@ class ConversationHandler:
             topic_context=ctx,
             topic_level=effective or None,
         )
-        max_tokens = _lm_max_reply_tokens(settings.lm_conversation_max_tokens, effective)
+        max_tokens = _lm_max_reply_tokens(
+            settings.lm_conversation_max_tokens, effective
+        )
 
         try:
-            assistant_text = await stream_llm(
-                self._send,
+            assistant_text = await generate_llm_text(
                 self._lm,
                 messages,
                 temperature=0.7,
@@ -663,10 +691,6 @@ class ConversationHandler:
         except Exception:
             logger.exception("LM generate failed")
             assistant_text = _AI_UNAVAILABLE_ASSISTANT_TEXT
-            await self._send(
-                {"type": "assistant_partial", "text": assistant_text, "done": False}
-            )
-            await self._send({"type": "assistant_partial", "text": "", "done": True})
             await self._send({"type": "error", "message": "AI unavailable"})
 
         self.history.append({"role": "assistant", "content": assistant_text})
@@ -693,6 +717,16 @@ class ConversationHandler:
         await db.commit()
         await db.refresh(user_msg)
         await db.refresh(assistant_msg)
+
+        tts_path = user_dir / f"turn_{self.turn_index}_ai.mp3"
+        tts_bytes = await stream_tts(
+            self._send,
+            self._tts,
+            assistant_text,
+            voice=self._tts_voice,
+            rate=self._tts_rate,
+        )
+        await emit_text_chunks(self._send, assistant_text, rate=self._tts_rate)
         await self._send(
             {
                 "type": "turn_saved",
@@ -703,15 +737,6 @@ class ConversationHandler:
                 ),
                 "indexInSession": self.turn_index,
             }
-        )
-
-        tts_path = user_dir / f"turn_{self.turn_index}_ai.mp3"
-        tts_bytes = await stream_tts(
-            self._send,
-            self._tts,
-            assistant_text,
-            voice=self._tts_voice,
-            rate=self._tts_rate,
         )
         if tts_bytes:
             tts_path.write_bytes(tts_bytes)
@@ -746,11 +771,12 @@ class ConversationHandler:
             topic_level=effective or None,
         )
         settings = get_settings()
-        max_tokens = _lm_max_reply_tokens(settings.lm_conversation_max_tokens, effective)
+        max_tokens = _lm_max_reply_tokens(
+            settings.lm_conversation_max_tokens, effective
+        )
 
         try:
-            assistant_text = await stream_llm(
-                self._send,
+            assistant_text = await generate_llm_text(
                 self._lm,
                 messages,
                 temperature=0.7,
@@ -759,10 +785,6 @@ class ConversationHandler:
         except Exception:
             logger.exception("LM generate failed (text turn)")
             assistant_text = _AI_UNAVAILABLE_ASSISTANT_TEXT
-            await self._send(
-                {"type": "assistant_partial", "text": assistant_text, "done": False}
-            )
-            await self._send({"type": "assistant_partial", "text": "", "done": True})
             await self._send({"type": "error", "message": "AI unavailable"})
 
         self.history.append({"role": "assistant", "content": assistant_text})
@@ -789,17 +811,6 @@ class ConversationHandler:
         await db.commit()
         await db.refresh(user_msg)
         await db.refresh(assistant_msg)
-        await self._send(
-            {
-                "type": "turn_saved",
-                "turnId": assistant_msg.id,
-                "userMessageId": user_msg.id,
-                "hasUserAudio": bool(
-                    user_msg.audio_path and str(user_msg.audio_path).strip()
-                ),
-                "indexInSession": self.turn_index,
-            }
-        )
 
         user_dir = AUDIO_DIR / str(self._user_id) / str(self.session_id)
         user_dir.mkdir(parents=True, exist_ok=True)
@@ -810,6 +821,18 @@ class ConversationHandler:
             assistant_text,
             voice=self._tts_voice,
             rate=self._tts_rate,
+        )
+        await emit_text_chunks(self._send, assistant_text, rate=self._tts_rate)
+        await self._send(
+            {
+                "type": "turn_saved",
+                "turnId": assistant_msg.id,
+                "userMessageId": user_msg.id,
+                "hasUserAudio": bool(
+                    user_msg.audio_path and str(user_msg.audio_path).strip()
+                ),
+                "indexInSession": self.turn_index,
+            }
         )
         if tts_bytes:
             tts_path.write_bytes(tts_bytes)
@@ -926,9 +949,7 @@ class ConversationHandler:
         if sid and self.topic:
             await self._score_pending_turns_and_send_summary(db)
         elif sid:
-            sess_q = await db.execute(
-                select(Session).where(Session.id == sid)
-            )
+            sess_q = await db.execute(select(Session).where(Session.id == sid))
             sess = sess_q.scalar_one_or_none()
             if sess is not None:
                 sess.ended_at = datetime.now(timezone.utc)

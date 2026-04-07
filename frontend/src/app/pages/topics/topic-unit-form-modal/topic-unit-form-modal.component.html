@@ -35,7 +35,12 @@
     }
     <label class="field" for="topic-unit-sort-order">
       <span>Sort order</span>
-      <input id="topic-unit-sort-order" type="number" class="input" [formField]="unitForm.sortOrder" />
+      <input
+        id="topic-unit-sort-order"
+        type="number"
+        class="input"
+        [formField]="unitForm.sortOrder"
+      />
       @if (unitForm.sortOrder().touched() && unitForm.sortOrder().invalid()) {
         <ul class="field-errors">
           @for (err of unitForm.sortOrder().errors(); track err.message) {
@@ -97,7 +102,8 @@
         placeholder="e.g. 3"
       />
       <small class="field-hint"
-        >Each turn is one of your spoken (or typed) lines that gets a score—not “AI questions.”</small
+        >Each turn is one of your spoken (or typed) lines that gets a score—not “AI
+        questions.”</small
       >
     </label>
     <label class="field" for="topic-unit-min-avg">

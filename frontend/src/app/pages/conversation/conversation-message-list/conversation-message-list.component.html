@@ -26,7 +26,10 @@
         [class.bubble--ai]="m.role === 'ai'"
         [class.bubble--clickable]="m.role === 'ai' && !m.partial && !m.sessionRecap"
         (click)="
-          m.role === 'ai' && !m.partial && !m.sessionRecap && guideOpen.emit({ message: m, index: $index })
+          m.role === 'ai' &&
+            !m.partial &&
+            !m.sessionRecap &&
+            guideOpen.emit({ message: m, index: $index })
         "
         [title]="m.role === 'ai' && !m.partial && !m.sessionRecap ? 'Click for tips' : null"
       >
@@ -38,9 +41,7 @@
           }
         } @else {
           <span>{{ m.text }}</span>
-          <span class="typing" aria-hidden="true">
-            <span></span><span></span><span></span>
-          </span>
+          <span class="typing" aria-hidden="true"> <span></span><span></span><span></span> </span>
         }
       </div>
       <div class="msg-actions">

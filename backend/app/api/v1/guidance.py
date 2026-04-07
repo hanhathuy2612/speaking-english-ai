@@ -147,7 +147,7 @@ async def get_guidance_for_question(
     lvl_tag = _guidance_level_tag(body.level)
 
     lm = LMStudioClient()
-    guidance_model = (get_settings().lmstudio_guidance_model or "").strip() or None
+    guidance_model = (get_settings().openai_guidance_model or "").strip() or None
     messages = [
         {
             "role": "user",

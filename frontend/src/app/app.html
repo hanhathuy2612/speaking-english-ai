@@ -5,7 +5,10 @@
   [class.app-main--conversation]="hiddenNavbar()"
 >
   @if (auth.isLoggedIn() && !hiddenNavbar()) {
-    <app-navbar [menuOpen]="mobileMenuOpen()" (menuOpenChange)="mobileMenuOpen.set($event)"></app-navbar>
+    <app-navbar
+      [menuOpen]="mobileMenuOpen()"
+      (menuOpenChange)="mobileMenuOpen.set($event)"
+    ></app-navbar>
   }
 
   <div class="app-main__content">

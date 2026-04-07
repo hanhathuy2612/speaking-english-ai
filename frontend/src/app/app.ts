@@ -1,11 +1,7 @@
 import { CommonModule, DOCUMENT } from '@angular/common';
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import {
-  NavigationEnd,
-  Router,
-  RouterOutlet,
-} from '@angular/router';
+import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs';
 import { NavbarComponent } from './shared/components/navbar/navbar.component';
 import { AccountService } from './shared/services/account.service';

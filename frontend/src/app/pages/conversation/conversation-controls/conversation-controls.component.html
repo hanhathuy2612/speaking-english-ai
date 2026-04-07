@@ -48,9 +48,7 @@
       [ngModel]="chatInput()"
       (ngModelChange)="chatInput.set($event)"
       (keyup.enter)="sendText.emit()"
-      [placeholder]="
-        messagesCount() === 0 ? 'Wait for AI to say hello…' : 'Type your reply…'
-      "
+      [placeholder]="messagesCount() === 0 ? 'Wait for AI to say hello…' : 'Type your reply…'"
       [disabled]="!connected() || messagesCount() === 0 || aiSpeaking()"
     />
     <button

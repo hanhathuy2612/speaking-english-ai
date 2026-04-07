@@ -1,22 +1,11 @@
 import { NgSelectComponent } from '@ng-select/ng-select';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import {
-  Component,
-  computed,
-  inject,
-  InjectionToken,
-  input,
-  OnInit,
-  signal,
-} from '@angular/core';
+import { Component, computed, inject, InjectionToken, input, OnInit, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { NgbActiveModal, NgbModalModule } from '@ng-bootstrap/ng-bootstrap';
 import { finalize } from 'rxjs';
-import {
-  IELTS_SPEAKING_BAND_VALUES,
-  normalizeIeltsLevelInput,
-} from '../../../shared/ielts-levels';
+import { IELTS_SPEAKING_BAND_VALUES, normalizeIeltsLevelInput } from '../../../shared/ielts-levels';
 import { ApiService, Topic } from '../../../shared/services/api.service';
 
 /** Khi có giá trị = edit, không provide hoặc null = create */

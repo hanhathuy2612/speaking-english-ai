@@ -8,13 +8,7 @@ import { NgOptionTemplateDirective, NgSelectComponent } from '@ng-select/ng-sele
 @Component({
   selector: 'app-conversation-header',
   standalone: true,
-  imports: [
-    CommonModule,
-    FormsModule,
-    RouterLink,
-    NgSelectComponent,
-    NgOptionTemplateDirective,
-  ],
+  imports: [CommonModule, FormsModule, RouterLink, NgSelectComponent, NgOptionTemplateDirective],
   templateUrl: './conversation-header.component.html',
   styleUrl: './conversation-header.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -1,14 +1,13 @@
 from __future__ import annotations
 
 import difflib
-import json
 import logging
 import re
 import time
 from collections.abc import AsyncIterator
 from typing import Any
 
-import httpx
+from openai import AsyncOpenAI, OpenAIError
 
 from app.core.config import get_settings
 from app.core.ielts_levels import format_ielts_band, resolve_ielts_band
@@ -77,27 +76,31 @@ def _ielts_tutor_instruction(band: float) -> str:
     )
 
 
-class LMStudioClient:
-    """Wrapper around LM Studio's OpenAI-compatible /v1/chat/completions endpoint."""
+class OpenAIClient:
+    """Wrapper around OpenAI-compatible chat-completions endpoint."""
 
     def __init__(self) -> None:
         settings = get_settings()
-        self._base_url = (
-            str(settings.lmstudio_base_url).rstrip("/")
-            if settings.lmstudio_base_url
-            else "http://localhost:1234"
+        base_url = (
+            str(settings.openai_base_url).strip() if settings.openai_base_url else ""
         )
-        self._api_key = settings.lmstudio_api_key
-        self._model = settings.lmstudio_model
+        if base_url and not base_url.rstrip("/").endswith("/v1"):
+            base_url = f"{base_url.rstrip('/')}/v1"
+        self._api_key = settings.openai_api_key or "lm-studio"
+        self._model = settings.openai_model
         self._extra_system = settings.lm_system_prompt_extra
         self._timeout = float(settings.request_timeout_seconds)
-        self._http = httpx.AsyncClient(timeout=self._timeout)
+        self._client = AsyncOpenAI(
+            api_key=self._api_key,
+            base_url=base_url.rstrip("/") if base_url else None,
+            timeout=self._timeout,
+        )
 
     async def aclose(self) -> None:
-        """Close the underlying HTTP client. Safe to call multiple times."""
-        await self._http.aclose()
+        """Close the underlying SDK client. Safe to call multiple times."""
+        await self._client.close()
 
-    async def __aenter__(self) -> LMStudioClient:
+    async def __aenter__(self) -> OpenAIClient:
         return self
 
     async def __aexit__(self, *exc: object) -> None:
@@ -124,12 +127,6 @@ class LMStudioClient:
             system += f"\n\n{self._extra_system.strip()}"
         return [{"role": "system", "content": system}, *history]
 
-    def _headers(self) -> dict[str, str]:
-        headers: dict[str, str] = {"Content-Type": "application/json"}
-        if self._api_key:
-            headers["Authorization"] = f"Bearer {self._api_key}"
-        return headers
-
     async def generate_stream(
         self,
         messages: list[dict[str, Any]],
@@ -138,49 +135,34 @@ class LMStudioClient:
         *,
         model: str | None = None,
     ) -> AsyncIterator[str]:
-        """Call LM Studio in streaming mode and yield text chunks."""
-        payload: dict[str, Any] = {
-            "model": (model.strip() if model else None) or self._model,
-            "messages": messages,
-            "temperature": temperature,
-            "max_tokens": max_tokens,
-            "stream": True,
-        }
+        """Call OpenAI-compatible endpoint in streaming mode and yield text chunks."""
+        req_model = (model.strip() if model else None) or self._model
         t0 = time.monotonic()
         token_count = 0
         try:
-            async with self._http.stream(
-                "POST",
-                f"{self._base_url}/v1/chat/completions",
-                headers=self._headers(),
-                json=payload,
-            ) as response:
-                response.raise_for_status()
-                async for line in response.aiter_lines():
-                    if not line or not line.startswith("data: "):
-                        continue
-                    data = line.removeprefix("data: ").strip()
-                    if data == "[DONE]":
-                        break
-                    try:
-                        chunk = json.loads(data)
-                    except json.JSONDecodeError:
-                        continue
-                    delta = (
-                        chunk.get("choices", [{}])[0].get("delta", {}).get("content")
-                    )
-                    if delta:
-                        token_count += 1
-                        yield delta
-        except httpx.HTTPStatusError:
+            stream = await self._client.chat.completions.create(
+                model=req_model,
+                messages=messages,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                stream=True,
+            )
+            async for chunk in stream:
+                if not chunk.choices:
+                    continue
+                delta = chunk.choices[0].delta.content
+                if delta:
+                    token_count += 1
+                    yield delta
+        except OpenAIError:
             log.exception(
-                "LM Studio returned error (elapsed=%.1fs)",
+                "OpenAI endpoint returned error (elapsed=%.1fs)",
                 time.monotonic() - t0,
             )
             raise
-        except httpx.RequestError:
+        except Exception:
             log.exception(
-                "LM Studio request failed (elapsed=%.1fs)",
+                "OpenAI request failed (elapsed=%.1fs)",
                 time.monotonic() - t0,
             )
             raise
@@ -202,12 +184,17 @@ class LMStudioClient:
         model: str | None = None,
     ) -> str:
         """Non-streaming version — returns full text (used for scoring)."""
-        chunks: list[str] = []
-        async for chunk in self.generate_stream(
-            messages, temperature, max_tokens, model=model
-        ):
-            chunks.append(chunk)
-        return "".join(chunks)
+        req_model = (model.strip() if model else None) or self._model
+        response = await self._client.chat.completions.create(
+            model=req_model,
+            messages=messages,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
+        if not response.choices:
+            return ""
+        content = response.choices[0].message.content
+        return content if isinstance(content, str) else ""
 
     async def normalize_transcript(
         self,
@@ -310,3 +297,7 @@ def _normalize_transcript_cleanup(text: str) -> str:
     if len(s) >= 2 and s[0] in "\"'" and s[-1] == s[0]:
         s = s[1:-1].strip()
     return s
+
+
+# Backward compatibility for old imports.
+LMStudioClient = OpenAIClient

@@ -158,6 +158,9 @@ export class AudioService {
   private streamingCtx: AudioContext | null = null;
   private streamingNextStart = 0;
   private streamingScheduledCount = 0;
+  private streamingQueuedDecodes = 0;
+  private streamingPendingBytes: Uint8Array | null = null;
+  private streamingChain: Promise<void> = Promise.resolve();
   private streamingEndResolve: (() => void) | null = null;
   private streamingEndRequested = false;
 
@@ -185,6 +188,9 @@ export class AudioService {
     }
     this.streamingNextStart = 0;
     this.streamingScheduledCount = 0;
+    this.streamingQueuedDecodes = 0;
+    this.streamingPendingBytes = null;
+    this.streamingChain = Promise.resolve();
     this.streamingEndRequested = true;
     if (this.streamingEndResolve) {
       this.streamingEndResolve();
@@ -192,11 +198,11 @@ export class AudioService {
     }
   }
 
-  private _onStreamingChunkEnded(): void {
-    this.streamingScheduledCount--;
+  private _tryResolveStreamingEnd(): void {
     if (
       this.streamingEndRequested &&
       this.streamingScheduledCount <= 0 &&
+      this.streamingQueuedDecodes <= 0 &&
       this.streamingEndResolve
     ) {
       const resolve = this.streamingEndResolve;
@@ -207,9 +213,16 @@ export class AudioService {
       }
       this.streamingNextStart = 0;
       this.streamingScheduledCount = 0;
+      this.streamingQueuedDecodes = 0;
+      this.streamingPendingBytes = null;
       this.streamingEndRequested = false;
       resolve();
     }
+  }
+
+  private _onStreamingChunkEnded(): void {
+    this.streamingScheduledCount--;
+    this._tryResolveStreamingEnd();
   }
 
   /**
@@ -218,27 +231,43 @@ export class AudioService {
    */
   enqueueStreamingChunk(data: ArrayBuffer): void {
     if (!data?.byteLength) return;
-    (async () => {
+    this.streamingQueuedDecodes++;
+    this.streamingChain = this.streamingChain.then(async () => {
       if (!this.streamingCtx) {
         this.streamingCtx = new AudioContext();
         this.streamingNextStart = this.streamingCtx.currentTime;
         this.streamingEndRequested = false;
       }
       const ctx = this.streamingCtx;
+      const incoming = new Uint8Array(data);
+      let payload = incoming;
+      const pending = this.streamingPendingBytes;
+      if (pending) {
+        const merged = new Uint8Array(pending.byteLength + incoming.byteLength);
+        merged.set(pending);
+        merged.set(incoming, pending.byteLength);
+        payload = merged;
+      }
       try {
-        const buf = await ctx.decodeAudioData(data.slice(0));
+        const buf = await ctx.decodeAudioData(payload.buffer.slice(0));
+        this.streamingPendingBytes = null;
         const src = ctx.createBufferSource();
         src.buffer = buf;
         src.connect(ctx.destination);
-        const startAt = this.streamingNextStart;
-        this.streamingNextStart += buf.duration;
+        const lookaheadSec = 0.03;
+        const startAt = Math.max(this.streamingNextStart, ctx.currentTime + lookaheadSec);
+        this.streamingNextStart = startAt + buf.duration;
         this.streamingScheduledCount++;
         src.onended = () => this._onStreamingChunkEnded();
         src.start(startAt);
       } catch {
-        this._onStreamingChunkEnded();
+        // Chunk may be a partial frame; keep bytes and retry with the next chunk.
+        this.streamingPendingBytes = payload;
+      } finally {
+        this.streamingQueuedDecodes--;
+        this._tryResolveStreamingEnd();
       }
-    })();
+    });
   }
 
   /**
@@ -249,17 +278,7 @@ export class AudioService {
     this.streamingEndRequested = true;
     return new Promise<void>((resolve) => {
       this.streamingEndResolve = resolve;
-      if (this.streamingScheduledCount <= 0) {
-        if (this.streamingCtx) {
-          this.streamingCtx.close().catch(() => {});
-          this.streamingCtx = null;
-        }
-        this.streamingNextStart = 0;
-        this.streamingScheduledCount = 0;
-        this.streamingEndRequested = false;
-        this.streamingEndResolve = null;
-        resolve();
-      }
+      this._tryResolveStreamingEnd();
     });
   }
 

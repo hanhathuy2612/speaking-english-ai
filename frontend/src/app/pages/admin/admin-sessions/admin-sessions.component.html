@@ -65,8 +65,8 @@
       </div>
       @if (!metaLoading() && users().length >= usersFilterLimit) {
         <p class="filters-hint">
-          User list shows the first {{ usersFilterLimit }} accounts. Narrow with filters or use Users
-          admin to find an id.
+          User list shows the first {{ usersFilterLimit }} accounts. Narrow with filters or use
+          Users admin to find an id.
         </p>
       }
     </div>
@@ -102,7 +102,9 @@
                 <td>
                   <div class="cell-user">
                     <span class="cell-user__email">{{ s.user_email }}</span>
-                    <span class="cell-user__meta">&#64;{{ s.user_username }} · id {{ s.user_id }}</span>
+                    <span class="cell-user__meta"
+                      >&#64;{{ s.user_username }} · id {{ s.user_id }}</span
+                    >
                   </div>
                 </td>
                 <td>

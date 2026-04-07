@@ -31,7 +31,9 @@
         <div>
           <h1>{{ isEdit() ? 'Edit step' : 'Add step' }}</h1>
           <p class="muted">
-            {{ isEdit() ? 'Update roadmap step details.' : 'Create a new guided step for this topic.' }}
+            {{
+              isEdit() ? 'Update roadmap step details.' : 'Create a new guided step for this topic.'
+            }}
           </p>
         </div>
       </header>

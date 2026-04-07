@@ -1,27 +1,5 @@
-import { ConversationControlsComponent } from './conversation-controls/conversation-controls.component';
-import { ConversationGuidePanelComponent } from './conversation-guide-panel/conversation-guide-panel.component';
-import { ConversationHeaderComponent } from './conversation-header/conversation-header.component';
-import { ConversationMessageListComponent } from './conversation-message-list/conversation-message-list.component';
-import { ConversationUnitBannerComponent } from './conversation-unit-banner/conversation-unit-banner.component';
-import { ConversationUnitCompleteModalComponent } from './conversation-unit-complete-modal/conversation-unit-complete-modal.component';
-import {
-  GUIDE_PANEL_DEFAULT_W,
-  GUIDE_PANEL_MAX_W,
-  GUIDE_PANEL_MIN_W,
-  GUIDE_PANEL_WIDTH_LS,
-  NOOP,
-} from './conversation.constants';
-import {
-  applyAssistantPartialFrame,
-  attachConcatenatedAiAudio,
-} from './conversation-assistant-stream';
-import type { ChatMessage, TopicUnitWsMeta } from './conversation.models';
-import { mergeTurnScoresAndSessionFeedback } from './conversation-session-scoring';
-import { ConversationWsStartPayload } from './conversation.ws-helpers';
-import { routeConversationWsMessage, type ConversationWsSink } from './conversation-ws.router';
 import { AccountService } from '@/app/shared/services/account.service';
 import { ApiService, UnitStepSummary } from '@/services/api.service';
-import { mapSessionDetailTurnsToMessages } from './conversation-session.mapper';
 import { AudioService } from '@/services/audio.service';
 import { WsMessage, WsService } from '@/services/ws.service';
 import { CommonModule } from '@angular/common';
@@ -40,25 +18,38 @@ import {
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { finalize, firstValueFrom } from 'rxjs';
+import {
+  applyAssistantPartialFrame,
+  attachConcatenatedAiAudio,
+} from './conversation-assistant-stream';
+import { ConversationControlsComponent } from './conversation-controls/conversation-controls.component';
+import { ConversationGuidePanelComponent } from './conversation-guide-panel/conversation-guide-panel.component';
+import { parseGuidelineSections, stringifyGuidelineSections } from './conversation-guidelines';
+import { ConversationHeaderComponent } from './conversation-header/conversation-header.component';
+import { ConversationMessageListComponent } from './conversation-message-list/conversation-message-list.component';
+import { mergeTurnScoresAndSessionFeedback } from './conversation-session-scoring';
+import { mapSessionDetailTurnsToMessages } from './conversation-session.mapper';
+import { mergeTurnSavedIntoMessages } from './conversation-turn-saved.merge';
+import { ConversationUnitBannerComponent } from './conversation-unit-banner/conversation-unit-banner.component';
+import { ConversationUnitCompleteModalComponent } from './conversation-unit-complete-modal/conversation-unit-complete-modal.component';
+import { routeConversationWsMessage, type ConversationWsSink } from './conversation-ws.router';
+import {
+  GUIDE_PANEL_DEFAULT_W,
+  GUIDE_PANEL_MAX_W,
+  GUIDE_PANEL_MIN_W,
+  GUIDE_PANEL_WIDTH_LS,
+  NOOP,
+} from './conversation.constants';
+import type { ChatMessage, SessionScoreTurn, TopicUnitWsMeta } from './conversation.models';
+import { ConversationWsStartPayload } from './conversation.ws-helpers';
 
-/** Client cache as JSON array; server/API may use newline-separated text. */
-function parseGuidelineSections(raw: string | undefined): string[] | null {
-  if (raw == null || !String(raw).trim()) return null;
-  const t = String(raw).trim();
-  if (t.startsWith('[')) {
-    try {
-      const p = JSON.parse(t) as unknown;
-      if (Array.isArray(p) && p.every((x) => typeof x === 'string')) return p;
-    } catch {
-      /* fall through */
-    }
+function messageFromHttpErrorDetail(err: { error?: { detail?: unknown } }): string | null {
+  const d = err.error?.detail;
+  if (typeof d === 'string') return d;
+  if (Array.isArray(d) && d.length > 0 && typeof (d[0] as { msg?: string }).msg === 'string') {
+    return (d[0] as { msg: string }).msg;
   }
-  const lines = t.split('\n').filter(Boolean);
-  return lines.length ? lines : null;
-}
-
-function stringifyGuidelineSections(sections: string[]): string {
-  return JSON.stringify(sections);
+  return null;
 }
 
 @Component({
@@ -164,12 +155,14 @@ export class ConversationComponent implements OnInit, OnDestroy {
   private pendingAiMsgIndex = -1;
   private lastAiMessageIndex = -1;
   private currentAiAudioChunks: ArrayBuffer[] = [];
+  private preTextAiAudioChunks: ArrayBuffer[] = [];
+  private preTextAiAudioEnded = false;
   private lastUserRecording: ArrayBuffer | null = null;
   private partialUpdateScheduled = false;
-  private userPrefsApplied = signal(false);
+  private readonly userPrefsApplied = signal(false);
   private startSentForConnection = false;
   private readonly _mqMinNav =
-    typeof matchMedia !== 'undefined' ? matchMedia('(min-width: 768px)') : null;
+    typeof matchMedia === 'undefined' ? null : matchMedia('(min-width: 768px)');
   private _mqMinNavOff: (() => void) | null = null;
   private _guideResizeAbort: (() => void) | null = null;
   private _unitBannerTrackedId: number | null = null;
@@ -192,8 +185,8 @@ export class ConversationComponent implements OnInit, OnDestroy {
     if (sid <= 0) return false;
     const msgs = this.messages();
     if (msgs.length === 0) return false;
-    const last = msgs[msgs.length - 1];
-    if (last.role !== 'ai' || last.partial) return false;
+    const last = msgs.at(-1);
+    if (last?.role !== 'ai' || last?.partial) return false;
     if (this.aiSpeaking() || this.recording() || this.transcribing()) return false;
     return true;
   });
@@ -211,88 +204,13 @@ export class ConversationComponent implements OnInit, OnDestroy {
     setMessages: (messages) => this.messages.set(messages),
     setTranscribing: (v) => this.transcribing.set(v),
     setErrorMessage: (s) => this.errorMessage.set(s),
-    onUserTranscript: (text, userAudio) => {
-      const userMsg: ChatMessage = { role: 'user', text };
-      if (userAudio != null) {
-        userMsg.userAudio = userAudio;
-      } else if (this.lastUserRecording) {
-        userMsg.userAudio = this.lastUserRecording;
-        this.lastUserRecording = null;
-      }
-      this.messages.update((m) => [...m, userMsg]);
-      this.pendingTurnSaves.update((n) => n + 1);
-      this.pendingAiMsgIndex = -1;
-      if (this.unitStepMeta()) {
-        this.unitStepMeta.update((meta) =>
-          meta ? { ...meta, scoredTurnsSoFar: meta.scoredTurnsSoFar + 1 } : null,
-        );
-      }
-    },
-    onAssistantPartial: (chunk, done) => {
-      if (this.pendingAiMsgIndex === -1) {
-        this.currentAiAudioChunks = [];
-      }
-      const out = applyAssistantPartialFrame(
-        this.messages(),
-        this.pendingAiMsgIndex,
-        this.lastAiMessageIndex,
-        chunk,
-        done,
-      );
-      this.messages.set(out.messages);
-      this.pendingAiMsgIndex = out.pendingAiMsgIndex;
-      this.lastAiMessageIndex = out.lastAiMessageIndex;
-    },
-    onAssistantAudioEnd: () => {
-      this.messages.update((m) =>
-        attachConcatenatedAiAudio(m, this.lastAiMessageIndex, this.currentAiAudioChunks),
-      );
-      this.currentAiAudioChunks = [];
-      this.lastAiMessageIndex = -1;
-      this.audio.endStreamingPlayback().then(() => {
-        this.aiSpeaking.set(false);
-        this.cdr.detectChanges();
-      });
-    },
-    onAssistantAudioChunk: (bytes) => {
-      this.currentAiAudioChunks.push(bytes);
-      if (this.ttsEnabled()) {
-        if (this.currentAiAudioChunks.length === 1) this.audio.stopPlayback();
-        this.audio.enqueueStreamingChunk(bytes);
-        this.aiSpeaking.set(true);
-        this.cdr.detectChanges();
-      }
-    },
-    onSessionScores: (turns, sessionFeedback) => {
-      this.messages.set(mergeTurnScoresAndSessionFeedback(this.messages(), turns, sessionFeedback));
-    },
-    onTurnSaved: (assistantMessageId, userMessageId, hasUserAudio, indexInSession) => {
-      this.pendingTurnSaves.update((n) => (n > 0 ? n - 1 : 0));
-      this.messages.update((list) => {
-        const hasOpening = list.length > 0 && list[0].isOpeningLine === true;
-        const offset = hasOpening ? 1 : 0;
-        const userIdx = offset + indexInSession * 2;
-        const aiIdx = userIdx + 1;
-        if (userIdx < 0 || aiIdx >= list.length) return list;
-        const next = [...list];
-        if (next[userIdx]?.role === 'user') {
-          next[userIdx] = {
-            ...next[userIdx],
-            turnId: userMessageId,
-            ...(hasUserAudio ? { hasUserRecording: true } : {}),
-          };
-        }
-        const ai = next[aiIdx];
-        if (ai?.role === 'ai' && !ai.isOpeningLine) {
-          next[aiIdx] = { ...ai, turnId: assistantMessageId };
-          const g = ai.guideline;
-          if (g != null && String(g).trim() !== '') {
-            this.api.patchMessageGuideline(assistantMessageId, g).subscribe({ error: () => {} });
-          }
-        }
-        return next;
-      });
-    },
+    onUserTranscript: (text, userAudio) => this._onWsUserTranscript(text, userAudio),
+    onAssistantPartial: (chunk, done) => this._onWsAssistantPartial(chunk, done),
+    onAssistantAudioEnd: () => this._onWsAssistantAudioEnd(),
+    onAssistantAudioChunk: (bytes) => this._onWsAssistantAudioChunk(bytes),
+    onSessionScores: (turns, sessionFeedback) => this._onWsSessionScores(turns, sessionFeedback),
+    onTurnSaved: (assistantMessageId, userMessageId, hasUserAudio, indexInSession) =>
+      this._onWsTurnSaved(assistantMessageId, userMessageId, hasUserAudio, indexInSession),
   };
 
   constructor() {
@@ -367,11 +285,7 @@ export class ConversationComponent implements OnInit, OnDestroy {
               this.accountService.getMe().subscribe({
                 next: (me) => {
                   if (gen !== this._sessionBootstrapGen) return;
-                  const voice = me.tts_voice;
-                  const rate = me.tts_rate;
-                  if (voice != null && String(voice).trim() !== '')
-                    this.ttsVoice.set(String(voice));
-                  if (rate != null && String(rate).trim() !== '') this.ttsRate.set(String(rate));
+                  this._applyAccountTtsToSignals(me);
                   this.cdr.detectChanges();
                 },
                 error: () => {
@@ -402,10 +316,7 @@ export class ConversationComponent implements OnInit, OnDestroy {
     this.accountService.getMe().subscribe({
       next: (me) => {
         if (gen !== this._sessionBootstrapGen) return;
-        const voice = me.tts_voice;
-        const rate = me.tts_rate;
-        if (voice != null && String(voice).trim() !== '') this.ttsVoice.set(String(voice));
-        if (rate != null && String(rate).trim() !== '') this.ttsRate.set(String(rate));
+        this._applyAccountTtsToSignals(me);
         this.userPrefsApplied.set(true);
         this.ws.connect(topicId);
         this.cdr.detectChanges();
@@ -495,7 +406,7 @@ export class ConversationComponent implements OnInit, OnDestroy {
     this._mqMinNavOff = null;
     this._endGuidePanelResize();
     this.feedbackRequestPending.set(false);
-    this._clearAudioPlayback();
+    this.audio.stopPlayback();
     this.audio.release();
     if (!this.sessionArchiveView()) {
       // Avoid WS `stop`: it finalizes the session. Back/navigate away only closes the socket.
@@ -609,7 +520,6 @@ export class ConversationComponent implements OnInit, OnDestroy {
 
   async previewVoice(voiceId: string): Promise<void> {
     this.previewingVoiceId.set(voiceId);
-    this._clearAudioPlayback();
     this.audio.stopPlayback();
     try {
       const blob = await firstValueFrom(this.api.getTtsPreview(voiceId, this.ttsRate()));
@@ -768,57 +678,15 @@ export class ConversationComponent implements OnInit, OnDestroy {
 
   async playMessageAudio(msg: ChatMessage, index: number, kind: 'user' | 'ai'): Promise<void> {
     if (this.playingMessageIndex() === index) {
-      this._clearAudioPlayback();
       this.audio.stopPlayback();
       this.playingMessageIndex.set(-1);
       this.cdr.detectChanges();
       return;
     }
 
-    let buf = kind === 'user' ? msg.userAudio : msg.aiAudio;
-    if (!buf && msg.turnId != null) {
-      const canFetchUser = kind === 'user' && msg.hasUserRecording;
-      const canFetchAi = kind === 'ai' && msg.hasAiAudio;
-      if (!canFetchUser && !canFetchAi) return;
-      const apiKind = kind === 'user' ? 'user' : 'assistant';
-      try {
-        buf = await firstValueFrom(this.api.getMessageAudio(msg.turnId, apiKind));
-      } catch {
-        this.errorMessage.set('Could not load audio for this message.');
-        this.cdr.markForCheck();
-        return;
-      }
-      this.messages.update((list) => {
-        const next = [...list];
-        const cur = next[index];
-        if (!cur) return list;
-        next[index] =
-          kind === 'user'
-            ? { ...cur, userAudio: buf as ArrayBuffer }
-            : { ...cur, aiAudio: buf as ArrayBuffer };
-        return next;
-      });
-    } else if (!buf && kind === 'ai' && msg.isOpeningLine && msg.hasAiAudio) {
-      const sid = this._activeSessionId();
-      if (sid <= 0) return;
-      try {
-        buf = await firstValueFrom(this.api.getSessionOpeningAudio(sid));
-      } catch {
-        this.errorMessage.set('Could not load audio for this message.');
-        this.cdr.markForCheck();
-        return;
-      }
-      this.messages.update((list) => {
-        const next = [...list];
-        const cur = next[index];
-        if (!cur) return list;
-        next[index] = { ...cur, aiAudio: buf as ArrayBuffer };
-        return next;
-      });
-    }
-
+    const buf = await this._resolveMessagePlaybackBuffer(msg, index, kind);
     if (!buf) return;
-    this._clearAudioPlayback();
+
     this.audio.stopPlayback();
     this.playingMessageIndex.set(index);
     this.cdr.detectChanges();
@@ -842,6 +710,18 @@ export class ConversationComponent implements OnInit, OnDestroy {
     return n;
   }
 
+  private _finalizeAssistantAudioPlayback(): void {
+    this.messages.update((m) =>
+      attachConcatenatedAiAudio(m, this.lastAiMessageIndex, this.currentAiAudioChunks),
+    );
+    this.currentAiAudioChunks = [];
+    this.lastAiMessageIndex = -1;
+    this.audio.endStreamingPlayback().then(() => {
+      this.aiSpeaking.set(false);
+      this.cdr.detectChanges();
+    });
+  }
+
   reworkAllowed(): boolean {
     return (
       !this.sessionArchiveView() &&
@@ -859,7 +739,7 @@ export class ConversationComponent implements OnInit, OnDestroy {
     if (messageIndex < 0 || messageIndex >= list.length) return;
     if (list[messageIndex].role !== 'user') return;
     const turnIndex = this.userTurnIndexAtMessage(messageIndex);
-    this._clearAudioPlayback();
+    this.audio.stopPlayback();
     this.playingMessageIndex.set(-1);
     this.ws.sendJson({ type: 'rework', turnIndex });
   }
@@ -868,6 +748,8 @@ export class ConversationComponent implements OnInit, OnDestroy {
     this.pendingAiMsgIndex = -1;
     this.lastAiMessageIndex = -1;
     this.currentAiAudioChunks = [];
+    this.preTextAiAudioChunks = [];
+    this.preTextAiAudioEnded = false;
     this.lastUserRecording = null;
     this.playingMessageIndex.set(-1);
     this.aiSpeaking.set(false);
@@ -929,6 +811,205 @@ export class ConversationComponent implements OnInit, OnDestroy {
     }
   }
 
+  private _onWsUserTranscript(text: string, userAudio: ArrayBuffer | undefined): void {
+    const userMsg: ChatMessage = { role: 'user', text };
+    if (userAudio != null) {
+      userMsg.userAudio = userAudio;
+    } else if (this.lastUserRecording) {
+      userMsg.userAudio = this.lastUserRecording;
+      this.lastUserRecording = null;
+    }
+    this.messages.update((m) => [...m, userMsg]);
+    this.pendingTurnSaves.update((n) => n + 1);
+    this.pendingAiMsgIndex = -1;
+    if (this.unitStepMeta()) {
+      this.unitStepMeta.update((meta) =>
+        meta ? { ...meta, scoredTurnsSoFar: meta.scoredTurnsSoFar + 1 } : null,
+      );
+    }
+  }
+
+  private _onWsAssistantPartial(chunk: string, done: boolean): void {
+    const startsNewAiMessage = this.pendingAiMsgIndex === -1;
+    if (startsNewAiMessage) {
+      this.currentAiAudioChunks = [];
+    }
+    const out = applyAssistantPartialFrame(
+      this.messages(),
+      this.pendingAiMsgIndex,
+      this.lastAiMessageIndex,
+      chunk,
+      done,
+    );
+    this.messages.set(out.messages);
+    this.pendingAiMsgIndex = out.pendingAiMsgIndex;
+    this.lastAiMessageIndex = out.lastAiMessageIndex;
+    if (startsNewAiMessage && this.preTextAiAudioChunks.length > 0) {
+      this.currentAiAudioChunks = [...this.preTextAiAudioChunks];
+      this.preTextAiAudioChunks = [];
+      if (this.ttsEnabled()) {
+        this.audio.stopPlayback();
+        for (const preChunk of this.currentAiAudioChunks) {
+          this.audio.enqueueStreamingChunk(preChunk);
+        }
+        this.aiSpeaking.set(true);
+        this.cdr.detectChanges();
+      }
+      if (this.preTextAiAudioEnded) {
+        this.preTextAiAudioEnded = false;
+        this._finalizeAssistantAudioPlayback();
+      }
+    }
+    if (startsNewAiMessage && this.preTextAiAudioEnded && this.preTextAiAudioChunks.length === 0) {
+      this.preTextAiAudioEnded = false;
+    }
+    if (done) {
+      // Final status guard: clear speaking state when the assistant text stream is fully delivered.
+      this.aiSpeaking.set(false);
+    }
+  }
+
+  private _onWsAssistantAudioEnd(): void {
+    if (this.lastAiMessageIndex === -1 && this.pendingAiMsgIndex === -1) {
+      this.preTextAiAudioEnded = true;
+      return;
+    }
+    this._finalizeAssistantAudioPlayback();
+  }
+
+  private _onWsAssistantAudioChunk(bytes: ArrayBuffer): void {
+    if (this.lastAiMessageIndex === -1 && this.pendingAiMsgIndex === -1) {
+      this.preTextAiAudioChunks.push(bytes);
+      return;
+    }
+    this.currentAiAudioChunks.push(bytes);
+    if (this.ttsEnabled()) {
+      if (this.currentAiAudioChunks.length === 1) this.audio.stopPlayback();
+      this.audio.enqueueStreamingChunk(bytes);
+      this.aiSpeaking.set(true);
+      this.cdr.detectChanges();
+    }
+  }
+
+  private _onWsSessionScores(turns: SessionScoreTurn[], sessionFeedback: string | undefined): void {
+    this.messages.set(mergeTurnScoresAndSessionFeedback(this.messages(), turns, sessionFeedback));
+  }
+
+  private _onWsTurnSaved(
+    assistantMessageId: number,
+    userMessageId: number,
+    hasUserAudio: boolean,
+    indexInSession: number,
+  ): void {
+    this.pendingTurnSaves.update((n) => (n > 0 ? n - 1 : 0));
+    this.messages.update((list) => {
+      const { next, persistGuideline } = mergeTurnSavedIntoMessages(
+        list,
+        assistantMessageId,
+        userMessageId,
+        hasUserAudio,
+        indexInSession,
+      );
+      if (persistGuideline) {
+        this.api
+          .patchMessageGuideline(persistGuideline.messageId, persistGuideline.guideline)
+          .subscribe({ error: () => {} });
+      }
+      return next;
+    });
+  }
+
+  private _applyAccountTtsToSignals(me: {
+    tts_voice?: string | null;
+    tts_rate?: string | null;
+  }): void {
+    const voice = me.tts_voice;
+    const rate = me.tts_rate;
+    if (voice != null && String(voice).trim() !== '') this.ttsVoice.set(String(voice));
+    if (rate != null && String(rate).trim() !== '') this.ttsRate.set(String(rate));
+  }
+
+  private _reportMessageAudioLoadFailed(): void {
+    this.errorMessage.set('Could not load audio for this message.');
+    this.cdr.markForCheck();
+  }
+
+  private async _fetchMessageAudioFromApi(
+    turnId: number,
+    apiKind: 'user' | 'assistant',
+  ): Promise<ArrayBuffer | null> {
+    try {
+      return await firstValueFrom(this.api.getMessageAudio(turnId, apiKind));
+    } catch {
+      this._reportMessageAudioLoadFailed();
+      return null;
+    }
+  }
+
+  private async _fetchOpeningLineAudio(sessionId: number): Promise<ArrayBuffer | null> {
+    try {
+      return await firstValueFrom(this.api.getSessionOpeningAudio(sessionId));
+    } catch {
+      this._reportMessageAudioLoadFailed();
+      return null;
+    }
+  }
+
+  private async _bufferFromMessageTurn(
+    msg: ChatMessage,
+    index: number,
+    kind: 'user' | 'ai',
+  ): Promise<ArrayBuffer | null> {
+    if (msg.turnId == null) return null;
+    const canFetchUser = kind === 'user' && msg.hasUserRecording;
+    const canFetchAi = kind === 'ai' && msg.hasAiAudio;
+    if (!canFetchUser && !canFetchAi) return null;
+    const apiKind = kind === 'user' ? 'user' : 'assistant';
+    const buf = await this._fetchMessageAudioFromApi(msg.turnId, apiKind);
+    if (!buf) return null;
+    this._patchMessageCachedAudio(index, kind, buf);
+    return buf;
+  }
+
+  private async _bufferFromOpeningLine(
+    msg: ChatMessage,
+    index: number,
+  ): Promise<ArrayBuffer | null> {
+    if (!msg.isOpeningLine || !msg.hasAiAudio) return null;
+    const sid = this._activeSessionId();
+    if (sid <= 0) return null;
+    const buf = await this._fetchOpeningLineAudio(sid);
+    if (!buf) return null;
+    this._patchMessageCachedAudio(index, 'ai', buf);
+    return buf;
+  }
+
+  private async _resolveMessagePlaybackBuffer(
+    msg: ChatMessage,
+    index: number,
+    kind: 'user' | 'ai',
+  ): Promise<ArrayBuffer | null> {
+    const embedded = kind === 'user' ? msg.userAudio : msg.aiAudio;
+    if (embedded) return embedded;
+    if (msg.turnId != null) {
+      return this._bufferFromMessageTurn(msg, index, kind);
+    }
+    if (kind === 'ai') {
+      return this._bufferFromOpeningLine(msg, index);
+    }
+    return null;
+  }
+
+  private _patchMessageCachedAudio(index: number, kind: 'user' | 'ai', buf: ArrayBuffer): void {
+    this.messages.update((list) => {
+      const next = [...list];
+      const cur = next[index];
+      if (!cur) return list;
+      next[index] = kind === 'user' ? { ...cur, userAudio: buf } : { ...cur, aiAudio: buf };
+      return next;
+    });
+  }
+
   private _handleMessage(msg: Record<string, unknown> & { type: string }): void {
     routeConversationWsMessage(msg, this._wsSink);
   }
@@ -961,10 +1042,6 @@ export class ConversationComponent implements OnInit, OnDestroy {
     } else {
       this.cdr.detectChanges();
     }
-  }
-
-  private _clearAudioPlayback(): void {
-    this.audio.stopPlayback();
   }
 
   scrollToBottom(): void {

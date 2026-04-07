@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
-import { Injectable } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
 import { Router } from '@angular/router';
-import { Observable, finalize, shareReplay, tap, throwError } from 'rxjs';
+import { finalize, Observable, shareReplay, tap, throwError } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { AccountService } from './account.service';
 
@@ -18,12 +18,9 @@ export interface AuthResponse {
 export class AuthService {
   private readonly base = environment.apiBaseUrl;
   private refreshInFlight$: Observable<AuthResponse> | null = null;
-
-  constructor(
-    private http: HttpClient,
-    private router: Router,
-    private account: AccountService,
-  ) {}
+  private readonly http = inject(HttpClient);
+  private readonly router = inject(Router);
+  private readonly account = inject(AccountService);
 
   register(email: string, username: string, password: string): Observable<AuthResponse> {
     return this.http

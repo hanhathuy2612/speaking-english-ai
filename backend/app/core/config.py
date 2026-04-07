@@ -2,7 +2,7 @@ import os
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import AnyHttpUrl
+from pydantic import AliasChoices, AnyHttpUrl, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -27,12 +27,25 @@ class Settings(BaseSettings):
     backend_host: str = "0.0.0.0"
     backend_port: int = 8000
 
-    # LM Studio (OpenAI-compatible) configuration
-    lmstudio_base_url: AnyHttpUrl | None = None
-    lmstudio_api_key: str | None = None
-    lmstudio_model: str = "meta-llama-3.1-8b-instruct"
-    # If set, POST /conversation/guidance uses this model instead of lmstudio_model (same base URL & API key).
-    lmstudio_guidance_model: str | None = None
+    # OpenAI (or compatible endpoint) configuration.
+    # Backward-compatible: still accepts LMSTUDIO_* env names.
+    openai_base_url: AnyHttpUrl = Field(
+        default="http://localhost:1234/v1",
+        validation_alias=AliasChoices("OPENAI_BASE_URL", "LMSTUDIO_BASE_URL"),
+    )
+    openai_api_key: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("OPENAI_API_KEY", "LMSTUDIO_API_KEY"),
+    )
+    openai_model: str = Field(
+        default="qwen2.5-7b-instruct",
+        validation_alias=AliasChoices("OPENAI_MODEL", "LMSTUDIO_MODEL"),
+    )
+    # If set, POST /conversation/guidance uses this model instead of openai_model.
+    openai_guidance_model: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("OPENAI_GUIDANCE_MODEL", "LMSTUDIO_GUIDANCE_MODEL"),
+    )
     # Style: max tokens per AI reply. Default 256 allows natural length.
     lm_conversation_max_tokens: int = 256
     # Optional: append this to the system prompt (e.g. "Use simple words only.")

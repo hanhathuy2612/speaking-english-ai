@@ -13,7 +13,9 @@
     "cap:open": "cap open android",
     "android:build": "npm run build:mobile && npm run cap:sync",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "format": "prettier --write \"src/**/*.{ts,html}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,html}\""
   },
   "private": true,
   "packageManager": "npm@11.7.0",

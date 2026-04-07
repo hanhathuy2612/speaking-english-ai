@@ -242,7 +242,11 @@ export class ApiService {
   }
 
   /** Get answer suggestions for a question (for the guide panel). Optionally pass messageId to save guideline. */
-  getGuidance(question: string, messageId?: number, level?: string | null): Observable<GuidanceResponse> {
+  getGuidance(
+    question: string,
+    messageId?: number,
+    level?: string | null,
+  ): Observable<GuidanceResponse> {
     const body: { question: string; message_id?: number; level?: string } = {
       question: question.trim(),
     };
@@ -254,9 +258,12 @@ export class ApiService {
 
   /** Persist guide text on a message (used when guideline was generated before message id existed). */
   patchMessageGuideline(messageId: number, guideline: string): Observable<{ ok: boolean }> {
-    return this.http.patch<{ ok: boolean }>(`${this.base}/conversation/messages/${messageId}/guideline`, {
-      guideline,
-    });
+    return this.http.patch<{ ok: boolean }>(
+      `${this.base}/conversation/messages/${messageId}/guideline`,
+      {
+        guideline,
+      },
+    );
   }
 
   /** Full session transcript + scores (for archive / detail view). */
@@ -341,7 +348,10 @@ export class ApiService {
       max_scored_turns?: number | null;
     },
   ): Observable<TopicUnitDto> {
-    return this.http.patch<TopicUnitDto>(`${this.base}/admin/topics/${topicId}/units/${unitId}`, body);
+    return this.http.patch<TopicUnitDto>(
+      `${this.base}/admin/topics/${topicId}/units/${unitId}`,
+      body,
+    );
   }
 
   adminDeleteTopicUnit(topicId: number, unitId: number): Observable<void> {
@@ -390,9 +400,7 @@ export class ApiService {
   }
 
   adminDeleteTopicSession(topicId: number, sessionId: number): Observable<void> {
-    return this.http.delete<void>(
-      `${this.base}/admin/topics/${topicId}/sessions/${sessionId}`,
-    );
+    return this.http.delete<void>(`${this.base}/admin/topics/${topicId}/sessions/${sessionId}`);
   }
 
   adminGenerateTopicDraft(idea?: string | null): Observable<AITopicDraftOut> {
@@ -403,7 +411,10 @@ export class ApiService {
       .pipe(map((raw) => this.normalizeAiTopicDraft(raw)));
   }
 
-  adminGenerateTopicUnitDraft(topicId: number, idea?: string | null): Observable<AITopicUnitDraftOut> {
+  adminGenerateTopicUnitDraft(
+    topicId: number,
+    idea?: string | null,
+  ): Observable<AITopicUnitDraftOut> {
     return this.http
       .post<Record<string, unknown>>(`${this.base}/admin/ai/topics/${topicId}/unit-draft`, {
         idea: (idea ?? '').trim() || null,

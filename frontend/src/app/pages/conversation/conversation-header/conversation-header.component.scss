@@ -153,6 +153,14 @@
   color: var(--clr-text-muted);
 }
 
+.conv-header__band-dropdown {
+  width: 100px;
+}
+
+.conv-header__tts-rate-dropdown {
+  width: 100px;
+}
+
 .conv-header__voice-dropdown {
   position: relative;
   width: 200px;
