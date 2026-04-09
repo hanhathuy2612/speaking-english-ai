@@ -66,6 +66,7 @@
           [playingMessageIndex]="playingMessageIndex()"
           [reworkAllowed]="reworkAllowed()"
           (guideOpen)="openGuidePanel($event.message, $event.index)"
+          (optimizeOpen)="openOptimizePanel($event.message, $event.index)"
           (rework)="requestRework($event)"
           (playAudio)="playMessageAudio($event.msg, $event.index, $event.kind)"
         />
@@ -90,12 +91,16 @@
 
     @if (selectedForGuide(); as sel) {
       <app-conversation-guide-panel
-        [questionText]="sel.message.text"
+        [panelTitle]="guidePanelMode() === 'guide' ? 'Tips' : 'Optimize reply'"
+        [sourceLabel]="guidePanelMode() === 'guide' ? 'Question' : 'Your message'"
+        [tipsLabel]="guidePanelMode() === 'guide' ? 'Gợi ý trả lời' : 'Optimized result'"
+        [sourceText]="sel.message.text"
         [suggestions]="guideSuggestions()"
         [loading]="guideLoading()"
         [panelWidthPx]="guidePanelWidthPx()"
         [sidebarDesktop]="guidePanelSidebarDesktop()"
-        (close)="closeGuidePanel()"
+        (closeRequested)="closeGuidePanel()"
+        (refreshRequested)="refreshGuidePanel()"
         (resizePointerDown)="onGuideResizePointerDown($event)"
       />
     }

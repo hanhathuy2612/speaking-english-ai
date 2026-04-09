@@ -15,7 +15,7 @@ export class AudioService {
   /** Fires when the microphone track ends during recording (e.g. device switched). Call stopRecording + audio_end and clear stream for next recording. */
   readonly deviceLostDuringRecording$ = new Subject<void>();
 
-  private recordedChunks: ArrayBuffer[] = [];
+  private recordedChunks: Blob[] = [];
   private pendingOnChunk: ((buf: ArrayBuffer) => void) | null = null;
 
   async requestPermission(): Promise<boolean> {
@@ -47,13 +47,12 @@ export class AudioService {
     this.recordedChunks = [];
     this.pendingOnChunk = onChunk;
     this.mediaRecorder = new MediaRecorder(this.stream!, { mimeType });
-    this.mediaRecorder.ondataavailable = async (e) => {
+    this.mediaRecorder.ondataavailable = (e) => {
       if (e.data.size > 0) {
-        const buf = await e.data.arrayBuffer();
-        this.recordedChunks.push(buf);
+        this.recordedChunks.push(e.data);
       }
     };
-    this.mediaRecorder.start(200); // 200ms slices
+    this.mediaRecorder.start();
 
     this._attachTrackEndedListeners();
   }
@@ -97,16 +96,17 @@ export class AudioService {
       this.audioCtx.close();
       this.audioCtx = null;
     }
-    const flushChunks = (): void => {
+    const flushChunks = async (): Promise<void> => {
       this.mediaRecorder = null;
       this.pendingOnChunk = null;
       const chunks = this.recordedChunks;
       this.recordedChunks = [];
       if (chunks.length > 0 && onChunk) {
-        const total = chunks.reduce((s, c) => s + c.byteLength, 0);
+        const buffers = await Promise.all(chunks.map((c) => c.arrayBuffer()));
+        const total = buffers.reduce((s, c) => s + c.byteLength, 0);
         const out = new Uint8Array(total);
         let offset = 0;
-        for (const c of chunks) {
+        for (const c of buffers) {
           out.set(new Uint8Array(c), offset);
           offset += c.byteLength;
         }
@@ -114,19 +114,22 @@ export class AudioService {
       }
     };
     if (!recorder) {
-      flushChunks();
-      return Promise.resolve();
+      return flushChunks();
     }
     if (recorder.state !== 'recording') {
       // Already stopped (e.g. track ended when device switched) — still flush so we send what we have
-      flushChunks();
-      return Promise.resolve();
+      return flushChunks();
     }
     return new Promise((resolve) => {
       recorder.onstop = () => {
-        flushChunks();
-        resolve();
+        void flushChunks().finally(resolve);
       };
+      // Ask recorder to emit any pending buffered audio before stopping.
+      try {
+        recorder.requestData();
+      } catch {
+        // ignore
+      }
       recorder.stop();
     });
   }

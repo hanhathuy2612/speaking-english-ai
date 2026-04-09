@@ -133,6 +133,7 @@ export class ConversationComponent implements OnInit, OnDestroy {
   playingMessageIndex = signal(-1);
 
   selectedForGuide = signal<{ index: number; message: ChatMessage } | null>(null);
+  guidePanelMode = signal<'guide' | 'optimize'>('guide');
   guideSuggestions = signal<string[]>([]);
   guideLoading = signal(false);
   guidePanelWidthPx = signal(GUIDE_PANEL_DEFAULT_W);
@@ -541,7 +542,12 @@ export class ConversationComponent implements OnInit, OnDestroy {
   }
 
   openGuidePanel(message: ChatMessage, index: number): void {
+    this.guidePanelMode.set('guide');
     this.selectedForGuide.set({ index, message });
+    this._loadGuideSuggestions(message, index);
+  }
+
+  private _loadGuideSuggestions(message: ChatMessage, index: number): void {
     const question = message.text?.trim() || '';
     if (!question) {
       this.guideSuggestions.set(['No question text.']);
@@ -582,6 +588,45 @@ export class ConversationComponent implements OnInit, OnDestroy {
         this.cdr.detectChanges();
       },
     });
+  }
+
+  openOptimizePanel(message: ChatMessage, index: number): void {
+    this.guidePanelMode.set('optimize');
+    this.selectedForGuide.set({ index, message });
+    this._loadOptimizeSuggestions(message);
+  }
+
+  private _loadOptimizeSuggestions(message: ChatMessage): void {
+    const source = message.text?.trim() || '';
+    if (!source) {
+      this.guideSuggestions.set(['No user message text to optimize.']);
+      this.guideLoading.set(false);
+      return;
+    }
+    this.guideSuggestions.set([]);
+    this.guideLoading.set(true);
+    this.api.optimizeUserReply(source, this.conversationLevel()).subscribe({
+      next: (res) => {
+        this.guideSuggestions.set(res.suggestions || []);
+        this.guideLoading.set(false);
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.guideSuggestions.set(['Could not optimize this message. Try again.']);
+        this.guideLoading.set(false);
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
+  refreshGuidePanel(): void {
+    const sel = this.selectedForGuide();
+    if (!sel) return;
+    if (this.guidePanelMode() === 'guide') {
+      this._loadGuideSuggestions(sel.message, sel.index);
+      return;
+    }
+    this._loadOptimizeSuggestions(sel.message);
   }
 
   closeGuidePanel(): void {

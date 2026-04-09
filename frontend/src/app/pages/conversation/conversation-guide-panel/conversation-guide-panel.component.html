@@ -1,41 +1,51 @@
 <div
   class="conv-guide-backdrop"
-  role="presentation"
   tabindex="-1"
-  (click)="close.emit()"
+  (click)="closeRequested.emit()"
+  (keydown.enter)="closeRequested.emit()"
+  (keydown.space)="closeRequested.emit(); $event.preventDefault()"
   aria-hidden="true"
 ></div>
 <aside
   class="conv-guide-panel"
-  role="complementary"
   aria-label="Guidance"
   [style.width.px]="sidebarDesktop() ? panelWidthPx() : null"
 >
-  <div
+  <hr
     class="conv-guide-panel__resize-handle"
-    role="separator"
     aria-orientation="vertical"
     aria-label="Resize tips panel"
     title="Drag to resize"
     (pointerdown)="resizePointerDown.emit($event)"
-  ></div>
+  />
   <div class="conv-guide-panel__header">
-    <h2 class="conv-guide-panel__title">Tips</h2>
-    <button
-      type="button"
-      class="btn btn--ghost btn--icon conv-guide-panel__close"
-      (click)="close.emit()"
-      aria-label="Close panel"
-    >
-      <i class="bi bi-x-lg" aria-hidden="true"></i>
-    </button>
+    <h2 class="conv-guide-panel__title">{{ panelTitle() }}</h2>
+    <div class="conv-guide-panel__header-actions">
+      <button
+        type="button"
+        class="btn btn--ghost btn--icon conv-guide-panel__refresh"
+        (click)="refreshRequested.emit()"
+        aria-label="Refresh panel content"
+        title="Get another version"
+      >
+        <i class="bi bi-arrow-repeat" aria-hidden="true"></i>
+      </button>
+      <button
+        type="button"
+        class="btn btn--ghost btn--icon conv-guide-panel__close"
+        (click)="closeRequested.emit()"
+        aria-label="Close panel"
+      >
+        <i class="bi bi-x-lg" aria-hidden="true"></i>
+      </button>
+    </div>
   </div>
   <div class="conv-guide-panel__message">
-    <span class="conv-guide-panel__label">Question</span>
-    <p class="conv-guide-panel__text">{{ questionText() }}</p>
+    <span class="conv-guide-panel__label">{{ sourceLabel() }}</span>
+    <p class="conv-guide-panel__text">{{ sourceText() }}</p>
   </div>
   <div class="conv-guide-panel__tips">
-    <span class="conv-guide-panel__label">Gợi ý trả lời</span>
+    <span class="conv-guide-panel__label">{{ tipsLabel() }}</span>
     @if (loading()) {
       <p class="conv-guide-panel__loading">Đang tải…</p>
     } @else if (suggestions().length > 0) {

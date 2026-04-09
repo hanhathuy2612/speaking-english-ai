@@ -20,8 +20,7 @@ from app.models.session_message import SessionMessage
 from app.models.topic import Topic
 from app.models.topic_unit import TopicUnit
 from app.services.conversation_session_finalize import finalize_session_scoring
-from app.services.lm_client import (LMStudioClient,
-                                    transcript_normalization_plausible)
+from app.services.lm_client import LMStudioClient, transcript_normalization_plausible
 from app.services.scoring_service import ScoringService
 from app.services.stt_service import STTService
 from app.services.tts_service import TTSService
@@ -66,6 +65,8 @@ _TTS_BATCH_INTERVAL = 0.05
 _TEXT_BASE_CHARS_PER_SEC = 18.0
 _TEXT_MIN_CHARS_PER_SEC = 6.0
 _TEXT_MAX_CHARS_PER_SEC = 42.0
+_MIN_VALID_WEBM_BYTES = 64
+_WEBM_EBML_HEADER = b"\x1a\x45\xdf\xa3"
 
 # When the tutor LM fails after the user's line was shown, we still persist a chat message so end-session scoring can run.
 _AI_UNAVAILABLE_ASSISTANT_TEXT = (
@@ -608,6 +609,18 @@ class ConversationHandler:
         if not self.audio_buffer:
             await self._send({"type": "error", "message": "No audio received"})
             return False
+        raw_audio = bytes(self.audio_buffer)
+        if len(raw_audio) < _MIN_VALID_WEBM_BYTES or not raw_audio.startswith(
+            _WEBM_EBML_HEADER
+        ):
+            self.audio_buffer = bytearray()
+            await self._send(
+                {
+                    "type": "error",
+                    "message": "Recording invalid or too short. Please hold to speak a bit longer and try again.",
+                }
+            )
+            return False
 
         if await self._reject_if_max_scored_turns(db):
             self.audio_buffer.clear()
@@ -616,7 +629,7 @@ class ConversationHandler:
         user_dir = AUDIO_DIR / str(self._user_id) / str(self.session_id)
         user_dir.mkdir(parents=True, exist_ok=True)
         audio_path = user_dir / f"turn_{self.turn_index}_user.webm"
-        audio_path.write_bytes(bytes(self.audio_buffer))
+        audio_path.write_bytes(raw_audio)
         self.audio_buffer = bytearray()
 
         await self._send({"type": "status", "message": "transcribing"})

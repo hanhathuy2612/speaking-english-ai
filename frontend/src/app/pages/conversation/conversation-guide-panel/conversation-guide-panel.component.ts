@@ -10,12 +10,16 @@ import { MarkdownHtmlPipe } from '../../../shared/pipes/markdown-html.pipe';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ConversationGuidePanelComponent {
-  questionText = input.required<string>();
+  panelTitle = input('Tips');
+  sourceLabel = input('Question');
+  tipsLabel = input('Gợi ý trả lời');
+  sourceText = input.required<string>();
   suggestions = input.required<string[]>();
   loading = input.required<boolean>();
   panelWidthPx = input.required<number>();
   sidebarDesktop = input.required<boolean>();
 
-  close = output<void>();
+  closeRequested = output<void>();
+  refreshRequested = output<void>();
   resizePointerDown = output<PointerEvent>();
 }

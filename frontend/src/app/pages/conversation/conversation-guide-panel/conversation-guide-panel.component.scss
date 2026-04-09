@@ -46,6 +46,12 @@
   border-bottom: 1px solid var(--clr-border);
 }
 
+.conv-guide-panel__header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .conv-guide-panel__title {
   font-size: var(--fs-xl);
   font-weight: var(--fw-semibold);
@@ -61,6 +67,12 @@
   &:hover {
     color: var(--clr-text);
   }
+}
+
+.conv-guide-panel__refresh {
+  padding: 6px 10px;
+  font-size: var(--fs-xl);
+  line-height: 1;
 }
 
 .conv-guide-panel__message {

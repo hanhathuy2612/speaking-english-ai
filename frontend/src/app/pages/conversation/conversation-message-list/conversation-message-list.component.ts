@@ -33,6 +33,7 @@ export class ConversationMessageListComponent {
   reworkAllowed = input.required<boolean>();
 
   guideOpen = output<{ message: ChatMessage; index: number }>();
+  optimizeOpen = output<{ message: ChatMessage; index: number }>();
   rework = output<number>();
   playAudio = output<{ msg: ChatMessage; index: number; kind: 'user' | 'ai' }>();
 

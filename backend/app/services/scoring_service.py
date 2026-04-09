@@ -5,6 +5,7 @@ import logging
 import re
 from typing import TypedDict
 
+from app.core.config import get_settings
 from app.services.lm_client import LMStudioClient
 
 log = logging.getLogger(__name__)
@@ -149,6 +150,9 @@ def _compute_overall(fluency: float, vocabulary: float, grammar: float) -> float
 class ScoringService:
     def __init__(self, lm: LMStudioClient) -> None:
         self._lm = lm
+        settings = get_settings()
+        raw = settings.openai_score_model
+        self._score_model = raw.strip() if isinstance(raw, str) and raw.strip() else None
 
     @staticmethod
     def _fluency_heuristic(transcript: str, duration_seconds: float) -> float:
@@ -248,7 +252,10 @@ class ScoringService:
         ]
         try:
             raw = await self._lm.generate_text(
-                messages, temperature=0.2, max_tokens=320
+                messages,
+                temperature=0.2,
+                max_tokens=320,
+                model=self._score_model,
             )
             result = self._parse_lm_response(raw)
             if result is not None:
@@ -327,7 +334,10 @@ class ScoringService:
         messages = [{"role": "user", "content": user_msg}]
         try:
             raw = await self._lm.generate_text(
-                messages, temperature=0.35, max_tokens=720
+                messages,
+                temperature=0.35,
+                max_tokens=720,
+                model=self._score_model,
             )
             text = raw.strip()
             if text.startswith("```"):

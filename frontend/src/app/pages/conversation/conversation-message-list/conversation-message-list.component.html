@@ -48,6 +48,15 @@
         @if (m.role === 'user') {
           <button
             type="button"
+            class="btn btn--ghost btn--icon conv-msg-optimize"
+            (click)="optimizeOpen.emit({ message: m, index: $index }); $event.stopPropagation()"
+            title="Sửa chính tả, ngữ pháp và tối ưu ý"
+            aria-label="Optimize my message"
+          >
+            <i class="bi bi-magic" aria-hidden="true"></i>
+          </button>
+          <button
+            type="button"
             class="btn btn--ghost btn--icon"
             (click)="rework.emit($index)"
             [disabled]="!reworkAllowed()"

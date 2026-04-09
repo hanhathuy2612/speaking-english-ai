@@ -46,6 +46,14 @@ class Settings(BaseSettings):
         default=None,
         validation_alias=AliasChoices("OPENAI_GUIDANCE_MODEL", "LMSTUDIO_GUIDANCE_MODEL"),
     )
+    # If set, scoring + end-session feedback use this model instead of openai_model.
+    # Keeps backward compatibility with legacy SCORE_MODEL env.
+    openai_score_model: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices(
+            "OPENAI_SCORE_MODEL", "LMSTUDIO_SCORE_MODEL", "SCORE_MODEL"
+        ),
+    )
     # Style: max tokens per AI reply. Default 256 allows natural length.
     lm_conversation_max_tokens: int = 256
     # Optional: append this to the system prompt (e.g. "Use simple words only.")

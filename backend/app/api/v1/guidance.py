@@ -40,6 +40,15 @@ class GuidanceRequest(BaseModel):
     )
 
 
+class OptimizeRequest(BaseModel):
+    text: str = Field(..., min_length=1, max_length=2000)
+    level: str | None = Field(
+        None,
+        max_length=20,
+        description="IELTS Speaking target band (e.g. 6, 6.5); empty = topic default",
+    )
+
+
 def _level_context_block(level: str | None) -> str:
     n = resolve_ielts_band(level)
     if n is None:
@@ -129,6 +138,27 @@ Formatting (strict):
 - Giữa hai khối liền kề: **một dòng trống** (xuống dòng hai lần).
 - Không dùng ** hoặc markdown khác ngoài nhãn trên."""
 
+_OPTIMIZE_PROMPT = """{level_block}
+
+Learner's original sentence:
+"{text}"
+
+Task:
+- Help a Vietnamese learner improve this spoken English response for IELTS Speaking.
+- Keep the learner's original meaning.
+- Fix spelling/word choice/grammar and improve idea clarity naturally.
+- Return concise, practical output for a right-side coaching panel.
+
+Output format (strict, plain text; no markdown list markers):
+Optimized response: one natural final version in English (1-3 sentences).
+
+Why this is better: 2-4 short bullet-like lines in Vietnamese, focused on grammar/word choice/clarity.
+
+Common mistakes in this sentence: 2-4 short Vietnamese lines (if none, say it is already natural).
+
+Extra idea to extend answer: 1 short English sentence the learner can add next.
+"""
+
 
 @router.post("/guidance")
 async def get_guidance_for_question(
@@ -201,5 +231,56 @@ async def get_guidance_for_question(
             msg.guideline = guideline_text
             await db.commit()
         # if message not found or not owned, we still return suggestions
+
+    return {"suggestions": suggestions}
+
+
+@router.post("/guidance/optimize")
+async def optimize_user_reply(
+    body: OptimizeRequest,
+    user: User = Depends(get_current_user),
+) -> dict:
+    """
+    Optimize one learner sentence/short reply:
+    - spelling / grammar / natural wording
+    - clearer idea
+    Returns blocks for right panel rendering.
+    """
+    del user  # authentication only
+    text = body.text.strip()
+    level_block = _level_context_block(body.level)
+    lvl_tag = _guidance_level_tag(body.level)
+
+    lm = LMStudioClient()
+    guidance_model = (get_settings().openai_guidance_model or "").strip() or None
+    messages = [
+        {
+            "role": "user",
+            "content": _OPTIMIZE_PROMPT.format(
+                level_block=level_block,
+                text=text,
+            ),
+        }
+    ]
+    try:
+        raw = await lm.generate_text(
+            messages,
+            temperature=0.3,
+            max_tokens=520,
+            model=guidance_model,
+        )
+        blocks = [s.strip() for s in re.split(r"\n\s*\n+", raw.strip()) if s.strip()]
+        if not blocks:
+            raise ValueError("empty optimize output")
+        suggestions = blocks[:8]
+    except Exception as e:
+        logger.warning("Optimize LM call failed: %s", e)
+        suggestions = [
+            f"Mức luyện tập: {lvl_tag}",
+            f"Optimized response: {text}",
+            "Why this is better: Câu đã được làm mượt hơn về ngữ pháp/chọn từ nhưng vẫn giữ nguyên ý chính.",
+            "Common mistakes in this sentence: Hãy kiểm tra thì động từ, mạo từ và collocation.",
+            "Extra idea to extend answer: I can also add one specific example to make my answer clearer.",
+        ]
 
     return {"suggestions": suggestions}

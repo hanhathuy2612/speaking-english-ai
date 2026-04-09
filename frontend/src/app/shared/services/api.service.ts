@@ -74,6 +74,10 @@ export interface GuidanceResponse {
   suggestions: string[];
 }
 
+export interface OptimizeResponse {
+  suggestions: string[];
+}
+
 export interface SessionEndScoreTurn {
   turnId: number;
   fluency: number;
@@ -253,6 +257,16 @@ export class ApiService {
     const lv = (level ?? '').trim();
     if (lv !== '') body.level = lv;
     return this.http.post<GuidanceResponse>(`${this.base}/conversation/guidance`, body);
+  }
+
+  /** Improve learner sentence: spelling, grammar, and idea clarity. */
+  optimizeUserReply(text: string, level?: string | null): Observable<OptimizeResponse> {
+    const body: { text: string; level?: string } = {
+      text: text.trim(),
+    };
+    const lv = (level ?? '').trim();
+    if (lv !== '') body.level = lv;
+    return this.http.post<OptimizeResponse>(`${this.base}/conversation/guidance/optimize`, body);
   }
 
   /** Persist guide text on a message (used when guideline was generated before message id existed). */
