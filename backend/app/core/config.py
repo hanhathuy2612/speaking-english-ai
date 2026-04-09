@@ -91,7 +91,10 @@ class Settings(BaseSettings):
         "ionic://localhost",
     ]
     max_audio_upload_mb: int = 10
-    request_timeout_seconds: int = 60
+    # LLM + OpenAI-compatible HTTP calls (local models may need more than 60s on long prompts).
+    request_timeout_seconds: int = 120
+    # How long to wait for the next WebSocket frame before closing the connection (e.g. user types a long message).
+    websocket_idle_timeout_seconds: int = 1800
 
     # Optional path to ffmpeg (e.g. when winget installs it but PATH is not updated)
     ffmpeg_path: str | None = None

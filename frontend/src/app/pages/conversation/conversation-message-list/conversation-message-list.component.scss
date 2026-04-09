@@ -75,6 +75,13 @@
   line-height: 1.5;
 }
 
+/** Plain text bubbles: keep newlines from textarea / STT (default HTML collapses \\n). */
+.bubble__text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
 .bubble__markdown {
   :where(p, ul, ol, pre, blockquote) {
     margin: 0 0 0.6rem;

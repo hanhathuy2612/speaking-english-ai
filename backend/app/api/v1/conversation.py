@@ -73,10 +73,11 @@ async def conversation_ws(websocket: WebSocket) -> None:
 
     try:
         await send({"type": "status", "message": "connected"})
+        idle_sec = max(30, int(settings.websocket_idle_timeout_seconds))
         async with AsyncSessionLocal() as db:
             while True:
                 try:
-                    raw = await asyncio.wait_for(websocket.receive(), timeout=300)
+                    raw = await asyncio.wait_for(websocket.receive(), timeout=float(idle_sec))
                 except asyncio.TimeoutError:
                     await send({"type": "status", "message": "idle_timeout"})
                     break
@@ -110,6 +111,8 @@ async def conversation_ws(websocket: WebSocket) -> None:
                     await handler.handle_user_text(db, data)
                 elif msg_type == "rework":
                     await handler.handle_rework(db, data)
+                elif msg_type == "ping":
+                    await send({"type": "status", "message": "pong"})
                 elif msg_type == "stop":
                     await handler.handle_stop(db)
                     break

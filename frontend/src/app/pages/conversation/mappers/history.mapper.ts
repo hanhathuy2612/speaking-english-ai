@@ -1,3 +1,4 @@
+import { decodeEscapedLineBreaks } from '../../../shared/utils/chat-text';
 import type { ChatMessage } from '../model/models';
 
 export interface WsHistoryRow {
@@ -15,14 +16,14 @@ export function mapWsHistoryToChatMessages(rows: WsHistoryRow[]): ChatMessage[] 
     if (m.role === 'user') {
       return {
         role: 'user' as const,
-        text: m.text,
+        text: decodeEscapedLineBreaks(m.text),
         turnId: m.turnId,
         ...(m.hasUserAudio ? { hasUserRecording: true } : {}),
       };
     }
     return {
       role: 'ai' as const,
-      text: m.text,
+      text: decodeEscapedLineBreaks(m.text),
       turnId: m.turnId,
       guideline: m.guideline ?? undefined,
       ...(m.hasAssistantAudio ? { hasAiAudio: true } : {}),

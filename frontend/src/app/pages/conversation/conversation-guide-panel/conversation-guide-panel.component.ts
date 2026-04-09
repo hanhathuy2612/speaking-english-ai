@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { MarkdownHtmlPipe } from '../../../shared/pipes/markdown-html.pipe';
+import { decodeEscapedLineBreaks } from '../../../shared/utils/chat-text';
 
 @Component({
   selector: 'app-conversation-guide-panel',
@@ -10,6 +11,10 @@ import { MarkdownHtmlPipe } from '../../../shared/pipes/markdown-html.pipe';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ConversationGuidePanelComponent {
+  displaySourceText(text: string): string {
+    return decodeEscapedLineBreaks(text);
+  }
+
   panelTitle = input('Tips');
   sourceLabel = input('Question');
   tipsLabel = input('Gợi ý trả lời');

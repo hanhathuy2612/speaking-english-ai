@@ -24,4 +24,12 @@ export class ConversationControlsComponent {
   startRecording = output<void>();
   stopRecording = output<void>();
   sendText = output<void>();
+
+  /** Enter sends; Shift+Enter inserts newline. Skips during IME composition. */
+  onChatEnterKey(ev: Event): void {
+    const ke = ev as KeyboardEvent;
+    if (ke.shiftKey || ke.isComposing) return;
+    ke.preventDefault();
+    this.sendText.emit();
+  }
 }

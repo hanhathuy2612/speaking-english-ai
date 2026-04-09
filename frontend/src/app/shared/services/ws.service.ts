@@ -7,6 +7,8 @@ export type WsMessage = Record<string, unknown> & { type: string };
 
 const RECONNECT_DELAYS_MS = [1000, 2000, 4000, 8000, 16000, 30000];
 const MAX_RECONNECT_ATTEMPTS = 10;
+/** Keeps server idle timer from firing while the user composes a long message (matches backend ping handler). */
+const HEARTBEAT_INTERVAL_MS = 60_000;
 
 @Injectable({ providedIn: 'root' })
 export class WsService implements OnDestroy {
@@ -15,6 +17,7 @@ export class WsService implements OnDestroy {
   private reconnectTopicId: number | null = null;
   private reconnectAttempt = 0;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
 
   readonly messages$ = new Subject<WsMessage>();
   readonly connected$ = new Subject<boolean>();
@@ -33,6 +36,7 @@ export class WsService implements OnDestroy {
   }
 
   private _doConnect(topicId: number): void {
+    this._stopHeartbeat();
     if (this.ws != null) {
       this.ws.onclose = null;
       this.ws.onerror = null;
@@ -57,10 +61,12 @@ export class WsService implements OnDestroy {
         this.reconnectAttempt = 0;
         this.reconnecting$.next(false);
         this.connected$.next(true);
+        this._startHeartbeat();
       });
 
     this.ws.onclose = () =>
       this.zone.run(() => {
+        this._stopHeartbeat();
         this.ws = null;
         this.connected$.next(false);
         if (!this.intentionalClose && this.reconnectTopicId != null) {
@@ -86,6 +92,20 @@ export class WsService implements OnDestroy {
     };
   }
 
+  private _startHeartbeat(): void {
+    this._stopHeartbeat();
+    this.heartbeatTimer = setInterval(() => {
+      this.sendJson({ type: 'ping' });
+    }, HEARTBEAT_INTERVAL_MS);
+  }
+
+  private _stopHeartbeat(): void {
+    if (this.heartbeatTimer != null) {
+      clearInterval(this.heartbeatTimer);
+      this.heartbeatTimer = null;
+    }
+  }
+
   private _clearReconnectTimer(): void {
     if (this.reconnectTimer != null) {
       clearTimeout(this.reconnectTimer);
@@ -109,20 +129,33 @@ export class WsService implements OnDestroy {
     }, delay);
   }
 
-  sendJson(data: unknown): void {
-    if (this.ws?.readyState === WebSocket.OPEN) {
+  sendJson(data: unknown): boolean {
+    if (this.ws?.readyState !== WebSocket.OPEN) {
+      return false;
+    }
+    try {
       this.ws.send(JSON.stringify(data));
+      return true;
+    } catch {
+      return false;
     }
   }
 
-  sendBinary(data: ArrayBuffer | Uint8Array): void {
-    if (this.ws?.readyState === WebSocket.OPEN) {
+  sendBinary(data: ArrayBuffer | Uint8Array): boolean {
+    if (this.ws?.readyState !== WebSocket.OPEN) {
+      return false;
+    }
+    try {
       this.ws.send(data);
+      return true;
+    } catch {
+      return false;
     }
   }
 
   disconnect(): void {
     this.intentionalClose = true;
+    this._stopHeartbeat();
     this.reconnectTopicId = null;
     this._clearReconnectTimer();
     this.reconnecting$.next(false);

@@ -1,4 +1,5 @@
 import type { SessionDetailTurn } from '@/services/api.service';
+import { decodeEscapedLineBreaks } from '../../../shared/utils/chat-text';
 import type { ChatMessage } from '../model/models';
 
 /** Build chat transcript from GET /conversation/sessions/{id} (ended or in-progress). */
@@ -13,7 +14,7 @@ export function mapSessionDetailTurnsToMessages(
   if (open) {
     out.push({
       role: 'ai',
-      text: open,
+      text: decodeEscapedLineBreaks(open),
       isOpeningLine: true,
       ...(openingHasAudio ? { hasAiAudio: true } : {}),
     });
@@ -21,13 +22,13 @@ export function mapSessionDetailTurnsToMessages(
   for (const t of turns) {
     out.push({
       role: 'user',
-      text: t.user_text,
+      text: decodeEscapedLineBreaks(t.user_text),
       turnId: t.user_message_id,
       ...(t.has_user_audio ? { hasUserRecording: true } : {}),
     });
     out.push({
       role: 'ai',
-      text: t.assistant_text,
+      text: decodeEscapedLineBreaks(t.assistant_text),
       turnId: t.turn_id,
       ...(t.has_assistant_audio ? { hasAiAudio: true } : {}),
       ...(t.guideline ? { guideline: t.guideline } : {}),
@@ -37,7 +38,7 @@ export function mapSessionDetailTurnsToMessages(
   if (recap) {
     out.push({
       role: 'ai',
-      text: recap,
+      text: decodeEscapedLineBreaks(recap),
       sessionRecap: true,
     });
   }

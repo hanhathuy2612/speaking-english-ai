@@ -192,6 +192,7 @@ export class ConversationComponent implements OnInit, OnDestroy {
   private readonly _wsSink: ConversationWsSink = {
     statusRouter: {
       clearError: () => this.errorMessage.set(''),
+      setErrorMessage: (msg) => this.errorMessage.set(msg),
       applyTopicLevelAndSessionId: (m) => this._applyTopicLevelAndLiveSession(m),
       setUnitStepMeta: (meta) => this.unitStepMeta.set(meta),
       getLiveSessionId: () => this.liveSessionId(),
@@ -714,7 +715,17 @@ export class ConversationComponent implements OnInit, OnDestroy {
     const text = this.chatInput().trim();
     if (!text) return;
     if (!this.connected() || this.messages().length === 0) return;
-    this.ws.sendJson({ type: 'user_text', text });
+    if (
+      !this.ws.sendJson({
+        type: 'user_text',
+        text,
+      })
+    ) {
+      this.errorMessage.set(
+        'Không gửi được tin — kết nối WebSocket chưa sẵn sàng hoặc đã ngắt. Đợi “Connecting” xong hoặc tải lại trang.',
+      );
+      return;
+    }
     this.chatInput.set('');
   }
 

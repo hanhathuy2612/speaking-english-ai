@@ -12,6 +12,7 @@ import {
 } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { marked } from 'marked';
+import { decodeEscapedLineBreaks } from '../../../shared/utils/chat-text';
 
 marked.setOptions({ gfm: true, breaks: true });
 
@@ -71,9 +72,15 @@ export class ConversationMessageListComponent {
   }
 
   renderMarkdown(text: string | null | undefined): SafeHtml {
-    const raw = (text ?? '').trim();
+    const raw = decodeEscapedLineBreaks(text ?? '').trim();
     if (!raw) return this.sanitizer.bypassSecurityTrustHtml('');
     const html = marked(raw, { async: false }) as string;
     return this.sanitizer.bypassSecurityTrustHtml(html);
+  }
+
+  /** Plain bubble text: decode literal \\n so it matches real line breaks in the textarea. */
+  plainChatText(text: string | null | undefined, trim: boolean): string {
+    const d = decodeEscapedLineBreaks(text ?? '');
+    return trim ? d.trim() : d;
   }
 }

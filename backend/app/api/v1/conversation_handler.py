@@ -31,6 +31,13 @@ from sqlalchemy.orm import selectinload
 logger = logging.getLogger(__name__)
 
 
+def _unescape_chat_newlines(s: str) -> str:
+    """Turn literal \\n / \\r from LLM, STT, or over-escaped JSON into real newlines."""
+    if "\\" not in s:
+        return s
+    return s.replace("\\r\\n", "\n").replace("\\n", "\n").replace("\\r", "\n")
+
+
 def _opening_max_tokens(level_raw: str) -> int:
     n = resolve_ielts_band(level_raw)
     if n is None:
@@ -683,6 +690,7 @@ class ConversationHandler:
                 logger.exception("Transcript normalization failed; using raw STT")
                 user_text = raw_stt
 
+        user_text = _unescape_chat_newlines(user_text)
         await self._send({"type": "user_transcript", "text": user_text})
         self.history.append({"role": "user", "content": user_text})
         messages = self._lm.build_messages(
@@ -772,7 +780,7 @@ class ConversationHandler:
         if await self._reject_if_max_scored_turns(db):
             return False
 
-        user_text = raw
+        user_text = _unescape_chat_newlines(raw)
         await self._send({"type": "user_transcript", "text": user_text})
         self.history.append({"role": "user", "content": user_text})
 

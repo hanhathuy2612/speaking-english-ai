@@ -42,15 +42,17 @@
     </span>
   </div>
   <div class="controls-right">
-    <input
-      type="text"
+    <textarea
       class="chat-input"
+      rows="3"
       [ngModel]="chatInput()"
       (ngModelChange)="chatInput.set($event)"
-      (keyup.enter)="sendText.emit()"
+      (keydown.enter)="onChatEnterKey($event)"
       [placeholder]="messagesCount() === 0 ? 'Wait for AI to say hello…' : 'Type your reply…'"
       [disabled]="!connected() || messagesCount() === 0 || aiSpeaking()"
-    />
+      title="Enter to send • Shift+Enter for a new line"
+      aria-label="Message"
+    ></textarea>
     <button
       type="button"
       class="btn btn--primary btn--sm chat-send"

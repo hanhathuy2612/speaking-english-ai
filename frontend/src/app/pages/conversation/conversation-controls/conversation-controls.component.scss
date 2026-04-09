@@ -23,7 +23,7 @@
 .controls-right {
   flex: 1;
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   gap: 8px;
 }
 
@@ -126,12 +126,18 @@
 
 .chat-input {
   flex: 1;
+  min-height: 44px;
+  max-height: 160px;
   padding: 8px 10px;
   border-radius: var(--radius);
   border: 1px solid var(--clr-border);
   background: var(--clr-surface);
   color: var(--clr-text);
+  font-family: inherit;
   font-size: var(--fs-lg);
+  line-height: 1.4;
+  resize: vertical;
+  overflow-y: auto;
 
   &:focus-visible {
     outline: 2px solid var(--clr-border-focus);
