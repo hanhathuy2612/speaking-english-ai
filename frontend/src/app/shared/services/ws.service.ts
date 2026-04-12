@@ -74,8 +74,9 @@ export class WsService implements OnDestroy {
         }
       });
 
-    this.ws.onerror = () => {
+    this.ws.onerror = (ev) => {
       // onclose will run after onerror; reconnect is handled there
+      console.error('WebSocket error', ev);
     };
 
     this.ws.onmessage = (ev) => {

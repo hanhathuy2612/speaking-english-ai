@@ -249,23 +249,37 @@ export class ApiService {
     question: string,
     messageId?: number,
     level?: string | null,
+    priorContext?: string | null,
   ): Observable<GuidanceResponse> {
-    const body: { question: string; message_id?: number; level?: string } = {
+    const body: {
+      question: string;
+      message_id?: number;
+      level?: string;
+      prior_context?: string;
+    } = {
       question: question.trim(),
     };
     if (messageId != null) body.message_id = messageId;
     const lv = (level ?? '').trim();
     if (lv !== '') body.level = lv;
+    const pc = (priorContext ?? '').trim();
+    if (pc !== '') body.prior_context = pc;
     return this.http.post<GuidanceResponse>(`${this.base}/conversation/guidance`, body);
   }
 
   /** Improve learner sentence: spelling, grammar, and idea clarity. */
-  optimizeUserReply(text: string, level?: string | null): Observable<OptimizeResponse> {
-    const body: { text: string; level?: string } = {
+  optimizeUserReply(
+    text: string,
+    level?: string | null,
+    priorContext?: string | null,
+  ): Observable<OptimizeResponse> {
+    const body: { text: string; level?: string; prior_context?: string } = {
       text: text.trim(),
     };
     const lv = (level ?? '').trim();
     if (lv !== '') body.level = lv;
+    const pc = (priorContext ?? '').trim();
+    if (pc !== '') body.prior_context = pc;
     return this.http.post<OptimizeResponse>(`${this.base}/conversation/guidance/optimize`, body);
   }
 

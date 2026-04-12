@@ -19,11 +19,13 @@ import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { finalize, firstValueFrom } from 'rxjs';
 import { applyAssistantPartialFrame, attachConcatenatedAiAudio } from './audio/assistant-stream';
+import { parseGuidelineSections, stringifyGuidelineSections } from './audio/guidelines';
 import { ConversationControlsComponent } from './conversation-controls/conversation-controls.component';
 import { ConversationGuidePanelComponent } from './conversation-guide-panel/conversation-guide-panel.component';
-import { parseGuidelineSections, stringifyGuidelineSections } from './audio/guidelines';
 import { ConversationHeaderComponent } from './conversation-header/conversation-header.component';
 import { ConversationMessageListComponent } from './conversation-message-list/conversation-message-list.component';
+import { ConversationUnitBannerComponent } from './conversation-unit-banner/conversation-unit-banner.component';
+import { ConversationUnitCompleteModalComponent } from './conversation-unit-complete-modal/conversation-unit-complete-modal.component';
 import { mapSessionDetailTurnsToMessages } from './mappers/session.mapper';
 import { mergeTurnSavedIntoMessages } from './mappers/turn-saved.merge';
 import {
@@ -35,18 +37,30 @@ import {
 } from './model/constants';
 import type { ChatMessage, SessionScoreTurn, TopicUnitWsMeta } from './model/models';
 import { mergeTurnScoresAndSessionFeedback } from './scoring/session-scoring';
-import { ConversationUnitBannerComponent } from './conversation-unit-banner/conversation-unit-banner.component';
-import { ConversationUnitCompleteModalComponent } from './conversation-unit-complete-modal/conversation-unit-complete-modal.component';
-import { routeConversationWsMessage, type ConversationWsSink } from './ws/router';
 import { ConversationWsStartPayload } from './ws/helpers';
+import { routeConversationWsMessage, type ConversationWsSink } from './ws/router';
 
-function messageFromHttpErrorDetail(err: { error?: { detail?: unknown } }): string | null {
-  const d = err.error?.detail;
-  if (typeof d === 'string') return d;
-  if (Array.isArray(d) && d.length > 0 && typeof (d[0] as { msg?: string }).msg === 'string') {
-    return (d[0] as { msg: string }).msg;
+/** Matches backend `GuidanceRequest.prior_context` max_length; trim oldest lines if exceeded. */
+const GUIDANCE_PRIOR_CONTEXT_MAX_CHARS = 10_000;
+
+function priorContextLinesBeforeIndex(
+  messages: readonly ChatMessage[],
+  endExclusive: number,
+): string {
+  const lines: string[] = [];
+  for (let i = 0; i < endExclusive && i < messages.length; i++) {
+    const m = messages[i];
+    if (m.partial) continue;
+    const t = m.text?.trim() ?? '';
+    if (!t) continue;
+    const label = m.role === 'user' ? 'Learner' : 'Tutor';
+    lines.push(`${label}: ${t}`);
   }
-  return null;
+  let s = lines.join('\n');
+  if (s.length > GUIDANCE_PRIOR_CONTEXT_MAX_CHARS) {
+    s = '…\n' + s.slice(-(GUIDANCE_PRIOR_CONTEXT_MAX_CHARS - 2));
+  }
+  return s;
 }
 
 @Component({
@@ -545,26 +559,29 @@ export class ConversationComponent implements OnInit, OnDestroy {
   openGuidePanel(message: ChatMessage, index: number): void {
     this.guidePanelMode.set('guide');
     this.selectedForGuide.set({ index, message });
-    this._loadGuideSuggestions(message, index);
+    this._loadGuideSuggestions(message, index, false);
   }
 
-  private _loadGuideSuggestions(message: ChatMessage, index: number): void {
+  private _loadGuideSuggestions(message: ChatMessage, index: number, forceRefresh: boolean): void {
     const question = message.text?.trim() || '';
     if (!question) {
       this.guideSuggestions.set(['No question text.']);
       this.guideLoading.set(false);
       return;
     }
-    const cached = parseGuidelineSections(message.guideline);
-    if (cached != null && cached.length > 0) {
-      this.guideSuggestions.set(cached);
-      this.guideLoading.set(false);
-      this.cdr.detectChanges();
-      return;
+    if (!forceRefresh) {
+      const cached = parseGuidelineSections(message.guideline);
+      if (cached != null && cached.length > 0) {
+        this.guideSuggestions.set(cached);
+        this.guideLoading.set(false);
+        this.cdr.detectChanges();
+        return;
+      }
     }
     this.guideSuggestions.set([]);
     this.guideLoading.set(true);
-    this.api.getGuidance(question, message.turnId, this.conversationLevel()).subscribe({
+    const prior = priorContextLinesBeforeIndex(this.messages(), index);
+    this.api.getGuidance(question, message.turnId, this.conversationLevel(), prior).subscribe({
       next: (res) => {
         const suggestions = res.suggestions || [];
         this.guideSuggestions.set(suggestions);
@@ -594,10 +611,10 @@ export class ConversationComponent implements OnInit, OnDestroy {
   openOptimizePanel(message: ChatMessage, index: number): void {
     this.guidePanelMode.set('optimize');
     this.selectedForGuide.set({ index, message });
-    this._loadOptimizeSuggestions(message);
+    this._loadOptimizeSuggestions(message, index);
   }
 
-  private _loadOptimizeSuggestions(message: ChatMessage): void {
+  private _loadOptimizeSuggestions(message: ChatMessage, index: number): void {
     const source = message.text?.trim() || '';
     if (!source) {
       this.guideSuggestions.set(['No user message text to optimize.']);
@@ -606,7 +623,8 @@ export class ConversationComponent implements OnInit, OnDestroy {
     }
     this.guideSuggestions.set([]);
     this.guideLoading.set(true);
-    this.api.optimizeUserReply(source, this.conversationLevel()).subscribe({
+    const prior = priorContextLinesBeforeIndex(this.messages(), index);
+    this.api.optimizeUserReply(source, this.conversationLevel(), prior).subscribe({
       next: (res) => {
         this.guideSuggestions.set(res.suggestions || []);
         this.guideLoading.set(false);
@@ -623,11 +641,12 @@ export class ConversationComponent implements OnInit, OnDestroy {
   refreshGuidePanel(): void {
     const sel = this.selectedForGuide();
     if (!sel) return;
+    const current = this.messages()[sel.index] ?? sel.message;
     if (this.guidePanelMode() === 'guide') {
-      this._loadGuideSuggestions(sel.message, sel.index);
+      this._loadGuideSuggestions(current, sel.index, true);
       return;
     }
-    this._loadOptimizeSuggestions(sel.message);
+    this._loadOptimizeSuggestions(current, sel.index);
   }
 
   closeGuidePanel(): void {
@@ -763,10 +782,18 @@ export class ConversationComponent implements OnInit, OnDestroy {
     return n;
   }
 
+  /**
+   * While text is still streaming, `lastAiMessageIndex` is only set when partial `done` is true,
+   * so it can still point at the *previous* AI turn. Audio may finish first — attach to the
+   * in-progress bubble via `pendingAiMsgIndex` instead.
+   */
+  private _targetAiMessageIndexForAudioAttach(): number {
+    return this.pendingAiMsgIndex >= 0 ? this.pendingAiMsgIndex : this.lastAiMessageIndex;
+  }
+
   private _finalizeAssistantAudioPlayback(): void {
-    this.messages.update((m) =>
-      attachConcatenatedAiAudio(m, this.lastAiMessageIndex, this.currentAiAudioChunks),
-    );
+    const idx = this._targetAiMessageIndexForAudioAttach();
+    this.messages.update((m) => attachConcatenatedAiAudio(m, idx, this.currentAiAudioChunks));
     this.currentAiAudioChunks = [];
     this.lastAiMessageIndex = -1;
     this.audio.endStreamingPlayback().then(() => {

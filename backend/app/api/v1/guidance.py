@@ -30,13 +30,16 @@ class GuidanceRequest(BaseModel):
     message_id: int | None = Field(
         None, description="If set, save the returned guideline to this message"
     )
-    turn_id: int | None = Field(
-        None, description="Deprecated alias of message_id"
-    )
+    turn_id: int | None = Field(None, description="Deprecated alias of message_id")
     level: str | None = Field(
         None,
         max_length=20,
         description="IELTS Speaking target band (e.g. 6, 6.5); empty = default Band 6",
+    )
+    prior_context: str | None = Field(
+        None,
+        max_length=12000,
+        description="Earlier learner/tutor turns so the model can align suggestions with the chat",
     )
 
 
@@ -46,6 +49,11 @@ class OptimizeRequest(BaseModel):
         None,
         max_length=20,
         description="IELTS Speaking target band (e.g. 6, 6.5); empty = topic default",
+    )
+    prior_context: str | None = Field(
+        None,
+        max_length=12000,
+        description="Earlier turns so the rewrite stays consistent with the conversation",
     )
 
 
@@ -73,6 +81,13 @@ def _guidance_level_tag(level: str | None) -> str:
     if n is None:
         return "Band 6 (mặc định)"
     return f"Band {format_ielts_band(n)}"
+
+
+def _prior_block_for_prompt(raw: str | None, intro_line: str) -> str:
+    pc = (raw or "").strip()
+    if not pc:
+        return ""
+    return f"{intro_line}\n{pc}\n\n"
 
 
 # Split model output into one string per section (works even if the model skips blank lines between blocks).
@@ -113,50 +128,94 @@ def _split_guidance_sections(raw: str) -> list[str]:
 
 _GUIDANCE_PROMPT = """{level_block}
 
-The English tutor asked the learner this question:
+{prior_block}The English tutor asked:
 
 "{question}"
 
-You help Vietnamese learners practise **spoken English**. Use **bilingual output**: short Vietnamese for thinking/strategy; **English** for phrases they will actually say.
+You help Vietnamese learners practise IELTS Speaking.
 
-**Facts:** If the question mentions real places, people, or facts, use accurate English in sections 4–5. Do not invent nonsense names or mix Vietnamese inside English sentences.
+Follow these rules strictly:
+- Output must have EXACTLY 5 sections in this order.
+- Do NOT use bullet points, numbering, or markdown.
+- Each section starts with its label and ":" on a new line.
+- Leave ONE blank line between sections.
 
-Write **exactly five sections** in this order. Each section is **one block** (a few sentences max). **Do not** use "1." / "2." numbering, markdown bullets, or "(a)(b)(c)" lists — write flowing sentences only.
+Language rules:
+- "Hướng trả lời" and "Ngữ pháp": Vietnamese only.
+- "Mẫu câu": Vietnamese explanation + English sentences in quotes.
+- "Từ vựng" and "Ví dụ": English ONLY. No Vietnamese words allowed.
+- If any Vietnamese appears in "Từ vựng" or "Ví dụ", rewrite.
 
-**Hướng trả lời:** — 3–5 short sentences in **Vietnamese only**. Strategy only: mở bài (nhắc ý câu hỏi rất ngắn), mấy ý, độ dài khi nói (2–4 câu tiếng Anh), một hướng nếu câu hỏi mở. **Không** viết câu tiếng Anh hoàn chỉnh ở mục này (chỉ gợi ý cách làm).
+Content rules:
+- Stay on the topic of the question.
+- Keep answers short and natural for speaking.
 
-**Mẫu câu:** — 1–2 câu **tiếng Việt** giải thích khung, rồi **1–2 khung tiếng Anh** trong ngoặc kép (ví dụ "Well, …" hoặc "Compared to …, I find …").
+Section details:
 
-**Ngữ pháp:** — 1–2 câu **tiếng Việt**: một điểm ngữ pháp khớp loại câu hỏi.
+Hướng trả lời:
+3–4 short Vietnamese sentences. Only ideas, no full English sentences.
 
-**Từ vựng:** — **Một dòng** gồm 5–8 cụm **tiếng Anh** (phân tách bằng dấu phẩy). Không tiếng Việt trong dòng này.
+Mẫu câu:
+1 short Vietnamese explanation, then 2 English sentence frames in quotes.
 
-**Ví dụ:** — **Một dòng**: 2–3 câu tiếng Anh hoàn chỉnh, tự nhiên khi nói, cách nhau bằng " · ". Chỉ tiếng Anh; đúng ngữ pháp và hợp lý.
+Ngữ pháp:
+1 short Vietnamese sentence explaining a useful grammar point.
 
-Formatting (strict):
-- Mỗi khối bắt đầu **đúng một dòng mới** với nhãn và dấu hai chấm ASCII: Hướng trả lời: / Mẫu câu: / Ngữ pháp: / Từ vựng: / Ví dụ:
-- Giữa hai khối liền kề: **một dòng trống** (xuống dòng hai lần).
-- Không dùng ** hoặc markdown khác ngoài nhãn trên."""
+Từ vựng:
+Write 5–7 English phrases on ONE SINGLE LINE, separated by commas.
+
+Ví dụ:
+Write 2–3 natural English sentences on ONE SINGLE LINE, separated by " · ".
+
+Output format (follow exactly):
+
+Hướng trả lời:
+...
+
+Mẫu câu:
+...
+
+Ngữ pháp:
+...
+
+Từ vựng:
+...
+
+Ví dụ:
+...
+"""
+
 
 _OPTIMIZE_PROMPT = """{level_block}
 
-Learner's original sentence:
+{prior_block}
+
+The learner said this in **English** (spoken practice). Quote below — it is NOT Vietnamese:
+
 "{text}"
 
-Task:
-- Help a Vietnamese learner improve this spoken English response for IELTS Speaking.
-- Keep the learner's original meaning.
-- Fix spelling/word choice/grammar and improve idea clarity naturally.
-- Return concise, practical output for a right-side coaching panel.
+Your job:
+- Improve it for IELTS-style spoken English: fix spelling, grammar, word choice, and natural flow.
+- Keep the same meaning and facts. Do not invent new story details.
 
-Output format (strict, plain text; no markdown list markers):
-Optimized response: one natural final version in English (1-3 sentences).
+**Language rules (strict):**
+- "Optimized response" and "Extra idea to extend answer": **English only**.
+- "Why this is better" and "Common mistakes in this sentence": **Vietnamese only** — short coaching notes for the learner.
+- **Never** call the original "a Vietnamese sentence" or mix languages: do **not** add English paraphrases in parentheses after Vietnamese (no bilingual echo like "(The English...)"). Do **not** repeat the optimized English inside the Vietnamese sections.
 
-Why this is better: 2-4 short bullet-like lines in Vietnamese, focused on grammar/word choice/clarity.
+Output exactly four labeled sections in this order. One blank line between sections. No bullet lists, no numbering.
 
-Common mistakes in this sentence: 2-4 short Vietnamese lines (if none, say it is already natural).
+Optimized response:
+Write 1–3 natural English sentences — this is the improved version only.
 
-Extra idea to extend answer: 1 short English sentence the learner can add next.
+Why this is better:
+Write 2–3 short lines in Vietnamese only: briefly say what you improved and why. No English in this section.
+
+Common mistakes in this sentence:
+Write 2–4 short lines in Vietnamese only about problems in the learner's **original English** quote, or say it was already natural. You may quote a wrong English fragment in quotes if needed. No full English sentences and no parentheses with English translations.
+
+Extra idea to extend answer:
+Write exactly one English sentence suggesting what the learner could add next.
 """
 
 
@@ -175,6 +234,11 @@ async def get_guidance_for_question(
     question = body.question.strip()
     level_block = _level_context_block(body.level)
     lvl_tag = _guidance_level_tag(body.level)
+    prior_block = _prior_block_for_prompt(
+        body.prior_context,
+        "Earlier in this session (learner ↔ tutor; one line per turn, oldest first). "
+        "Use for continuity — do not contradict facts the learner already stated.",
+    )
 
     lm = LMStudioClient()
     guidance_model = (get_settings().openai_guidance_model or "").strip() or None
@@ -183,6 +247,7 @@ async def get_guidance_for_question(
             "role": "user",
             "content": _GUIDANCE_PROMPT.format(
                 level_block=level_block,
+                prior_block=prior_block,
                 question=question,
             ),
         }
@@ -250,6 +315,11 @@ async def optimize_user_reply(
     text = body.text.strip()
     level_block = _level_context_block(body.level)
     lvl_tag = _guidance_level_tag(body.level)
+    prior_block = _prior_block_for_prompt(
+        body.prior_context,
+        "Earlier in this session (one line per turn, oldest first). "
+        "Use for continuity when improving the learner's reply.",
+    )
 
     lm = LMStudioClient()
     guidance_model = (get_settings().openai_guidance_model or "").strip() or None
@@ -258,6 +328,7 @@ async def optimize_user_reply(
             "role": "user",
             "content": _OPTIMIZE_PROMPT.format(
                 level_block=level_block,
+                prior_block=prior_block,
                 text=text,
             ),
         }
