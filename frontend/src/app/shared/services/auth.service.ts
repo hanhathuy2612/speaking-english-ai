@@ -67,20 +67,18 @@ export class AuthService {
     if (!refreshToken) {
       return throwError(() => new Error('No refresh token'));
     }
-    if (!this.refreshInFlight$) {
-      this.refreshInFlight$ = this.http
-        .post<AuthResponse>(`${this.base}/auth/refresh`, { refresh_token: refreshToken })
-        .pipe(
-          tap((r: AuthResponse) => {
-            this._store(r);
-            this.account.applyLoginResponse(r);
-          }),
-          finalize(() => {
-            this.refreshInFlight$ = null;
-          }),
-          shareReplay(1),
-        );
-    }
+    this.refreshInFlight$ ??= this.http
+      .post<AuthResponse>(`${this.base}/auth/refresh`, { refresh_token: refreshToken })
+      .pipe(
+        tap((r: AuthResponse) => {
+          this._store(r);
+          this.account.applyLoginResponse(r);
+        }),
+        finalize(() => {
+          this.refreshInFlight$ = null;
+        }),
+        shareReplay(1),
+      );
     return this.refreshInFlight$;
   }
 
