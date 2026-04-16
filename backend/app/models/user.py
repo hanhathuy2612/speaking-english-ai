@@ -7,8 +7,10 @@ from sqlalchemy import DateTime, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 if TYPE_CHECKING:
-    from app.models.user_topic_unit_progress import UserTopicUnitProgress
     from app.models.role import UserRole
+    from app.models.user_topic_unit_progress import UserTopicUnitProgress
+
+CASCADE_ALL_DELETE_ORPHAN = "all, delete-orphan"
 
 int_pk = Annotated[int, mapped_column(primary_key=True, index=True)]
 
@@ -33,11 +35,11 @@ class User(Base):
     tts_rate: Mapped[str | None] = mapped_column(String(20), nullable=True)
 
     sessions: Mapped[list["Session"]] = relationship(
-        back_populates="user", cascade="all, delete-orphan"
+        back_populates="user", cascade=CASCADE_ALL_DELETE_ORPHAN
     )
     topic_unit_progress_rows: Mapped[list["UserTopicUnitProgress"]] = relationship(
-        back_populates="user", cascade="all, delete-orphan"
+        back_populates="user", cascade=CASCADE_ALL_DELETE_ORPHAN
     )
     role_memberships: Mapped[list["UserRole"]] = relationship(
-        "UserRole", back_populates="user", cascade="all, delete-orphan"
+        "UserRole", back_populates="user", cascade=CASCADE_ALL_DELETE_ORPHAN
     )

@@ -79,6 +79,7 @@ _WEBM_EBML_HEADER = b"\x1a\x45\xdf\xa3"
 _AI_UNAVAILABLE_ASSISTANT_TEXT = (
     "Sorry — I couldn't reply just now. Your answer was still saved for this session."
 )
+_ERROR_SEND_START_FIRST = "Send 'start' first"
 
 
 async def generate_llm_text(
@@ -614,6 +615,29 @@ class ConversationHandler:
         await self._send(status_payload)
         return True
 
+    def _opening_prompt(self) -> str:
+        """Build the user prompt used for the very first assistant line."""
+        if self.topic_unit is not None:
+            u = self.topic_unit
+            return (
+                f'[Start a guided speaking step titled "{u.title}". '
+                f"Learner goal: {u.objective} "
+                "The learner will have several scored speaking turns in this session toward this step. "
+                "Give a short greeting or one opening question that fits this goal. "
+                "One or two sentences only, in English.]"
+            )
+        return (
+            f"[Start the conversation about: {self.topic.title}. "
+            "Say a short greeting or one opening question to get the learner to speak. "
+            "One or two sentences only, in English.]"
+        )
+
+    def _fallback_opening_text(self) -> str:
+        """Fallback opening when LLM generation fails."""
+        if self.topic_unit is not None:
+            return f"Hi! Let's work on {self.topic_unit.title}. What would you like to say?"
+        return f"Hi! Let's talk about {self.topic.title}. What would you like to say?"
+
     async def send_opening_message(self, db: AsyncSession) -> None:
         """Generate and stream AI opening (greeting/question); append to history and stream TTS."""
         if not self.topic:
@@ -627,21 +651,7 @@ class ConversationHandler:
                 return
         effective = self._effective_level() or ""
         ctx = await self._topic_context_for_llm(db)
-        if self.topic_unit is not None:
-            u = self.topic_unit
-            prompt = (
-                f'[Start a guided speaking step titled "{u.title}". '
-                f"Learner goal: {u.objective} "
-                "The learner will have several scored speaking turns in this session toward this step. "
-                "Give a short greeting or one opening question that fits this goal. "
-                "One or two sentences only, in English.]"
-            )
-        else:
-            prompt = (
-                f"[Start the conversation about: {self.topic.title}. "
-                "Say a short greeting or one opening question to get the learner to speak. "
-                "One or two sentences only, in English.]"
-            )
+        prompt = self._opening_prompt()
         messages = self._lm.build_messages(
             [{"role": "user", "content": prompt}],
             topic_context=ctx,
@@ -657,11 +667,7 @@ class ConversationHandler:
             )
         except Exception as e:
             logger.warning("Opening message failed: %s", e)
-            opening_text = (
-                f"Hi! Let's work on {self.topic_unit.title}. What would you like to say?"
-                if self.topic_unit
-                else f"Hi! Let's talk about {self.topic.title}. What would you like to say?"
-            )
+            opening_text = self._fallback_opening_text()
         self.history.append({"role": "assistant", "content": opening_text})
         self._opening_text = opening_text or None
         tts_bytes = b""
@@ -696,7 +702,7 @@ class ConversationHandler:
     async def handle_audio_end(self, db: AsyncSession) -> bool:
         """Transcribe, get AI reply, TTS, persist turn (scoring runs at session end). Return True on success."""
         if not self.session_id or not self.topic:
-            await self._send({"type": "error", "message": "Send 'start' first"})
+            await self._send({"type": "error", "message": _ERROR_SEND_START_FIRST})
             return False
         if not self.audio_buffer:
             await self._send({"type": "error", "message": "No audio received"})
@@ -818,7 +824,7 @@ class ConversationHandler:
     async def handle_user_text(self, db: AsyncSession, data: dict) -> bool:
         """Handle a text message from the user (no audio)."""
         if not self.session_id or not self.topic:
-            await self._send({"type": "error", "message": "Send 'start' first"})
+            await self._send({"type": "error", "message": _ERROR_SEND_START_FIRST})
             return False
 
         raw = str(data.get("text") or "").strip()
@@ -953,7 +959,7 @@ class ConversationHandler:
     async def handle_rework(self, db: AsyncSession, data: dict) -> bool:
         """Remove this turn and all following turns; client continues from before this slot."""
         if not self.session_id or not self.topic:
-            await self._send({"type": "error", "message": "Send 'start' first"})
+            await self._send({"type": "error", "message": _ERROR_SEND_START_FIRST})
             return False
         try:
             turn_index = int(data.get("turnIndex", -1))

@@ -6,7 +6,7 @@ from sqlalchemy import ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 if TYPE_CHECKING:
-    from app.models.conversation_session import Session
+    from app.models.session import Session
     from app.models.topic import Topic
     from app.models.user_topic_unit_progress import UserTopicUnitProgress
 
