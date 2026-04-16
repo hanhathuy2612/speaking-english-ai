@@ -14,7 +14,7 @@ export const IELTS_SPEAKING_BAND_VALUES = [
   '9',
 ] as const;
 
-const BAND_NUMS = new Set(IELTS_SPEAKING_BAND_VALUES.map((s) => Number(s)));
+const BAND_NUMS = new Set(IELTS_SPEAKING_BAND_VALUES.map(Number));
 
 const LEGACY_CEFR_TO_BAND: Record<string, string> = {
   a1: '4',
@@ -46,7 +46,7 @@ export function resolveIeltsBand(raw: string | null | undefined): number | null 
   const key = String(raw).trim().toLowerCase();
   if (!key) return null;
   const mapped = LEGACY_CEFR_TO_BAND[key];
-  return mapped != null ? parseIeltsBand(mapped) : null;
+  return mapped == null ? null : parseIeltsBand(mapped);
 }
 
 export function formatIeltsBand(n: number): string {
@@ -56,14 +56,14 @@ export function formatIeltsBand(n: number): string {
 /** Normalize free text to a canonical band string when possible. */
 export function normalizeIeltsLevelInput(raw: string | null | undefined): string {
   const n = resolveIeltsBand(raw);
-  return n != null ? formatIeltsBand(n) : (raw ?? '').trim();
+  return n == null ? (raw ?? '').trim() : formatIeltsBand(n);
 }
 
 export function ieltsBadgeTier(level: string | null | undefined): IeltsBadgeTier {
   const n = resolveIeltsBand(level);
   if (n == null) return 'none';
-  if (n <= 5.0) return 'low';
-  if (n <= 6.0) return 'mid';
+  if (n <= 5) return 'low';
+  if (n <= 6) return 'mid';
   if (n <= 7.5) return 'strong';
   return 'expert';
 }

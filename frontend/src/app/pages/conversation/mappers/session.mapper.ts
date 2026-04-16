@@ -25,8 +25,7 @@ export function mapSessionDetailTurnsToMessages(
       text: decodeEscapedLineBreaks(t.user_text),
       turnId: t.user_message_id,
       ...(t.has_user_audio ? { hasUserRecording: true } : {}),
-    });
-    out.push({
+    }, {
       role: 'ai',
       text: decodeEscapedLineBreaks(t.assistant_text),
       turnId: t.turn_id,
