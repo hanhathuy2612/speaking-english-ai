@@ -1,3 +1,4 @@
+import { CHAT_ROLE_AI, CHAT_ROLE_USER } from '../model/chat-roles';
 import type { ChatMessage } from '../model/models';
 
 export interface TurnSavedMergeResult {
@@ -23,7 +24,7 @@ export function mergeTurnSavedIntoMessages(
   }
 
   const next = [...list];
-  if (next[userIdx]?.role === 'user') {
+  if (next[userIdx]?.role === CHAT_ROLE_USER) {
     next[userIdx] = {
       ...next[userIdx],
       turnId: userMessageId,
@@ -33,7 +34,7 @@ export function mergeTurnSavedIntoMessages(
 
   const ai = next[aiIdx];
   let persistGuideline: TurnSavedMergeResult['persistGuideline'] = null;
-  if (ai?.role === 'ai' && !ai.isOpeningLine) {
+  if (ai?.role === CHAT_ROLE_AI && !ai.isOpeningLine) {
     next[aiIdx] = { ...ai, turnId: assistantMessageId };
     const g = ai.guideline;
     if (g != null && String(g).trim() !== '') {

@@ -1,7 +1,8 @@
 import type { TopicUnitWsMeta } from '../model/models';
+import { WS_TYPE_START } from './protocol';
 
 export interface ConversationWsStartPayload {
-  type: 'start';
+  type: typeof WS_TYPE_START;
   topicId: number;
   ttsRate: string;
   ttsVoice: string;
@@ -18,10 +19,12 @@ export function topicUnitFromWsPayload(raw: unknown): TopicUnitWsMeta | null {
   if (raw == null || typeof raw !== 'object') return null;
   const tu = raw as Record<string, unknown>;
   if (typeof tu['id'] !== 'number') return null;
+  const title = typeof tu['title'] === 'string' ? tu['title'] : '';
+  const objective = typeof tu['objective'] === 'string' ? tu['objective'] : '';
   return {
     id: tu['id'],
-    title: String(tu['title'] ?? ''),
-    objective: String(tu['objective'] ?? ''),
+    title,
+    objective,
     minTurnsToComplete: (tu['minTurnsToComplete'] as number | null) ?? null,
     minAvgOverall: (tu['minAvgOverall'] as number | null) ?? null,
     maxScoredTurns: (tu['maxScoredTurns'] as number | null) ?? null,

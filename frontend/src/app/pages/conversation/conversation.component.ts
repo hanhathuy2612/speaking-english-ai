@@ -28,6 +28,7 @@ import { ConversationUnitBannerComponent } from './conversation-unit-banner/conv
 import { ConversationUnitCompleteModalComponent } from './conversation-unit-complete-modal/conversation-unit-complete-modal.component';
 import { mapSessionDetailTurnsToMessages } from './mappers/session.mapper';
 import { mergeTurnSavedIntoMessages } from './mappers/turn-saved.merge';
+import { CHAT_ROLE_AI, CHAT_ROLE_USER } from './model/chat-roles';
 import {
   GUIDE_PANEL_DEFAULT_W,
   GUIDE_PANEL_MAX_W,
@@ -38,10 +39,23 @@ import {
 import type { ChatMessage, SessionScoreTurn, TopicUnitWsMeta } from './model/models';
 import { mergeTurnScoresAndSessionFeedback } from './scoring/session-scoring';
 import { ConversationWsStartPayload } from './ws/helpers';
+import {
+  WS_STATUS_SESSION_STARTED,
+  WS_TYPE_ASSISTANT_PARTIAL,
+  WS_TYPE_AUDIO_END,
+  WS_TYPE_REWORK,
+  WS_TYPE_SET_LEVEL,
+  WS_TYPE_START,
+  WS_TYPE_TTS_PREFERENCES,
+  WS_TYPE_USER_TEXT,
+} from './ws/protocol';
 import { routeConversationWsMessage, type ConversationWsSink } from './ws/router';
 
 /** Matches backend `GuidanceRequest.prior_context` max_length; trim oldest lines if exceeded. */
 const GUIDANCE_PRIOR_CONTEXT_MAX_CHARS = 10_000;
+const GUIDE_PANEL_MODE_GUIDE = 'guide' as const;
+const API_AUDIO_KIND_USER = 'user' as const;
+const API_AUDIO_KIND_ASSISTANT = 'assistant' as const;
 
 function priorContextLinesBeforeIndex(
   messages: readonly ChatMessage[],
@@ -53,7 +67,7 @@ function priorContextLinesBeforeIndex(
     if (m.partial) continue;
     const t = m.text?.trim() ?? '';
     if (!t) continue;
-    const label = m.role === 'user' ? 'Learner' : 'Tutor';
+    const label = m.role === CHAT_ROLE_USER ? 'Learner' : 'Tutor';
     lines.push(`${label}: ${t}`);
   }
   let s = lines.join('\n');
@@ -147,7 +161,7 @@ export class ConversationComponent implements OnInit, OnDestroy {
   playingMessageIndex = signal(-1);
 
   selectedForGuide = signal<{ index: number; message: ChatMessage } | null>(null);
-  guidePanelMode = signal<'guide' | 'optimize'>('guide');
+  guidePanelMode = signal<'guide' | 'optimize'>(GUIDE_PANEL_MODE_GUIDE);
   guideSuggestions = signal<string[]>([]);
   guideLoading = signal(false);
   guidePanelWidthPx = signal(GUIDE_PANEL_DEFAULT_W);
@@ -198,7 +212,7 @@ export class ConversationComponent implements OnInit, OnDestroy {
     const msgs = this.messages();
     if (msgs.length === 0) return false;
     const last = msgs.at(-1);
-    if (last?.role !== 'ai' || last?.partial) return false;
+    if (last?.role !== CHAT_ROLE_AI || last?.partial) return false;
     if (this.aiSpeaking() || this.recording() || this.transcribing()) return false;
     return true;
   });
@@ -242,7 +256,6 @@ export class ConversationComponent implements OnInit, OnDestroy {
   private _effectLoadPrefsAndConnect(): void {
     effect(() => {
       const id = this.topicId();
-      const uid = this.unitId();
       const sid = this.sessionId();
       if (id <= 0) {
         void this.router.navigate(['/topics']);
@@ -256,7 +269,6 @@ export class ConversationComponent implements OnInit, OnDestroy {
         }
         this._skipBootstrapForSessionUrlSync = null;
       }
-      void uid;
       const gen = ++this._sessionBootstrapGen;
       this.messages.set([]);
       this.sessionEndedWithFeedback.set(false);
@@ -369,7 +381,7 @@ export class ConversationComponent implements OnInit, OnDestroy {
       if (this.startSentForConnection) return;
       this.startSentForConnection = true;
       const payload: ConversationWsStartPayload = {
-        type: 'start',
+        type: WS_TYPE_START,
         topicId,
         ttsRate: this.ttsRate(),
         ttsVoice: this.ttsVoice(),
@@ -552,12 +564,12 @@ export class ConversationComponent implements OnInit, OnDestroy {
     const value = level ?? '';
     this.conversationLevel.set(value);
     if (this.connected()) {
-      this.ws.sendJson({ type: 'set_level', level: value });
+      this.ws.sendJson({ type: WS_TYPE_SET_LEVEL, level: value });
     }
   }
 
   openGuidePanel(message: ChatMessage, index: number): void {
-    this.guidePanelMode.set('guide');
+    this.guidePanelMode.set(GUIDE_PANEL_MODE_GUIDE);
     this.selectedForGuide.set({ index, message });
     this._loadGuideSuggestions(message, index, false);
   }
@@ -642,7 +654,7 @@ export class ConversationComponent implements OnInit, OnDestroy {
     const sel = this.selectedForGuide();
     if (!sel) return;
     const current = this.messages()[sel.index] ?? sel.message;
-    if (this.guidePanelMode() === 'guide') {
+    if (this.guidePanelMode() === GUIDE_PANEL_MODE_GUIDE) {
       this._loadGuideSuggestions(current, sel.index, true);
       return;
     }
@@ -708,7 +720,7 @@ export class ConversationComponent implements OnInit, OnDestroy {
   private _sendTtsPreferences(rate?: string, voice?: string): void {
     if (!this.connected()) return;
     this.ws.sendJson({
-      type: 'tts_preferences',
+      type: WS_TYPE_TTS_PREFERENCES,
       ttsRate: rate ?? this.ttsRate(),
       ttsVoice: voice ?? this.ttsVoice(),
     });
@@ -727,7 +739,7 @@ export class ConversationComponent implements OnInit, OnDestroy {
     if (!this.recording()) return;
     this.recording.set(false);
     await this.audio.stopRecording();
-    this.ws.sendJson({ type: 'audio_end' });
+    this.ws.sendJson({ type: WS_TYPE_AUDIO_END });
   }
 
   sendText(): void {
@@ -736,7 +748,7 @@ export class ConversationComponent implements OnInit, OnDestroy {
     if (!this.connected() || this.messages().length === 0) return;
     if (
       !this.ws.sendJson({
-        type: 'user_text',
+        type: WS_TYPE_USER_TEXT,
         text,
       })
     ) {
@@ -777,7 +789,7 @@ export class ConversationComponent implements OnInit, OnDestroy {
     const list = this.messages();
     let n = 0;
     for (let i = 0; i < messageIndex && i < list.length; i++) {
-      if (list[i].role === 'user') n += 1;
+      if (list[i].role === CHAT_ROLE_USER) n += 1;
     }
     return n;
   }
@@ -817,11 +829,11 @@ export class ConversationComponent implements OnInit, OnDestroy {
     if (this.sessionArchiveView() || !this.reworkAllowed()) return;
     const list = this.messages();
     if (messageIndex < 0 || messageIndex >= list.length) return;
-    if (list[messageIndex].role !== 'user') return;
+    if (list[messageIndex].role !== CHAT_ROLE_USER) return;
     const turnIndex = this.userTurnIndexAtMessage(messageIndex);
     this.audio.stopPlayback();
     this.playingMessageIndex.set(-1);
-    this.ws.sendJson({ type: 'rework', turnIndex });
+    this.ws.sendJson({ type: WS_TYPE_REWORK, turnIndex });
   }
 
   private _resetConversationStreamingState(): void {
@@ -842,7 +854,7 @@ export class ConversationComponent implements OnInit, OnDestroy {
     this.recording.set(false);
     this.cdr.detectChanges();
     this.audio.stopRecording().then(() => {
-      this.ws.sendJson({ type: 'audio_end' });
+      this.ws.sendJson({ type: WS_TYPE_AUDIO_END });
       this.errorMessage.set('');
       this.deviceChangedNotice.set('Microphone changed. You can hold to speak again.');
       this.cdr.detectChanges();
@@ -878,7 +890,7 @@ export class ConversationComponent implements OnInit, OnDestroy {
     const sid = msg['sessionId'];
     if (typeof sid === 'number' && Number.isFinite(sid) && sid > 0) {
       this.liveSessionId.set(sid);
-      if (msg['message'] === 'session_started' && this.sessionId() <= 0) {
+      if (msg['message'] === WS_STATUS_SESSION_STARTED && this.sessionId() <= 0) {
         const tid = this.topicId();
         this._skipBootstrapForSessionUrlSync = { topicId: tid, sessionId: sid };
         void this.router.navigate([], {
@@ -898,11 +910,11 @@ export class ConversationComponent implements OnInit, OnDestroy {
    */
   private _assistantAudioShouldWaitForFirstTextChunk(): boolean {
     const last = this.messages().at(-1);
-    return last?.role === 'user';
+    return last?.role === CHAT_ROLE_USER;
   }
 
   private _onWsUserTranscript(text: string, userAudio: ArrayBuffer | undefined): void {
-    const userMsg: ChatMessage = { role: 'user', text };
+    const userMsg: ChatMessage = { role: CHAT_ROLE_USER, text };
     if (userAudio != null) {
       userMsg.userAudio = userAudio;
     } else if (this.lastUserRecording) {
@@ -1053,10 +1065,10 @@ export class ConversationComponent implements OnInit, OnDestroy {
     kind: 'user' | 'ai',
   ): Promise<ArrayBuffer | null> {
     if (msg.turnId == null) return null;
-    const canFetchUser = kind === 'user' && msg.hasUserRecording;
-    const canFetchAi = kind === 'ai' && msg.hasAiAudio;
+    const canFetchUser = kind === CHAT_ROLE_USER && msg.hasUserRecording;
+    const canFetchAi = kind === CHAT_ROLE_AI && msg.hasAiAudio;
     if (!canFetchUser && !canFetchAi) return null;
-    const apiKind = kind === 'user' ? 'user' : 'assistant';
+    const apiKind = kind === CHAT_ROLE_USER ? API_AUDIO_KIND_USER : API_AUDIO_KIND_ASSISTANT;
     const buf = await this._fetchMessageAudioFromApi(msg.turnId, apiKind);
     if (!buf) return null;
     this._patchMessageCachedAudio(index, kind, buf);
@@ -1072,7 +1084,7 @@ export class ConversationComponent implements OnInit, OnDestroy {
     if (sid <= 0) return null;
     const buf = await this._fetchOpeningLineAudio(sid);
     if (!buf) return null;
-    this._patchMessageCachedAudio(index, 'ai', buf);
+    this._patchMessageCachedAudio(index, CHAT_ROLE_AI, buf);
     return buf;
   }
 
@@ -1081,12 +1093,12 @@ export class ConversationComponent implements OnInit, OnDestroy {
     index: number,
     kind: 'user' | 'ai',
   ): Promise<ArrayBuffer | null> {
-    const embedded = kind === 'user' ? msg.userAudio : msg.aiAudio;
+    const embedded = kind === CHAT_ROLE_USER ? msg.userAudio : msg.aiAudio;
     if (embedded) return embedded;
     if (msg.turnId != null) {
       return this._bufferFromMessageTurn(msg, index, kind);
     }
-    if (kind === 'ai') {
+    if (kind === CHAT_ROLE_AI) {
       return this._bufferFromOpeningLine(msg, index);
     }
     return null;
@@ -1097,7 +1109,7 @@ export class ConversationComponent implements OnInit, OnDestroy {
       const next = [...list];
       const cur = next[index];
       if (!cur) return list;
-      next[index] = kind === 'user' ? { ...cur, userAudio: buf } : { ...cur, aiAudio: buf };
+      next[index] = kind === CHAT_ROLE_USER ? { ...cur, userAudio: buf } : { ...cur, aiAudio: buf };
       return next;
     });
   }
@@ -1119,7 +1131,7 @@ export class ConversationComponent implements OnInit, OnDestroy {
   }
 
   private _scheduleDetectChanges(msg: WsMessage): void {
-    if (msg['type'] === 'assistant_partial') {
+    if (msg['type'] === WS_TYPE_ASSISTANT_PARTIAL) {
       if (msg['done'] === true) {
         this.cdr.detectChanges();
         return;

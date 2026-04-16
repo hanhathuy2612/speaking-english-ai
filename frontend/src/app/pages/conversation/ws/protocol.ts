@@ -1,0 +1,23 @@
+export const WS_TYPE_STATUS = 'status' as const;
+export const WS_TYPE_HISTORY = 'history' as const;
+export const WS_TYPE_ERROR = 'error' as const;
+export const WS_TYPE_START = 'start' as const;
+export const WS_TYPE_SET_LEVEL = 'set_level' as const;
+export const WS_TYPE_TTS_PREFERENCES = 'tts_preferences' as const;
+export const WS_TYPE_AUDIO_END = 'audio_end' as const;
+export const WS_TYPE_USER_TEXT = 'user_text' as const;
+export const WS_TYPE_REWORK = 'rework' as const;
+export const WS_TYPE_USER_TRANSCRIPT = 'user_transcript' as const;
+export const WS_TYPE_ASSISTANT_PARTIAL = 'assistant_partial' as const;
+export const WS_TYPE_ASSISTANT_AUDIO_END = 'assistant_audio_end' as const;
+export const WS_TYPE_ASSISTANT_AUDIO_CHUNK = 'assistant_audio_chunk' as const;
+export const WS_TYPE_SESSION_SCORES = 'session_scores' as const;
+export const WS_TYPE_TURN_SAVED = 'turn_saved' as const;
+
+export const WS_STATUS_PONG = 'pong' as const;
+export const WS_STATUS_SESSION_STARTED = 'session_started' as const;
+export const WS_STATUS_ROADMAP_UNIT_COMPLETED = 'roadmap_unit_completed' as const;
+export const WS_STATUS_TRANSCRIBING = 'transcribing' as const;
+export const WS_STATUS_NORMALIZING = 'normalizing' as const;
+export const WS_STATUS_IDLE_TIMEOUT = 'idle_timeout' as const;
+export const WS_STATUS_REWORK_APPLIED = 'rework_applied' as const;

@@ -1,4 +1,5 @@
 import { decodeEscapedLineBreaks } from '../../../shared/utils/chat-text';
+import { CHAT_ROLE_AI, CHAT_ROLE_USER } from '../model/chat-roles';
 import type { ChatMessage } from '../model/models';
 
 export interface WsHistoryRow {
@@ -13,16 +14,16 @@ export interface WsHistoryRow {
 
 export function mapWsHistoryToChatMessages(rows: WsHistoryRow[]): ChatMessage[] {
   return rows.map((m) => {
-    if (m.role === 'user') {
+    if (m.role === CHAT_ROLE_USER) {
       return {
-        role: 'user' as const,
+        role: CHAT_ROLE_USER,
         text: decodeEscapedLineBreaks(m.text),
         turnId: m.turnId,
         ...(m.hasUserAudio ? { hasUserRecording: true } : {}),
       };
     }
     return {
-      role: 'ai' as const,
+      role: CHAT_ROLE_AI,
       text: decodeEscapedLineBreaks(m.text),
       turnId: m.turnId,
       guideline: m.guideline ?? undefined,

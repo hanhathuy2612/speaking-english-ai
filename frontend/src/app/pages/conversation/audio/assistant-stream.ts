@@ -1,3 +1,4 @@
+import { CHAT_ROLE_AI } from '../model/chat-roles';
 import type { ChatMessage } from '../model/models';
 
 /** Apply one assistant_partial WebSocket frame; returns new messages + streaming indices. */
@@ -13,7 +14,7 @@ export function applyAssistantPartialFrame(
   lastAiMessageIndex: number;
 } {
   if (pendingAiMsgIndex === -1) {
-    const next = [...messages, { role: 'ai' as const, text: chunk, partial: true }];
+    const next = [...messages, { role: CHAT_ROLE_AI, text: chunk, partial: true }];
     let p = messages.length;
     let l = lastAiMessageIndex;
     if (done) {

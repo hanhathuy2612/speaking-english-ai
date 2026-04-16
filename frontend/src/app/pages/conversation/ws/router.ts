@@ -2,6 +2,17 @@ import type { WsHistoryRow } from '../mappers/history.mapper';
 import { mapWsHistoryToChatMessages } from '../mappers/history.mapper';
 import type { SessionScoreTurn } from '../model/models';
 import { handleWsStatusPayload, type StatusRouter } from './status';
+import {
+  WS_TYPE_ASSISTANT_AUDIO_CHUNK,
+  WS_TYPE_ASSISTANT_AUDIO_END,
+  WS_TYPE_ASSISTANT_PARTIAL,
+  WS_TYPE_ERROR,
+  WS_TYPE_HISTORY,
+  WS_TYPE_SESSION_SCORES,
+  WS_TYPE_STATUS,
+  WS_TYPE_TURN_SAVED,
+  WS_TYPE_USER_TRANSCRIPT,
+} from './protocol';
 
 const MAX_UNIT_TURNS_MSG =
   'You reached the maximum practice turns for this step in this session. Open the roadmap to continue or start again later.';
@@ -39,16 +50,16 @@ export function routeConversationWsMessage(
   sink: ConversationWsSink,
 ): void {
   switch (msg['type']) {
-    case 'status':
+    case WS_TYPE_STATUS:
       handleWsStatusPayload(msg, sink.statusRouter);
       break;
-    case 'history': {
+    case WS_TYPE_HISTORY: {
       const list = (msg['messages'] as WsHistoryRow[]) ?? [];
       sink.resetStreamingState();
       sink.setMessages(mapWsHistoryToChatMessages(list));
       break;
     }
-    case 'error':
+    case WS_TYPE_ERROR:
       sink.setTranscribing(false);
       {
         const code = msg['message'] as string;
@@ -57,29 +68,29 @@ export function routeConversationWsMessage(
         );
       }
       break;
-    case 'user_transcript':
+    case WS_TYPE_USER_TRANSCRIPT:
       sink.setTranscribing(false);
       sink.onUserTranscript(msg['text'] as string, undefined);
       break;
-    case 'assistant_partial':
+    case WS_TYPE_ASSISTANT_PARTIAL:
       sink.onAssistantPartial(msg['text'] as string, msg['done'] as boolean);
       break;
-    case 'assistant_audio_end':
+    case WS_TYPE_ASSISTANT_AUDIO_END:
       sink.onAssistantAudioEnd();
       break;
-    case 'assistant_audio_chunk': {
+    case WS_TYPE_ASSISTANT_AUDIO_CHUNK: {
       const b64 = msg['data'] as string;
-      const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0)).buffer;
+      const bytes = Uint8Array.from(atob(b64), (c) => c.codePointAt(0) ?? 0).buffer;
       sink.onAssistantAudioChunk(bytes);
       break;
     }
-    case 'session_scores':
+    case WS_TYPE_SESSION_SCORES:
       sink.onSessionScores(
         (msg['turns'] as SessionScoreTurn[]) ?? [],
         typeof msg['session_feedback'] === 'string' ? msg['session_feedback'] : undefined,
       );
       break;
-    case 'turn_saved': {
+    case WS_TYPE_TURN_SAVED: {
       const assistantId = msg['turnId'];
       const userId = msg['userMessageId'];
       const idx = msg['indexInSession'];

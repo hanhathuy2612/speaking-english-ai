@@ -1,9 +1,4 @@
-<div
-  class="conv-unit-modal-backdrop"
-  role="dialog"
-  aria-modal="true"
-  aria-labelledby="unit-complete-title"
->
+<dialog class="conv-unit-modal-backdrop" aria-labelledby="unit-complete-title">
   <div class="conv-unit-modal">
     <h2 id="unit-complete-title" class="conv-unit-modal__title">Step complete</h2>
     @if (summary().topic_unit; as u) {
@@ -42,4 +37,4 @@
       <button type="button" class="btn btn--ghost" (click)="stay.emit()">Stay here</button>
     </div>
   </div>
-</div>
+</dialog>

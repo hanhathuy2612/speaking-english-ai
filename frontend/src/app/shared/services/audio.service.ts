@@ -8,7 +8,7 @@ export class AudioService {
   private audioCtx: AudioContext | null = null;
   private analyser: AnalyserNode | null = null;
   private rafId: number | null = null;
-  private trackEndedListeners: Array<{ track: MediaStreamTrack; handler: () => void }> = [];
+  private trackEndedListeners: { track: MediaStreamTrack; handler: () => void }[] = [];
 
   readonly chunk$ = new Subject<ArrayBuffer>();
   readonly volume$ = new Subject<number>(); // 0-100

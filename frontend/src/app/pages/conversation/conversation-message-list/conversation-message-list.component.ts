@@ -74,7 +74,7 @@ export class ConversationMessageListComponent {
   renderMarkdown(text: string | null | undefined): SafeHtml {
     const raw = decodeEscapedLineBreaks(text ?? '').trim();
     if (!raw) return this.sanitizer.bypassSecurityTrustHtml('');
-    const html = marked(raw, { async: false }) as string;
+    const html = marked(raw, { async: false });
     return this.sanitizer.bypassSecurityTrustHtml(html);
   }
 

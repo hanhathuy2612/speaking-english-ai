@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from app.models.topic_unit import TopicUnit
 from datetime import datetime, timezone
 
 from sqlalchemy import func, select
@@ -96,7 +97,7 @@ async def load_ordered_units(db: AsyncSession, topic_id: int) -> list[TopicUnit]
         .where(TopicUnit.topic_id == topic_id)
         .order_by(TopicUnit.sort_order)
     )
-    return list(r.scalars().all())
+    return list[TopicUnit](r.scalars().all())
 
 
 async def load_progress_map(

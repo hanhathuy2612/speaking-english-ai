@@ -288,6 +288,56 @@ class ConversationHandler:
             "scoredTurnsSoFar": n,
         }
 
+    async def _maybe_normalize_transcript(
+        self,
+        raw_stt: str,
+        ctx: str | None,
+        settings: Any,
+    ) -> str:
+        """
+        Optionally normalize the STT transcript using the LM, falling back to the raw text.
+        """
+        user_text = raw_stt
+        if (
+            settings.lm_normalize_transcript
+            and raw_stt.strip()
+            and raw_stt != "(inaudible)"
+        ):
+            await self._send({"type": "status", "message": "normalizing"})
+            try:
+                normalized = await self._lm.normalize_transcript(
+                    raw_stt,
+                    topic_context=ctx,
+                )
+                if normalized.strip():
+                    cand = normalized.strip()
+                    min_sim = float(settings.lm_normalize_min_similarity)
+                    if transcript_normalization_plausible(
+                        raw_stt,
+                        cand,
+                        min_similarity=min_sim,
+                    ):
+                        user_text = cand
+                        if user_text != raw_stt.strip():
+                            logger.info(
+                                "Transcript normalized: %r -> %r",
+                                raw_stt,
+                                user_text,
+                            )
+                    else:
+                        logger.warning(
+                            "Normalized transcript rejected (unlike raw STT): %r -> %r",
+                            raw_stt,
+                            cand,
+                        )
+                        user_text = raw_stt
+                else:
+                    user_text = raw_stt
+            except Exception:
+                logger.exception("Transcript normalization failed; using raw STT")
+                user_text = raw_stt
+        return user_text
+
     async def _reject_if_max_scored_turns(self, db: AsyncSession) -> bool:
         """True if we should abort the new turn (limit reached)."""
         if not self.session_id or not self.topic_unit:
@@ -348,121 +398,183 @@ class ConversationHandler:
         - If sessionId is provided and valid: load session, send history, return True (caller should NOT send opening).
         - Else: create new session, return True (caller should send opening).
         """
+        topic_id_raw = data.get("topicId", 0)
         try:
-            topic_id = int(data.get("topicId", 0))
+            topic_id = int(topic_id_raw)
         except (TypeError, ValueError):
-            await self._send({"type": "error", "message": "Invalid topicId"})
-            return False
+            topic_id = 0
         if topic_id <= 0:
             await self._send({"type": "error", "message": "Invalid topicId"})
             return False
 
         session_id_raw = data.get("sessionId")
-        if session_id_raw is not None:
-            try:
-                resume_id = int(session_id_raw)
-            except (TypeError, ValueError):
-                resume_id = 0
-        else:
+        try:
+            resume_id = int(session_id_raw) if session_id_raw is not None else 0
+        except (TypeError, ValueError):
             resume_id = 0
 
         if resume_id > 0:
-            # Resume existing session: must belong to user and match topic
-            sess_q = await db.execute(
-                select(Session)
-                .where(
-                    Session.id == resume_id,
-                    Session.user_id == self._user_id,
-                )
-                .options(
-                    selectinload(Session.topic),
-                    selectinload(Session.topic_unit),
-                )
-            )
-            sess = sess_q.scalar_one_or_none()
-            if not sess or sess.topic_id != topic_id:
-                await self._send({"type": "error", "message": "Session not found"})
-                return False
-            topic = sess.topic
-            msg_q = await db.execute(
-                select(SessionMessage)
-                .where(
-                    SessionMessage.session_id == sess.id,
-                    SessionMessage.kind != "score_feedback",
-                )
-                .order_by(SessionMessage.index_in_session, SessionMessage.id)
-            )
-            messages = list(msg_q.scalars().all())
-            self.session_id = sess.id
-            self.topic = topic
-            self.topic_unit = sess.topic_unit
-            raw_opening = sess.opening_message
-            self._opening_text = (
-                raw_opening.strip()
-                if isinstance(raw_opening, str) and raw_opening.strip()
-                else None
-            )
-            oap = sess.opening_audio_path
-            self._opening_audio_path = (
-                oap.strip() if isinstance(oap, str) and oap.strip() else None
-            )
-            self._rebuild_lm_history_from_messages(messages)
-            self.turn_index = len([m for m in messages if m.role == "user"])
-            self.audio_buffer = bytearray()
+            return await self._resume_session(db, topic_id, resume_id, data)
 
-            if data.get("ttsRate") is not None:
-                self._tts_rate = str(data["ttsRate"])
-            if data.get("ttsVoice"):
-                self._tts_voice = str(data["ttsVoice"])
-            if "level" in data:
-                lv = data["level"]
-                self.set_level(str(lv) if lv is not None else None)
-            status_payload: dict = {
-                "type": "status",
-                "message": "session_started",
-                "topicId": topic_id,
-                "sessionId": self.session_id,
-                "topicLevel": topic.level,
+        return await self._start_new_session(db, topic_id, data)
+
+    def handle_tts_preferences(self, data: dict) -> None:
+        """Update TTS rate/voice from client (takes effect on next speech)."""
+        if data.get("ttsRate") is not None:
+            self._tts_rate = str(data["ttsRate"])
+        if data.get("ttsVoice"):
+            self._tts_voice = str(data["ttsVoice"])
+
+    async def needs_opening_message(self, db: AsyncSession) -> bool:
+        """True when the session has no stored opening and no chat messages."""
+        if not self.session_id:
+            return False
+        sess = await db.get(Session, self.session_id)
+        if sess is None:
+            return False
+        om = sess.opening_message
+        if isinstance(om, str) and om.strip():
+            return False
+        r = await db.execute(
+            select(func.count())
+            .select_from(SessionMessage)
+            .where(
+                SessionMessage.session_id == self.session_id,
+                SessionMessage.kind == "chat",
+            )
+        )
+        return (r.scalar() or 0) == 0
+
+    async def _resume_session(
+        self,
+        db: AsyncSession,
+        topic_id: int,
+        resume_id: int,
+        data: dict,
+    ) -> bool:
+        """Handle resuming an existing session, including history + status payload."""
+        sess_q = await db.execute(
+            select(Session)
+            .where(
+                Session.id == resume_id,
+                Session.user_id == self._user_id,
+            )
+            .options(
+                selectinload(Session.topic),
+                selectinload(Session.topic_unit),
+            )
+        )
+        sess = sess_q.scalar_one_or_none()
+        if not sess or sess.topic_id != topic_id:
+            await self._send({"type": "error", "message": "Session not found"})
+            return False
+
+        topic = sess.topic
+        msg_q = await db.execute(
+            select(SessionMessage)
+            .where(
+                SessionMessage.session_id == sess.id,
+                SessionMessage.kind != "score_feedback",
+            )
+            .order_by(SessionMessage.index_in_session, SessionMessage.id)
+        )
+        messages = list(msg_q.scalars().all())
+        self.session_id = sess.id
+        self.topic = topic
+        self.topic_unit = sess.topic_unit
+        raw_opening = sess.opening_message
+        self._opening_text = (
+            raw_opening.strip()
+            if isinstance(raw_opening, str) and raw_opening.strip()
+            else None
+        )
+        oap = sess.opening_audio_path
+        self._opening_audio_path = (
+            oap.strip() if isinstance(oap, str) and oap.strip() else None
+        )
+        self._rebuild_lm_history_from_messages(messages)
+        self.turn_index = len([m for m in messages if m.role == "user"])
+        self.audio_buffer = bytearray()
+
+        if data.get("ttsRate") is not None:
+            self._tts_rate = str(data["ttsRate"])
+        if data.get("ttsVoice"):
+            self._tts_voice = str(data["ttsVoice"])
+        if "level" in data:
+            lv = data["level"]
+            self.set_level(str(lv) if lv is not None else None)
+        status_payload: dict = {
+            "type": "status",
+            "message": "session_started",
+            "topicId": topic_id,
+            "sessionId": self.session_id,
+            "topicLevel": topic.level,
+        }
+        if sess.topic_unit_id is not None:
+            status_payload["topicUnitId"] = sess.topic_unit_id
+        await self._attach_topic_unit_ws_meta(db, status_payload)
+        await self._send(status_payload)
+        await self._send(
+            {
+                "type": "history",
+                "messages": self._client_history_messages_from_messages(messages),
             }
-            if sess.topic_unit_id is not None:
-                status_payload["topicUnitId"] = sess.topic_unit_id
-            await self._attach_topic_unit_ws_meta(db, status_payload)
-            await self._send(status_payload)
-            await self._send(
-                {
-                    "type": "history",
-                    "messages": self._client_history_messages_from_messages(messages),
-                }
-            )
-            return True
+        )
+        return True
 
-        # New session
+    async def _ensure_unit_for_new_session(
+        self,
+        db: AsyncSession,
+        topic_id: int,
+        data: dict,
+    ) -> tuple[int | None, TopicUnit | None]:
+        """Validate and load topic unit for a new session, if provided."""
+        topic_unit_id: int | None = None
+        unit: TopicUnit | None = None
+        raw_uid = data.get("unitId")
+        if raw_uid is None:
+            return topic_unit_id, unit
+
+        try:
+            uid = int(raw_uid)
+        except (TypeError, ValueError):
+            uid = 0
+        if uid <= 0:
+            await self._send({"type": "error", "message": "Invalid unitId"})
+            return None, None
+
+        unit = await db.get(TopicUnit, uid)
+        if not unit or unit.topic_id != topic_id:
+            await self._send({"type": "error", "message": "Topic unit not found"})
+            return None, None
+        if not await roadmap_svc.is_unit_unlocked_for_user(db, self._user_id, unit):
+            await self._send({"type": "error", "message": "This step is locked"})
+            return None, None
+        await roadmap_svc.ensure_unit_started(db, self._user_id, uid)
+        topic_unit_id = uid
+        return topic_unit_id, unit
+
+    async def _start_new_session(
+        self,
+        db: AsyncSession,
+        topic_id: int,
+        data: dict,
+    ) -> bool:
+        """Handle creating a brand new session."""
         topic_q = await db.execute(select(Topic).where(Topic.id == topic_id))
         topic = topic_q.scalar_one_or_none()
         if not topic:
             await self._send({"type": "error", "message": "Topic not found"})
             return False
 
-        topic_unit_id: int | None = None
-        unit: TopicUnit | None = None
-        raw_uid = data.get("unitId")
-        if raw_uid is not None:
-            try:
-                uid = int(raw_uid)
-            except (TypeError, ValueError):
-                uid = 0
-            if uid <= 0:
-                await self._send({"type": "error", "message": "Invalid unitId"})
-                return False
-            unit = await db.get(TopicUnit, uid)
-            if not unit or unit.topic_id != topic_id:
-                await self._send({"type": "error", "message": "Topic unit not found"})
-                return False
-            if not await roadmap_svc.is_unit_unlocked_for_user(db, self._user_id, unit):
-                await self._send({"type": "error", "message": "This step is locked"})
-                return False
-            await roadmap_svc.ensure_unit_started(db, self._user_id, uid)
-            topic_unit_id = uid
+        topic_unit_id, unit = await self._ensure_unit_for_new_session(
+            db,
+            topic_id,
+            data,
+        )
+        if topic_unit_id is None and data.get("unitId") is not None:
+            # An error was already sent in _ensure_unit_for_new_session.
+            return False
 
         sess = Session(
             user_id=self._user_id,
@@ -501,33 +613,6 @@ class ConversationHandler:
         await self._attach_topic_unit_ws_meta(db, status_payload)
         await self._send(status_payload)
         return True
-
-    def handle_tts_preferences(self, data: dict) -> None:
-        """Update TTS rate/voice from client (takes effect on next speech)."""
-        if data.get("ttsRate") is not None:
-            self._tts_rate = str(data["ttsRate"])
-        if data.get("ttsVoice"):
-            self._tts_voice = str(data["ttsVoice"])
-
-    async def needs_opening_message(self, db: AsyncSession) -> bool:
-        """True when the session has no stored opening and no chat messages."""
-        if not self.session_id:
-            return False
-        sess = await db.get(Session, self.session_id)
-        if sess is None:
-            return False
-        om = sess.opening_message
-        if isinstance(om, str) and om.strip():
-            return False
-        r = await db.execute(
-            select(func.count())
-            .select_from(SessionMessage)
-            .where(
-                SessionMessage.session_id == self.session_id,
-                SessionMessage.kind == "chat",
-            )
-        )
-        return (r.scalar() or 0) == 0
 
     async def send_opening_message(self, db: AsyncSession) -> None:
         """Generate and stream AI opening (greeting/question); append to history and stream TTS."""
@@ -652,43 +737,7 @@ class ConversationHandler:
         effective = self._effective_level() or ""
         ctx = await self._topic_context_for_llm(db)
 
-        user_text = raw_stt
-        if (
-            settings.lm_normalize_transcript
-            and raw_stt.strip()
-            and raw_stt != "(inaudible)"
-        ):
-            await self._send({"type": "status", "message": "normalizing"})
-            try:
-                normalized = await self._lm.normalize_transcript(
-                    raw_stt,
-                    topic_context=ctx,
-                )
-                if normalized.strip():
-                    cand = normalized.strip()
-                    min_sim = float(settings.lm_normalize_min_similarity)
-                    if transcript_normalization_plausible(
-                        raw_stt, cand, min_similarity=min_sim
-                    ):
-                        user_text = cand
-                        if user_text != raw_stt.strip():
-                            logger.info(
-                                "Transcript normalized: %r -> %r",
-                                raw_stt,
-                                user_text,
-                            )
-                    else:
-                        logger.warning(
-                            "Normalized transcript rejected (unlike raw STT): %r -> %r",
-                            raw_stt,
-                            cand,
-                        )
-                        user_text = raw_stt
-                else:
-                    user_text = raw_stt
-            except Exception:
-                logger.exception("Transcript normalization failed; using raw STT")
-                user_text = raw_stt
+        user_text = await self._maybe_normalize_transcript(raw_stt, ctx, settings)
 
         user_text = _unescape_chat_newlines(user_text)
         await self._send({"type": "user_transcript", "text": user_text})
