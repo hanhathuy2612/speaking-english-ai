@@ -19,7 +19,7 @@ def _resolve_env_files() -> tuple[str, ...] | None:
         p = root / name
         if p.is_file():
             paths.append(str(p))
-    return tuple(paths) if paths else None
+    return tuple[str, ...](paths) if paths else None
 
 
 class Settings(BaseSettings):

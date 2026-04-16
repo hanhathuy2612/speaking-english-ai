@@ -1,14 +1,11 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-
 from app.api.v1 import router as api_router
 from app.core.config import get_settings
-from app.db.session import AsyncSessionLocal, Base, engine
-import app.models.role  # noqa: F401 — register Role / UserRole on Base.metadata
-
 from app.db.seed import seed_roles_and_bootstrap, seed_topic_units, seed_topics
+from app.db.session import AsyncSessionLocal, Base, engine
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 
 @asynccontextmanager
