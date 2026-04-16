@@ -16,7 +16,7 @@ IELTS_SPEAKING_BANDS: tuple[float, ...] = (
     8.5,
     9.0,
 )
-_IELTS_BAND_SET = frozenset(IELTS_SPEAKING_BANDS)
+_IELTS_BAND_SET = frozenset[float](IELTS_SPEAKING_BANDS)
 
 
 def parse_ielts_band(raw: str | None) -> float | None:
