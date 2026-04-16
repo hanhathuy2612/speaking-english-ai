@@ -20,6 +20,11 @@ from app.models.session_message import SessionMessage
 from app.models.topic import Topic
 from app.models.topic_unit import TopicUnit
 from app.services.conversation_session_finalize import finalize_session_scoring
+from app.services.learning_pack_service import (
+    build_fallback_learning_pack,
+    pack_to_prompt_snippet,
+    resolve_effective_learning_pack,
+)
 from app.services.lm_client import LMStudioClient, transcript_normalization_plausible
 from app.services.scoring_service import ScoringService
 from app.services.stt_service import STTService
@@ -638,6 +643,36 @@ class ConversationHandler:
             return f"Hi! Let's work on {self.topic_unit.title}. What would you like to say?"
         return f"Hi! Let's talk about {self.topic.title}. What would you like to say?"
 
+    def _effective_learning_pack_snippet(self) -> str:
+        if self.topic is None:
+            return ""
+        fallback = build_fallback_learning_pack(
+            topic_title=self.topic.title,
+            topic_level=self.topic.level,
+            unit_title=self.topic_unit.title if self.topic_unit is not None else None,
+        )
+        resolved = resolve_effective_learning_pack(
+            unit_pack_raw=(
+                self.topic_unit.learning_pack_json if self.topic_unit is not None else None
+            ),
+            topic_pack_raw=self.topic.learning_pack_json,
+            fallback_pack=fallback,
+        )
+        return pack_to_prompt_snippet(resolved, max_items_per_section=5)
+
+    async def _opening_topic_context_with_learning_pack(
+        self, db: AsyncSession
+    ) -> str | None:
+        ctx = await self._topic_context_for_llm(db)
+        learning_pack_snippet = self._effective_learning_pack_snippet()
+        if not learning_pack_snippet:
+            return ctx
+        extra = (
+            "Learner support pack (use these naturally in your opening and follow-up):\n"
+            f"{learning_pack_snippet}"
+        )
+        return f"{ctx}\n\n{extra}" if ctx else extra
+
     async def send_opening_message(self, db: AsyncSession) -> None:
         """Generate and stream AI opening (greeting/question); append to history and stream TTS."""
         if not self.topic:
@@ -650,7 +685,7 @@ class ConversationHandler:
             if isinstance(existing, str) and existing.strip():
                 return
         effective = self._effective_level() or ""
-        ctx = await self._topic_context_for_llm(db)
+        ctx = await self._opening_topic_context_with_learning_pack(db)
         prompt = self._opening_prompt()
         messages = self._lm.build_messages(
             [{"role": "user", "content": prompt}],

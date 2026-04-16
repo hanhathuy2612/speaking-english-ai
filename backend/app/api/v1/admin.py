@@ -31,8 +31,10 @@ from app.schemas.admin import (
     TopicUnitCreateIn,
     TopicUnitUpdateIn,
 )
+from app.schemas.learning_pack import LearningPackIn, LearningPackOut
 from app.schemas.roadmap import TopicUnitOut
 from app.services.lm_client import LMStudioClient
+from app.services.learning_pack_service import parse_learning_pack, to_learning_pack_json
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -273,6 +275,72 @@ async def admin_create_topic_unit(
     await db.commit()
     await db.refresh(unit)
     return TopicUnitOut.model_validate(unit)
+
+
+@router.get("/topics/{topic_id}/learning-pack", response_model=LearningPackOut)
+async def admin_get_topic_learning_pack(
+    topic_id: int,
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(get_current_admin),
+) -> LearningPackOut:
+    topic = await db.get(Topic, topic_id)
+    if not topic:
+        raise HTTPException(status_code=404, detail="Topic not found")
+    pack = parse_learning_pack(topic.learning_pack_json)
+    if pack is None:
+        pack = LearningPackOut()
+    pack.source = "topic"
+    return pack
+
+
+@router.put("/topics/{topic_id}/learning-pack", response_model=LearningPackOut)
+async def admin_put_topic_learning_pack(
+    topic_id: int,
+    body: LearningPackIn,
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(get_current_admin),
+) -> LearningPackOut:
+    topic = await db.get(Topic, topic_id)
+    if not topic:
+        raise HTTPException(status_code=404, detail="Topic not found")
+    topic.learning_pack_json = to_learning_pack_json(body)
+    await db.commit()
+    out = LearningPackOut(**body.model_dump())
+    out.source = "topic"
+    return out
+
+
+@router.get("/topic-units/{unit_id}/learning-pack", response_model=LearningPackOut)
+async def admin_get_topic_unit_learning_pack(
+    unit_id: int,
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(get_current_admin),
+) -> LearningPackOut:
+    unit = await db.get(TopicUnit, unit_id)
+    if not unit:
+        raise HTTPException(status_code=404, detail="Topic unit not found")
+    pack = parse_learning_pack(unit.learning_pack_json)
+    if pack is None:
+        pack = LearningPackOut()
+    pack.source = "unit"
+    return pack
+
+
+@router.put("/topic-units/{unit_id}/learning-pack", response_model=LearningPackOut)
+async def admin_put_topic_unit_learning_pack(
+    unit_id: int,
+    body: LearningPackIn,
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(get_current_admin),
+) -> LearningPackOut:
+    unit = await db.get(TopicUnit, unit_id)
+    if not unit:
+        raise HTTPException(status_code=404, detail="Topic unit not found")
+    unit.learning_pack_json = to_learning_pack_json(body)
+    await db.commit()
+    out = LearningPackOut(**body.model_dump())
+    out.source = "unit"
+    return out
 
 
 @router.patch(

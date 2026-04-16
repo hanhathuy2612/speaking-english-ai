@@ -1,8 +1,8 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from app.db.session import Base
 from app.models.conversation_common import int_pk
-from sqlalchemy import ForeignKey, String, Text
+from sqlalchemy import JSON, ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 if TYPE_CHECKING:
@@ -23,6 +23,7 @@ class TopicUnit(Base):
     min_turns_to_complete: Mapped[int | None] = mapped_column(nullable=True)
     min_avg_overall: Mapped[float | None] = mapped_column(nullable=True)
     max_scored_turns: Mapped[int | None] = mapped_column(nullable=True)
+    learning_pack_json: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
 
     topic: Mapped["Topic"] = relationship(back_populates="units")
     progress_rows: Mapped[list["UserTopicUnitProgress"]] = relationship(

@@ -1,8 +1,8 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from app.db.session import Base
 from app.models.conversation_common import int_pk
-from sqlalchemy import String, Text
+from sqlalchemy import JSON, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 if TYPE_CHECKING:
@@ -19,10 +19,15 @@ class Topic(Base):
     level: Mapped[str | None] = mapped_column(
         String(20), nullable=True
     )  # IELTS Speaking target band e.g. "6", "6.5" (legacy CEFR strings still accepted at runtime)
+    learning_pack_json: Mapped[dict[str, Any] | None] = mapped_column(
+        JSON, nullable=True
+    )
 
     sessions: Mapped[list["Session"]] = relationship(
         back_populates="topic", cascade="all, delete-orphan"
     )
     units: Mapped[list["TopicUnit"]] = relationship(
-        back_populates="topic", cascade="all, delete-orphan", order_by="TopicUnit.sort_order"
+        back_populates="topic",
+        cascade="all, delete-orphan",
+        order_by="TopicUnit.sort_order",
     )

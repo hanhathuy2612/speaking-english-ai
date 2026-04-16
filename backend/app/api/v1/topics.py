@@ -10,6 +10,7 @@ from app.models.session_message import SessionMessage
 from app.models.topic import Topic
 from app.models.topic_unit import TopicUnit
 from app.models.user import User
+from app.schemas.learning_pack import LearningPackOut
 from app.schemas.progress import RecentSession, SessionsPage
 from app.schemas.roadmap import (
     RoadmapOut,
@@ -20,6 +21,10 @@ from app.schemas.roadmap import (
 )
 from app.schemas.topic import TopicIn, TopicOut, TopicUpdate
 import app.services.topic_roadmap_service as roadmap_svc
+from app.services.learning_pack_service import (
+    build_fallback_learning_pack,
+    resolve_effective_learning_pack,
+)
 
 router = APIRouter()
 
@@ -210,3 +215,35 @@ async def update_topic(
     await db.commit()
     await db.refresh(topic)
     return TopicOut.model_validate(topic)
+
+
+@router.get("/{topic_id:int}/learning-pack", response_model=LearningPackOut)
+async def get_topic_learning_pack(
+    topic_id: int,
+    unitId: int | None = None,
+    db: AsyncSession = Depends(get_db),
+    _user: User = Depends(get_current_user),
+) -> LearningPackOut:
+    topic = await db.get(Topic, topic_id)
+    if not topic:
+        raise HTTPException(status_code=404, detail="Topic not found")
+
+    unit: TopicUnit | None = None
+    if unitId is not None:
+        unit = await db.get(TopicUnit, unitId)
+        if not unit or unit.topic_id != topic_id:
+            raise HTTPException(status_code=404, detail="Topic unit not found for this topic")
+
+    fallback = build_fallback_learning_pack(
+        topic_title=topic.title,
+        topic_level=topic.level,
+        unit_title=unit.title if unit else None,
+    )
+    resolved = resolve_effective_learning_pack(
+        unit_pack_raw=unit.learning_pack_json if unit else None,
+        topic_pack_raw=topic.learning_pack_json,
+        fallback_pack=fallback,
+    )
+    if resolved is None:
+        return fallback
+    return resolved
