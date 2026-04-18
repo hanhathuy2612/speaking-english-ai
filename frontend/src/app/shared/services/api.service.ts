@@ -1,5 +1,6 @@
 import { environment } from '@/environments/environment';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import type { LearningPackIn, LearningPackOut } from '@/shared/models/learning-pack.model';
 import { inject, Injectable } from '@angular/core';
 import { map, Observable } from 'rxjs';
 
@@ -193,6 +194,8 @@ export interface AITopicUnitDraftOut {
   max_scored_turns: number | null;
 }
 
+export type { LearningPackIn, LearningPackOut } from '@/shared/models/learning-pack.model';
+
 @Injectable({ providedIn: 'root' })
 export class ApiService {
   private readonly base = environment.apiBaseUrl;
@@ -221,6 +224,68 @@ export class ApiService {
 
   getTopicRoadmap(topicId: number): Observable<RoadmapOut> {
     return this.http.get<RoadmapOut>(`${this.base}/topics/${topicId}/roadmap`);
+  }
+
+  /** Learner: resolved pack (topic + optional unit override + fallback). */
+  getTopicLearningPack(topicId: number, unitId?: number | null): Observable<LearningPackOut> {
+    let params = new HttpParams();
+    if (unitId != null && unitId > 0) {
+      params = params.set('unitId', String(unitId));
+    }
+    return this.http.get<LearningPackOut>(`${this.base}/topics/${topicId}/learning-pack`, {
+      params,
+    });
+  }
+
+  adminGetTopicLearningPack(topicId: number): Observable<LearningPackOut> {
+    return this.http.get<LearningPackOut>(
+      `${this.base}/admin/topics/${topicId}/learning-pack`,
+    );
+  }
+
+  adminPutTopicLearningPack(topicId: number, body: LearningPackIn): Observable<LearningPackOut> {
+    return this.http.put<LearningPackOut>(
+      `${this.base}/admin/topics/${topicId}/learning-pack`,
+      body,
+    );
+  }
+
+  adminGetTopicUnitLearningPack(unitId: number): Observable<LearningPackOut> {
+    return this.http.get<LearningPackOut>(
+      `${this.base}/admin/topic-units/${unitId}/learning-pack`,
+    );
+  }
+
+  adminPutTopicUnitLearningPack(
+    unitId: number,
+    body: LearningPackIn,
+  ): Observable<LearningPackOut> {
+    return this.http.put<LearningPackOut>(
+      `${this.base}/admin/topic-units/${unitId}/learning-pack`,
+      body,
+    );
+  }
+
+  /** Admin: AI-generate a learning pack draft for the topic (fills form; does not save to DB). */
+  adminAiDraftTopicLearningPack(
+    topicId: number,
+    idea?: string | null,
+  ): Observable<LearningPackIn> {
+    return this.http.post<LearningPackIn>(
+      `${this.base}/admin/ai/topics/${topicId}/learning-pack-draft`,
+      { idea: (idea ?? '').trim() || null },
+    );
+  }
+
+  /** Admin: AI-generate a learning pack draft for one step (unit). */
+  adminAiDraftUnitLearningPack(
+    unitId: number,
+    idea?: string | null,
+  ): Observable<LearningPackIn> {
+    return this.http.post<LearningPackIn>(
+      `${this.base}/admin/ai/topic-units/${unitId}/learning-pack-draft`,
+      { idea: (idea ?? '').trim() || null },
+    );
   }
 
   /** Mark a roadmap step complete (unlock next step). */

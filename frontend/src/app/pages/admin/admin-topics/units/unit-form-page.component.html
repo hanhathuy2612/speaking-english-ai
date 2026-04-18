@@ -38,6 +38,9 @@
         </div>
       </header>
       <app-topic-unit-form-modal [embeddedData]="formPayload()!" />
+      @if (isEdit() && editUnitId() != null) {
+        <app-learning-pack-editor [topicId]="topicId()" [unitId]="editUnitId()!" />
+      }
     }
   </div>
 </div>

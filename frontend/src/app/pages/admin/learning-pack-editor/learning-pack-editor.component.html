@@ -1,0 +1,206 @@
+<section class="lpe card-like">
+  <div class="lpe__head">
+    <h2 class="lpe__title">Learning pack</h2>
+    <p class="lpe__hint muted">
+      {{
+        unitId() != null && unitId()! > 0
+          ? 'Materials for this step (override topic defaults when filled).'
+          : 'Topic-wide vocabulary, patterns, and tips for learners.'
+      }}
+    </p>
+  </div>
+
+  @if (loading()) {
+    <div class="lpe__loading">Loading…</div>
+  } @else {
+    @if (error()) {
+      <p class="lpe__err">{{ error() }}</p>
+    }
+    @if (message()) {
+      <p class="lpe__ok">{{ message() }}</p>
+    }
+
+    <div class="lpe__ai">
+      <label class="lpe__lbl lpe__ai-label" for="lpe-ai-idea">Gợi ý cho AI (tuỳ chọn)</label>
+      <textarea
+        id="lpe-ai-idea"
+        class="form-control lpe__textarea"
+        rows="2"
+        placeholder="Ví dụ: Band 6.5, tập trung từ vựng du lịch; hoặc để trống để AI tự căn theo topic/step."
+        [ngModel]="aiIdea()"
+        (ngModelChange)="aiIdea.set($event)"
+      ></textarea>
+      <div class="lpe__actions lpe__actions--ai">
+        <button
+          type="button"
+          class="btn btn--secondary"
+          [disabled]="saving() || generating()"
+          (click)="generateWithAi()"
+        >
+          {{ generating() ? 'Đang tạo…' : 'Tự tạo bằng AI & điền form' }}
+        </button>
+        <button
+          type="button"
+          class="btn btn--primary"
+          [disabled]="saving() || generating()"
+          (click)="save()"
+        >
+          {{ saving() ? 'Saving…' : 'Save learning pack' }}
+        </button>
+      </div>
+    </div>
+
+    <h3 class="lpe__sub">Vocabulary</h3>
+    @for (row of draft().vocabulary; track $index; let i = $index) {
+      <div class="lpe__row">
+        <button type="button" class="lpe__rm" (click)="removeVocab(i)" title="Remove">×</button>
+        <div class="lpe__grid">
+          <label for="lpe-vocab-term" class="lpe__lbl">Term</label>
+          <input
+            id="lpe-vocab-term"
+            class="form-control"
+            [ngModel]="draft().vocabulary[i].term"
+            (ngModelChange)="patchVocab(i, { term: $event })"
+          />
+          <label for="lpe-vocab-meaning" class="lpe__lbl">Meaning</label>
+          <input
+            id="lpe-vocab-meaning"
+            class="form-control"
+            [ngModel]="draft().vocabulary[i].meaning"
+            (ngModelChange)="patchVocab(i, { meaning: $event })"
+          />
+          <label for="lpe-vocab-collocations" class="lpe__lbl"
+            >Collocations (comma-separated)</label
+          >
+          <input
+            id="lpe-vocab-collocations"
+            class="form-control"
+            [ngModel]="collocationsDisplayAt(i)"
+            (ngModelChange)="setCollocations(i, $event)"
+          />
+          <label for="lpe-vocab-example" class="lpe__lbl">Example (optional)</label>
+          <input
+            id="lpe-vocab-example"
+            class="form-control"
+            [ngModel]="draft().vocabulary[i].example ?? ''"
+            (ngModelChange)="patchVocab(i, { example: $event || null })"
+          />
+        </div>
+      </div>
+    }
+    <button type="button" class="btn btn--secondary lpe__add" (click)="addVocab()">
+      + Add vocabulary item
+    </button>
+
+    <h3 class="lpe__sub">Sentence patterns</h3>
+    @for (row of draft().sentence_patterns; track $index; let i = $index) {
+      <div class="lpe__row">
+        <button type="button" class="lpe__rm" (click)="removePattern(i)" title="Remove">×</button>
+        <div class="lpe__grid lpe__grid--3">
+          <label for="lpe-pattern-pattern" class="lpe__lbl">Pattern</label>
+          <input
+            id="lpe-pattern-pattern"
+            class="form-control"
+            [ngModel]="row.pattern"
+            (ngModelChange)="patchPattern(i, { pattern: $event })"
+          />
+          <label for="lpe-pattern-usage" class="lpe__lbl">Usage</label>
+          <input
+            id="lpe-pattern-usage"
+            class="form-control"
+            [ngModel]="row.usage"
+            (ngModelChange)="patchPattern(i, { usage: $event })"
+          />
+          <label for="lpe-pattern-example" class="lpe__lbl">Example</label>
+          <input
+            id="lpe-pattern-example"
+            class="form-control"
+            [ngModel]="row.example"
+            (ngModelChange)="patchPattern(i, { example: $event })"
+          />
+        </div>
+      </div>
+    }
+    <button type="button" class="btn btn--secondary lpe__add" (click)="addPattern()">
+      + Add pattern
+    </button>
+
+    <h3 class="lpe__sub">Idea prompts</h3>
+    <p class="muted lpe__mini">One idea per line.</p>
+    <textarea
+      class="form-control lpe__textarea"
+      rows="5"
+      [ngModel]="ideaPromptsText()"
+      (ngModelChange)="setIdeaPromptsText($event)"
+    ></textarea>
+
+    <h3 class="lpe__sub">Common mistakes</h3>
+    @for (row of draft().common_mistakes; track $index; let i = $index) {
+      <div class="lpe__row">
+        <button type="button" class="lpe__rm" (click)="removeMistake(i)" title="Remove">×</button>
+        <div class="lpe__grid lpe__grid--3">
+          <label for="lpe-mistake-mistake" class="lpe__lbl">Mistake</label>
+          <input
+            id="lpe-mistake-mistake"
+            class="form-control"
+            [ngModel]="row.mistake"
+            (ngModelChange)="patchMistake(i, { mistake: $event })"
+          />
+          <label for="lpe-mistake-fix" class="lpe__lbl">Fix</label>
+          <input
+            id="lpe-mistake-fix"
+            class="form-control"
+            [ngModel]="row.fix"
+            (ngModelChange)="patchMistake(i, { fix: $event })"
+          />
+          <label for="lpe-mistake-note" class="lpe__lbl">Note (optional)</label>
+          <input
+            id="lpe-mistake-note"
+            class="form-control"
+            [ngModel]="row.note ?? ''"
+            (ngModelChange)="patchMistake(i, { note: $event || null })"
+          />
+        </div>
+      </div>
+    }
+    <button type="button" class="btn btn--secondary lpe__add" (click)="addMistake()">
+      + Add mistake
+    </button>
+
+    <h3 class="lpe__sub">Model responses</h3>
+    @for (row of draft().model_responses; track $index; let i = $index) {
+      <div class="lpe__row">
+        <button type="button" class="lpe__rm" (click)="removeModel(i)" title="Remove">×</button>
+        <div class="lpe__grid">
+          <label for="lpe-model-level" class="form-label">Level (optional)</label>
+          <input
+            id="lpe-model-level"
+            class="form-control"
+            [ngModel]="row.level ?? ''"
+            (ngModelChange)="patchModel(i, { level: $event.trim() || null })"
+          />
+          <label for="lpe-model-text" class="form-label">Text</label>
+          <textarea
+            id="lpe-model-text"
+            class="form-control"
+            rows="3"
+            [ngModel]="row.text"
+            (ngModelChange)="patchModel(i, { text: $event })"
+          ></textarea>
+        </div>
+      </div>
+    }
+    <button type="button" class="btn btn--secondary lpe__add" (click)="addModel()">
+      + Add model response
+    </button>
+
+    <h3 class="lpe__sub">Tips</h3>
+    <p class="muted lpe__mini">One tip per line.</p>
+    <textarea
+      class="form-control lpe__textarea"
+      rows="4"
+      [ngModel]="tipsText()"
+      (ngModelChange)="setTipsText($event)"
+    ></textarea>
+  }
+</section>

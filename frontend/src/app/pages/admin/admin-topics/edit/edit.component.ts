@@ -4,10 +4,11 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { ApiService, Topic } from '../../../../shared/services/api.service';
 import { TopicFormModalComponent } from '../../../topics/topic-form-modal/topic-form-modal.component';
+import { LearningPackEditorComponent } from '../../learning-pack-editor/learning-pack-editor.component';
 
 @Component({
   selector: 'app-admin-topic-edit',
-  imports: [CommonModule, RouterLink, TopicFormModalComponent],
+  imports: [CommonModule, RouterLink, TopicFormModalComponent, LearningPackEditorComponent],
   templateUrl: './edit.component.html',
   styleUrls: ['./edit.component.scss'],
 })

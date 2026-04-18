@@ -7,10 +7,11 @@ import {
   TopicUnitFormModalComponent,
   type TopicUnitFormModalData,
 } from '../../../topics/topic-unit-form-modal/topic-unit-form-modal.component';
+import { LearningPackEditorComponent } from '../../learning-pack-editor/learning-pack-editor.component';
 
 @Component({
   selector: 'app-admin-topic-unit-form-page',
-  imports: [CommonModule, RouterLink, TopicUnitFormModalComponent],
+  imports: [CommonModule, RouterLink, TopicUnitFormModalComponent, LearningPackEditorComponent],
   templateUrl: './unit-form-page.component.html',
   styleUrls: ['./unit-form-page.component.scss'],
 })
@@ -20,6 +21,8 @@ export class AdminTopicUnitFormPageComponent implements OnInit {
   private readonly api = inject(ApiService);
 
   topicId = signal(0);
+  /** Set when editing an existing step (for learning pack API). */
+  editUnitId = signal<number | null>(null);
   isEdit = signal(false);
   formPayload = signal<TopicUnitFormModalData | null>(null);
   loading = signal(true);
@@ -43,6 +46,7 @@ export class AdminTopicUnitFormPageComponent implements OnInit {
       return;
     }
     this.isEdit.set(isEdit);
+    this.editUnitId.set(isEdit ? unitId : null);
 
     this.api
       .getTopicRoadmap(topicId)

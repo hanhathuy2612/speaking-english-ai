@@ -5,6 +5,7 @@ Optionally save the guideline to a message when message_id is provided.
 
 import logging
 import re
+from typing import Annotated
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
@@ -222,8 +223,8 @@ Write exactly one English sentence suggesting what the learner could add next.
 @router.post("/guidance")
 async def get_guidance_for_question(
     body: GuidanceRequest,
-    db: AsyncSession = Depends(get_db),
-    user: User = Depends(get_current_user),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(get_current_user)],
 ) -> dict:
     """
     Given a question (e.g. from the AI tutor), return suggested ways to answer.
@@ -303,7 +304,7 @@ async def get_guidance_for_question(
 @router.post("/guidance/optimize")
 async def optimize_user_reply(
     body: OptimizeRequest,
-    user: User = Depends(get_current_user),
+    user: Annotated[User, Depends(get_current_user)],
 ) -> dict:
     """
     Optimize one learner sentence/short reply:

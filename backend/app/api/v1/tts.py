@@ -1,5 +1,6 @@
 """TTS API: list voices for UI dropdown and voice preview."""
 
+from typing import Annotated
 import edge_tts
 from fastapi import APIRouter, Depends
 from fastapi.responses import Response
@@ -14,7 +15,7 @@ _PREVIEW_TEXT = "Hello, this is a sample of this voice."
 
 
 @router.get("/voices")
-async def list_voices(_user: User = Depends(get_current_user)) -> list[dict]:
+async def list_voices(_user: Annotated[User, Depends(get_current_user)]) -> list[dict]:
     """Return available TTS voices (ShortName, Gender). English-first for dropdown."""
     raw = await edge_tts.list_voices()
     # Prefer English; include others
@@ -43,7 +44,7 @@ async def list_voices(_user: User = Depends(get_current_user)) -> list[dict]:
 async def preview_voice(
     voice: str,
     rate: str = "+0%",
-    _user: User = Depends(get_current_user),
+    _user: Annotated[User | None, Depends(get_current_user)] = None,
 ) -> Response:
     """Return short TTS audio for the given voice/rate so user can try before selecting."""
     settings = get_settings()

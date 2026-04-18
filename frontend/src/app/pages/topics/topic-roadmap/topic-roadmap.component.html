@@ -32,6 +32,21 @@
       </div>
     </header>
 
+    <details class="topic-materials" aria-labelledby="topic-materials-title">
+      <summary class="topic-materials__summary">
+        Topic study materials
+        <p class="muted topic-materials__lead">
+          Vocabulary and tips for this topic. Each step can add its own materials below.
+        </p>
+      </summary>
+
+      <app-learning-pack-view
+        [pack]="topicPack()"
+        [loading]="topicPackLoading()"
+        [error]="topicPackError()"
+      />
+    </details>
+
     @if (loading()) {
       <div class="loading">
         <div class="spinner"></div>
@@ -108,6 +123,19 @@
                   </button>
                 }
               </div>
+              <details
+                class="step-materials w-100"
+                (toggle)="onUnitDetailsToggle(item.unit.id, $event)"
+              >
+                <summary class="step-materials__summary">Study materials for this step</summary>
+                <div class="step-materials__body">
+                  <app-learning-pack-view
+                    [pack]="unitPackEntry(item.unit.id).pack"
+                    [loading]="unitPackEntry(item.unit.id).loading"
+                    [error]="unitPackEntry(item.unit.id).error"
+                  />
+                </div>
+              </details>
             </li>
           }
         </ol>

@@ -89,6 +89,14 @@ class AITopicUnitDraftOut(BaseModel):
     max_scored_turns: int | None = Field(None, ge=1)
 
 
+class AILearningPackDraftIn(BaseModel):
+    idea: str | None = Field(
+        None,
+        max_length=2000,
+        description="Optional extra instructions for the AI (audience, band, focus).",
+    )
+
+
 class AdminTopicSessionOut(BaseModel):
     """One conversation session on a topic, including owning user (admin list)."""
 

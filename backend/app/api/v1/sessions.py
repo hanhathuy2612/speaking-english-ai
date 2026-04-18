@@ -1,7 +1,7 @@
 import asyncio
-from typing import Any
+from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import FileResponse
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -36,11 +36,11 @@ def get_scoring_service() -> ScoringService:
     return ScoringService(LMStudioClient())
 
 
-@router.post("/sessions", response_model=SessionCreatedOut)
+@router.post("/sessions")
 async def create_session(
     body: SessionCreateIn,
-    db: AsyncSession = Depends(get_db),
-    user: User = Depends(get_current_user),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(get_current_user)],
 ) -> SessionCreatedOut:
     """
     Create an empty conversation session, then open /conversation?sessionId=… for WebSocket resume.
@@ -97,8 +97,8 @@ async def create_session(
 @router.get("/sessions/{session_id}/opening-audio")
 async def get_session_opening_audio(
     session_id: int,
-    db: AsyncSession = Depends(get_db),
-    user: User = Depends(get_current_user),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(get_current_user)],
 ) -> FileResponse:
     """Serve stored TTS for the session opening line (not a Turn row)."""
     sess_q = await db.execute(
@@ -119,9 +119,9 @@ async def get_session_opening_audio(
 @router.post("/sessions/{session_id}/end")
 async def end_session_and_score(
     session_id: int,
-    db: AsyncSession = Depends(get_db),
-    user: User = Depends(get_current_user),
-    scorer: ScoringService = Depends(get_scoring_service),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(get_current_user)],
+    scorer: Annotated[ScoringService, Depends(get_scoring_service)],
 ) -> dict[str, Any]:
     """
     End session: score any unscored turns, set ended_at, roadmap auto-complete.
@@ -147,9 +147,9 @@ async def end_session_and_score(
 
 @router.get("/sessions", response_model=list[SessionOut])
 async def list_sessions(
-    limit: int = 20,
-    db: AsyncSession = Depends(get_db),
-    user: User = Depends(get_current_user),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(get_current_user)],
+    limit: Annotated[int, Query(ge=1, le=100)] = 20,
 ) -> list[SessionOut]:
     if limit < 1 or limit > 100:
         limit = 20
@@ -188,13 +188,12 @@ async def list_sessions(
 
 @router.get(
     "/sessions/{session_id}/unit-step-summary",
-    response_model=UnitStepSummaryOut,
 )
 async def get_unit_step_summary(
     session_id: int,
-    db: AsyncSession = Depends(get_db),
-    user: User = Depends(get_current_user),
-) -> UnitStepSummaryOut:
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(get_current_user)],
+) -> dict[str, Any]:
     """Averages and roadmap thresholds for one session (e.g. after unit auto-complete)."""
     result = await db.execute(
         select(Session)
@@ -245,11 +244,11 @@ async def get_unit_step_summary(
     )
 
 
-@router.get("/sessions/{session_id}", response_model=SessionDetailOut)
+@router.get("/sessions/{session_id}")
 async def get_session(
     session_id: int,
-    db: AsyncSession = Depends(get_db),
-    user: User = Depends(get_current_user),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(get_current_user)],
 ) -> SessionDetailOut:
     result = await db.execute(
         select(Session)

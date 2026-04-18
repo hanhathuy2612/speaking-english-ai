@@ -19,6 +19,7 @@ Server → Client: status, history, user_transcript, assistant_partial, assistan
 import asyncio
 import json
 import logging
+from typing import Any, Callable
 
 from app.core.config import get_settings
 from app.core.security import decode_token
@@ -60,7 +61,7 @@ def _authenticate_ws(token: str) -> int:
 
 
 def _create_handler(
-    send,
+    send: Callable[[dict], Any],
     user_id: int,
     max_audio_bytes: int,
 ) -> ConversationHandler:

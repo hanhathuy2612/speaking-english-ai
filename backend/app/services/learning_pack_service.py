@@ -1,6 +1,141 @@
 from __future__ import annotations
 
-from app.schemas.learning_pack import LearningPackIn, LearningPackOut
+from app.schemas.learning_pack import MAX_SECTION_ITEMS, LearningPackIn, LearningPackOut
+
+
+def normalize_learning_pack_ai_dict(raw: object) -> dict:
+    """
+    Map common LLM JSON aliases to LearningPackIn field names before Pydantic validation.
+
+    Models often return word/definition/response instead of term/meaning/text, or omit usage/fix.
+    """
+    if not isinstance(raw, dict):
+        return {}
+
+    def as_list(key: str) -> list:
+        v = raw.get(key)
+        if not isinstance(v, list):
+            return []
+        return v
+
+    out: dict = {}
+
+    # --- vocabulary ---
+    vocab_out: list[dict] = []
+    for item in as_list("vocabulary"):
+        if not isinstance(item, dict):
+            continue
+        term = item.get("term") or item.get("word") or item.get("phrase") or item.get("headword")
+        meaning = (
+            item.get("meaning")
+            or item.get("definition")
+            or item.get("gloss")
+            or item.get("explain")
+            or item.get("description")
+        )
+        if term is None or meaning is None:
+            continue
+        coll = item.get("collocations") or item.get("collocation") or []
+        if isinstance(coll, str):
+            coll = [coll]
+        if not isinstance(coll, list):
+            coll = []
+        coll = [str(x).strip() for x in coll if str(x).strip()][:8]
+        ex = item.get("example") or item.get("sample_sentence") or item.get("sample")
+        vocab_out.append(
+            {
+                "term": str(term).strip(),
+                "meaning": str(meaning).strip(),
+                "collocations": coll,
+                "example": ex if ex is None else str(ex).strip() or None,
+            }
+        )
+    out["vocabulary"] = vocab_out[:MAX_SECTION_ITEMS]
+
+    # --- sentence_patterns ---
+    sp_out: list[dict] = []
+    for item in as_list("sentence_patterns"):
+        if not isinstance(item, dict):
+            continue
+        pat = item.get("pattern") or item.get("structure") or item.get("frame")
+        usage = (
+            item.get("usage")
+            or item.get("context")
+            or item.get("when_to_use")
+            or item.get("description")
+            or item.get("explain")
+        )
+        ex = item.get("example") or item.get("sample") or item.get("sentence")
+        if not pat:
+            continue
+        if not usage:
+            usage = "Use this pattern to give a clear, extended spoken answer."
+        if not ex:
+            ex = str(pat)
+        sp_out.append(
+            {
+                "pattern": str(pat).strip(),
+                "usage": str(usage).strip(),
+                "example": str(ex).strip(),
+            }
+        )
+    out["sentence_patterns"] = sp_out[:MAX_SECTION_ITEMS]
+
+    # --- idea_prompts ---
+    ideas = as_list("idea_prompts")
+    out["idea_prompts"] = [
+        " ".join(str(x).strip().split())
+        for x in ideas
+        if isinstance(x, (str, int, float)) and str(x).strip()
+    ][:MAX_SECTION_ITEMS]
+
+    # --- common_mistakes ---
+    cm_out: list[dict] = []
+    for item in as_list("common_mistakes"):
+        if not isinstance(item, dict):
+            continue
+        bad = item.get("mistake") or item.get("error") or item.get("wrong")
+        fix = item.get("fix") or item.get("correction") or item.get("better") or item.get("improvement")
+        if not bad:
+            continue
+        if not fix:
+            fix = "Rephrase using correct grammar and a full idea."
+        note = item.get("note")
+        cm_out.append(
+            {
+                "mistake": str(bad).strip(),
+                "fix": str(fix).strip(),
+                "note": None if note is None else str(note).strip() or None,
+            }
+        )
+    out["common_mistakes"] = cm_out[:MAX_SECTION_ITEMS]
+
+    # --- model_responses ---
+    mr_out: list[dict] = []
+    for item in as_list("model_responses"):
+        if not isinstance(item, dict):
+            continue
+        text = item.get("text") or item.get("response") or item.get("answer") or item.get("sample")
+        level = item.get("level") or item.get("band")
+        if not text:
+            continue
+        mr_out.append(
+            {
+                "level": None if level is None else str(level).strip() or None,
+                "text": str(text).strip(),
+            }
+        )
+    out["model_responses"] = mr_out[:MAX_SECTION_ITEMS]
+
+    # --- tips ---
+    tips = as_list("tips")
+    out["tips"] = [
+        " ".join(str(x).strip().split())
+        for x in tips
+        if isinstance(x, (str, int, float)) and str(x).strip()
+    ][:MAX_SECTION_ITEMS]
+
+    return out
 
 
 def parse_learning_pack(raw: object) -> LearningPackOut | None:

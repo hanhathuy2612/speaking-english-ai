@@ -1,3 +1,4 @@
+from typing import Annotated
 from app.core.deps import role_slugs_for_user
 from app.core.security import (
     create_access_token,
@@ -23,10 +24,12 @@ router = APIRouter()
 
 
 @router.post(
-    "/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED
+    "/register",
+    status_code=status.HTTP_201_CREATED,
+    responses={409: {"description": "Email or username already taken"}},
 )
 async def register(
-    body: RegisterRequest, db: AsyncSession = Depends(get_db)
+    body: RegisterRequest, db: Annotated[AsyncSession, Depends(get_db)]
 ) -> TokenResponse:
     result = await db.execute(select(User).where(User.email == body.email))
     if result.scalar_one_or_none():
@@ -67,9 +70,9 @@ async def register(
     )
 
 
-@router.post("/login", response_model=TokenResponse)
+@router.post("/login", responses={401: {"description": "Invalid credentials"}})
 async def login(
-    body: LoginRequest, db: AsyncSession = Depends(get_db)
+    body: LoginRequest, db: Annotated[AsyncSession, Depends(get_db)]
 ) -> TokenResponse:
     result = await db.execute(select(User).where(User.email == body.email))
     user = result.scalar_one_or_none()
@@ -90,9 +93,9 @@ async def login(
     )
 
 
-@router.post("/refresh", response_model=TokenResponse)
+@router.post("/refresh", responses={401: {"description": "Invalid refresh token"}})
 async def refresh_tokens(
-    body: RefreshRequest, db: AsyncSession = Depends(get_db)
+    body: RefreshRequest, db: Annotated[AsyncSession, Depends(get_db)]
 ) -> TokenResponse:
     try:
         payload = decode_token(body.refresh_token)

@@ -1,0 +1,113 @@
+@if (loading()) {
+  <div class="lpv-loading">
+    <div class="lpv-spinner" aria-hidden="true"></div>
+    <span>Loading study materials…</span>
+  </div>
+} @else if (error()) {
+  <p class="lpv-error">{{ error() }}</p>
+} @else if (pack(); as p) {
+  @if (isEmpty(p)) {
+    <p class="lpv-empty muted">No study materials here yet.</p>
+  } @else {
+    @if (p.source) {
+      <p class="lpv-source muted">
+        <span class="lpv-source-badge">{{ sourceLabel(p.source) }}</span>
+      </p>
+    }
+
+    @if (p.vocabulary.length > 0) {
+      <section class="lpv-section">
+        <h3 class="lpv-h">Vocabulary</h3>
+        <ul class="lpv-list lpv-list--vocab">
+          @for (v of p.vocabulary; track $index) {
+            <li class="lpv-card">
+              <div class="lpv-card__head">
+                <strong class="lpv-term">{{ v.term }}</strong>
+                <span class="lpv-meaning">{{ v.meaning }}</span>
+              </div>
+              @if (v.collocations.length > 0) {
+                <p class="lpv-colloc">
+                  <span class="muted">Collocations:</span>
+                  {{ v.collocations.join(', ') }}
+                </p>
+              }
+              @if (v.example) {
+                <p class="lpv-example"><em>{{ v.example }}</em></p>
+              }
+            </li>
+          }
+        </ul>
+      </section>
+    }
+
+    @if (p.sentence_patterns.length) {
+      <section class="lpv-section">
+        <h3 class="lpv-h">Sentence patterns</h3>
+        <ul class="lpv-list">
+          @for (s of p.sentence_patterns; track $index) {
+            <li class="lpv-card">
+              <p class="lpv-pattern">{{ s.pattern }}</p>
+              <p class="muted">{{ s.usage }}</p>
+              <p class="lpv-example"><em>{{ s.example }}</em></p>
+            </li>
+          }
+        </ul>
+      </section>
+    }
+
+    @if (p.idea_prompts.length) {
+      <section class="lpv-section">
+        <h3 class="lpv-h">Ideas to explore</h3>
+        <ul class="lpv-bullets">
+          @for (idea of p.idea_prompts; track $index) {
+            <li>{{ idea }}</li>
+          }
+        </ul>
+      </section>
+    }
+
+    @if (p.common_mistakes.length) {
+      <section class="lpv-section">
+        <h3 class="lpv-h">Common mistakes</h3>
+        <ul class="lpv-list">
+          @for (m of p.common_mistakes; track $index) {
+            <li class="lpv-card">
+              <p><span class="muted">Avoid:</span> {{ m.mistake }}</p>
+              <p><span class="muted">Better:</span> {{ m.fix }}</p>
+              @if (m.note) {
+                <p class="lpv-note muted">{{ m.note }}</p>
+              }
+            </li>
+          }
+        </ul>
+      </section>
+    }
+
+    @if (p.model_responses.length) {
+      <section class="lpv-section">
+        <h3 class="lpv-h">Model responses</h3>
+        <ul class="lpv-list">
+          @for (r of p.model_responses; track $index) {
+            <li class="lpv-card">
+              @if (r.level) {
+                <p class="lpv-level muted">Band {{ r.level }}</p>
+              }
+              <p>{{ r.text }}</p>
+            </li>
+          }
+        </ul>
+      </section>
+    }
+
+    @if (p.tips.length) {
+      <section class="lpv-section">
+        <h3 class="lpv-h">Tips</h3>
+        <ul class="lpv-bullets">
+          @for (t of p.tips; track $index) {
+            <li>{{ t }}</li>
+          }
+        </ul>
+      </section>
+    }
+  }
+}

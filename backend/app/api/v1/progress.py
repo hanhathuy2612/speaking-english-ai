@@ -1,9 +1,5 @@
 from datetime import datetime, timedelta, timezone
-
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
-from sqlalchemy.orm import selectinload
+from typing import Annotated
 
 from app.core.deps import get_current_user
 from app.db.session import get_db
@@ -18,20 +14,22 @@ from app.schemas.progress import (
     ScoreAvg,
     SessionsPage,
 )
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 router = APIRouter()
 
 
-@router.get("/summary", response_model=ProgressSummary)
+@router.get("/summary")
 async def get_summary(
-    db: AsyncSession = Depends(get_db),
-    user: User = Depends(get_current_user),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(get_current_user)],
 ) -> ProgressSummary:
     # Total sessions
     sess_q = await db.execute(
-        select(func.count())
-        .select_from(Session)
-        .where(Session.user_id == user.id)
+        select(func.count()).select_from(Session).where(Session.user_id == user.id)
     )
     total_sessions = sess_q.scalar() or 0
 
@@ -105,12 +103,12 @@ async def get_summary(
     )
 
 
-@router.get("/sessions", response_model=SessionsPage)
+@router.get("/sessions")
 async def list_sessions(
-    page: int = 1,
-    limit: int = 10,
-    db: AsyncSession = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    page: Annotated[int, Query(ge=1)] = 1,
+    limit: Annotated[int, Query(ge=1, le=50)] = 10,
 ) -> SessionsPage:
     """Paginated list of recent sessions. page is 1-based; limit default 10."""
     if page < 1:
@@ -120,9 +118,7 @@ async def list_sessions(
     offset = (page - 1) * limit
 
     total_q = await db.execute(
-        select(func.count())
-        .select_from(Session)
-        .where(Session.user_id == user.id)
+        select(func.count()).select_from(Session).where(Session.user_id == user.id)
     )
     total = total_q.scalar() or 0
 
@@ -172,14 +168,16 @@ async def list_sessions(
     return SessionsPage(items=recent_out, total=total)
 
 
-@router.delete("/sessions/{session_id}", response_model=None)
+@router.delete("/sessions/{session_id}")
 async def delete_session(
     session_id: int,
-    db: AsyncSession = Depends(get_db),
-    user: User = Depends(get_current_user),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(get_current_user)],
 ) -> None:
     session = await db.get(Session, session_id)
     if not session or session.user_id != user.id:
-        raise HTTPException(status_code=404, detail="Session not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Session not found"
+        )
     await db.delete(session)
     await db.commit()

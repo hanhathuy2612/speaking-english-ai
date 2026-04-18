@@ -1,0 +1,139 @@
+.card-like {
+  margin-top: 28px;
+  padding: 20px;
+  border-radius: 12px;
+  border: 1px solid var(--clr-border, rgba(0, 0, 0, 0.08));
+  background: var(--clr-surface, #fff);
+}
+
+.muted {
+  color: var(--clr-text-muted);
+}
+
+.lpe__head {
+  margin-bottom: 16px;
+}
+
+.lpe__title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 0 0 6px;
+}
+
+.lpe__hint {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.45;
+}
+
+.lpe__loading {
+  padding: 12px 0;
+  color: var(--clr-text-muted);
+}
+
+.lpe__err {
+  color: var(--clr-danger, #c00);
+  font-size: 0.9375rem;
+}
+
+.lpe__ok {
+  color: var(--clr-success, #0a0);
+  font-size: 0.9375rem;
+}
+
+.lpe__actions {
+  margin-bottom: 20px;
+}
+
+.lpe__ai {
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--clr-border, rgba(0, 0, 0, 0.08));
+}
+
+.lpe__ai-label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 600;
+  color: var(--clr-text);
+}
+
+.lpe__actions--ai {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+  margin-bottom: 0;
+}
+
+.lpe__sub {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 24px 0 10px;
+
+  &:first-of-type {
+    margin-top: 0;
+  }
+}
+
+.lpe__mini {
+  margin: -4px 0 8px;
+  font-size: 0.875rem;
+}
+
+.lpe__textarea {
+  width: 100%;
+  font-family: inherit;
+  resize: vertical;
+}
+
+.lpe__row {
+  position: relative;
+  margin-bottom: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  background: var(--clr-surface-2, rgba(0, 0, 0, 0.03));
+}
+
+.lpe__rm {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  border: none;
+  background: transparent;
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--clr-text-muted);
+  padding: 4px 8px;
+
+  &:hover {
+    color: var(--clr-danger, #c00);
+  }
+}
+
+.lpe__grid {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 8px 12px;
+  align-items: center;
+  padding-right: 28px;
+
+  @media (max-width: 600px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.lpe__grid--3 {
+  grid-template-columns: 140px 1fr;
+}
+
+.lpe__lbl {
+  font-size: 0.8125rem;
+  color: var(--clr-text-muted);
+  margin: 0;
+}
+
+.lpe__add {
+  margin-bottom: 8px;
+}

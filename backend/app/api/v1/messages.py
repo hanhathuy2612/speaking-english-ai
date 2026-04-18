@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import FileResponse
@@ -21,8 +21,8 @@ router = APIRouter()
 async def patch_message_guideline(
     message_id: int,
     body: MessageGuidelinePatchIn,
-    db: AsyncSession = Depends(get_db),
-    user: User = Depends(get_current_user),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(get_current_user)],
 ) -> dict[str, bool]:
     """Save guide-panel content for a message."""
     guideline = body.guideline.strip()
@@ -33,7 +33,9 @@ async def patch_message_guideline(
     )
     msg = msg_q.scalar_one_or_none()
     if not msg:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Message not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Message not found"
+        )
     msg.guideline = guideline if guideline else None
     await db.commit()
     return {"ok": True}
@@ -42,9 +44,12 @@ async def patch_message_guideline(
 @router.get("/messages/{message_id}/audio")
 async def get_message_audio(
     message_id: int,
-    kind: Literal["user", "assistant"] = Query(..., description="user = learner recording, assistant = TTS mp3"),
-    db: AsyncSession = Depends(get_db),
-    user: User = Depends(get_current_user),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(get_current_user)],
+    kind: Annotated[
+        Literal["user", "assistant"],
+        Query(..., description="user = learner recording, assistant = TTS mp3"),
+    ],
 ) -> FileResponse:
     """Serve stored audio for a message (same user as session owner only)."""
     msg_q = await db.execute(
@@ -54,9 +59,15 @@ async def get_message_audio(
     )
     msg = msg_q.scalar_one_or_none()
     if not msg:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Message not found")
-    if (kind == "user" and msg.role != "user") or (kind == "assistant" and msg.role != "assistant"):
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Audio not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Message not found"
+        )
+    if (kind == "user" and msg.role != "user") or (
+        kind == "assistant" and msg.role != "assistant"
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Audio not found"
+        )
 
     path = resolve_audio_file(msg.audio_path)
     media_type = "audio/webm" if kind == "user" else "audio/mpeg"

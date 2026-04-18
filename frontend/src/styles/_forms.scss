@@ -33,3 +33,38 @@ label {
   color: var(--clr-text);
   margin-bottom: 6px;
 }
+
+.form-label {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--clr-text);
+  margin-bottom: 6px;
+}
+
+.form-control {
+  width: 100%;
+  font-family: inherit;
+  font-size: 0.9375rem;
+  color: var(--clr-text);
+  background: var(--clr-bg);
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  transition:
+    border-color var(--transition),
+    box-shadow var(--transition);
+
+  &::placeholder {
+    color: var(--clr-text-muted);
+    opacity: 0.8;
+  }
+
+  &:focus {
+    outline: none;
+    border-color: var(--clr-border-focus);
+    box-shadow: var(--shadow-focus);
+    background-color: var(--clr-bg-elevated);
+    color: var(--clr-text);
+  }
+}
