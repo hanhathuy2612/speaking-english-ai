@@ -22,34 +22,79 @@ def normalize_learning_pack_ai_dict(raw: object) -> dict:
 
     # --- vocabulary ---
     vocab_out: list[dict] = []
-    for item in as_list("vocabulary"):
-        if not isinstance(item, dict):
-            continue
-        term = item.get("term") or item.get("word") or item.get("phrase") or item.get("headword")
-        meaning = (
-            item.get("meaning")
-            or item.get("definition")
-            or item.get("gloss")
-            or item.get("explain")
-            or item.get("description")
-        )
+
+    def append_vocab_row(
+        term: object,
+        meaning: object,
+        coll: object | None = None,
+        ex: object | None = None,
+    ) -> None:
         if term is None or meaning is None:
-            continue
-        coll = item.get("collocations") or item.get("collocation") or []
+            return
+        t = str(term).strip()
+        m = str(meaning).strip()
+        if not t or not m:
+            return
         if isinstance(coll, str):
-            coll = [coll]
-        if not isinstance(coll, list):
-            coll = []
-        coll = [str(x).strip() for x in coll if str(x).strip()][:8]
-        ex = item.get("example") or item.get("sample_sentence") or item.get("sample")
+            coll_list = [coll]
+        elif isinstance(coll, list):
+            coll_list = coll
+        else:
+            coll_list = []
+        coll_list = [str(x).strip() for x in coll_list if str(x).strip()][:8]
         vocab_out.append(
             {
-                "term": str(term).strip(),
-                "meaning": str(meaning).strip(),
-                "collocations": coll,
+                "term": t,
+                "meaning": m,
+                "collocations": coll_list,
                 "example": ex if ex is None else str(ex).strip() or None,
             }
         )
+
+    raw_vocab = raw.get("vocabulary")
+    # LLMs sometimes return parallel arrays: { "term": [...], "meaning": [...] }
+    if isinstance(raw_vocab, dict):
+        terms = (
+            raw_vocab.get("term")
+            or raw_vocab.get("terms")
+            or raw_vocab.get("words")
+            or raw_vocab.get("phrase")
+        )
+        meanings = (
+            raw_vocab.get("meaning")
+            or raw_vocab.get("meanings")
+            or raw_vocab.get("definitions")
+            or raw_vocab.get("definition")
+        )
+        colls = raw_vocab.get("collocations")
+        examples = raw_vocab.get("example") or raw_vocab.get("examples")
+        if isinstance(terms, list) and isinstance(meanings, list):
+            n = min(len(terms), len(meanings))
+            for i in range(n):
+                c = None
+                ex_i = None
+                if isinstance(colls, list) and i < len(colls):
+                    c = colls[i]
+                if isinstance(examples, list) and i < len(examples):
+                    ex_i = examples[i]
+                append_vocab_row(terms[i], meanings[i], c, ex_i)
+    elif isinstance(raw_vocab, list):
+        for item in raw_vocab:
+            if not isinstance(item, dict):
+                continue
+            term = item.get("term") or item.get("word") or item.get("phrase") or item.get("headword")
+            meaning = (
+                item.get("meaning")
+                or item.get("definition")
+                or item.get("gloss")
+                or item.get("explain")
+                or item.get("description")
+            )
+            if term is None or meaning is None:
+                continue
+            coll = item.get("collocations") or item.get("collocation") or []
+            ex = item.get("example") or item.get("sample_sentence") or item.get("sample")
+            append_vocab_row(term, meaning, coll, ex)
     out["vocabulary"] = vocab_out[:MAX_SECTION_ITEMS]
 
     # --- sentence_patterns ---

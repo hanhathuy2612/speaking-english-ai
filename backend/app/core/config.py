@@ -54,6 +54,32 @@ class Settings(BaseSettings):
             "OPENAI_SCORE_MODEL", "LMSTUDIO_SCORE_MODEL", "SCORE_MODEL"
         ),
     )
+    # If set, admin learning-pack AI draft (JSON) uses this model instead of openai_model.
+    openai_learning_pack_model: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices(
+            "OPENAI_LEARNING_PACK_MODEL", "LMSTUDIO_LEARNING_PACK_MODEL"
+        ),
+    )
+    # Cap output length for learning-pack JSON (lower = faster stop, risk of truncated JSON if too low).
+    lm_learning_pack_max_tokens: int = Field(
+        default=3000,
+        ge=512,
+        le=16_000,
+        validation_alias=AliasChoices(
+            "LM_LEARNING_PACK_MAX_TOKENS",
+            "OPENAI_LEARNING_PACK_MAX_TOKENS",
+        ),
+    )
+    lm_learning_pack_temperature: float = Field(
+        default=0.35,
+        ge=0.0,
+        le=2.0,
+        validation_alias=AliasChoices(
+            "LM_LEARNING_PACK_TEMPERATURE",
+            "OPENAI_LEARNING_PACK_TEMPERATURE",
+        ),
+    )
     # Style: max tokens per AI reply. Default 256 allows natural length.
     lm_conversation_max_tokens: int = 256
     # Optional: append this to the system prompt (e.g. "Use simple words only.")

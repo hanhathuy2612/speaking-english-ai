@@ -8,11 +8,13 @@ import logging
 import re
 
 from fastapi import HTTPException
+from openai import OpenAIError
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.session import Session
 from app.models.session_message import SessionMessage
+from app.core.config import get_settings
 from app.models.topic import Topic
 from app.models.topic_unit import TopicUnit
 from app.schemas.admin import (
@@ -24,6 +26,45 @@ from app.services.lm_client import LMStudioClient
 from app.services.learning_pack_service import normalize_learning_pack_ai_dict
 
 logger = logging.getLogger(__name__)
+
+_LEARNING_PACK_AI_RESPONSE_JSON_SHAPE = """
+Required response shape — one JSON object, snake_case keys only, this nesting (fill with real content):
+
+{
+  "vocabulary": [
+    {
+      "term": "phrase or word",
+      "meaning": "learner-facing definition",
+      "collocations": ["optional", "up to 8 strings per item"],
+      "example": "sample sentence or null"
+    }
+  ],
+  "sentence_patterns": [
+    {
+      "pattern": "sentence frame",
+      "usage": "when or how to use it",
+      "example": "full spoken-style example"
+    }
+  ],
+  "idea_prompts": ["short question-style prompts"],
+  "common_mistakes": [
+    {
+      "mistake": "typical error",
+      "fix": "how to improve",
+      "note": "optional extra or null"
+    }
+  ],
+  "model_responses": [
+    {
+      "level": "optional band label or null",
+      "text": "short model answer in natural spoken English"
+    }
+  ],
+  "tips": ["short practical tips"]
+}
+
+Hard rule for vocabulary: it MUST be an array of objects (see above). Do NOT output vocabulary as one object with parallel arrays like {"term": [...], "meaning": [...]}.
+"""
 
 
 def extract_json_object(text: str) -> dict:
@@ -153,9 +194,9 @@ def unit_draft_is_distinct(
     cand_objective = str(maybe.get("objective", "")).strip()
     if not cand_title or not cand_objective:
         return False
-    return not is_near_duplicate(
-        cand_title, existing_titles
-    ) and not is_near_duplicate(cand_objective, existing_objectives)
+    return not is_near_duplicate(cand_title, existing_titles) and not is_near_duplicate(
+        cand_objective, existing_objectives
+    )
 
 
 async def llm_topic_unit_draft_json(
@@ -166,7 +207,7 @@ async def llm_topic_unit_draft_json(
 ) -> dict:
     attempts = ((prompt, 0.4), (retry_prompt, 0.35))
     n = len(attempts)
-    for idx, (attempt_prompt, temp) in enumerate(attempts):
+    for idx, (attempt_prompt, temp) in enumerate[tuple[str, float]](attempts):
         try:
             async with LMStudioClient() as lm:
                 raw = await lm.generate_text(
@@ -221,13 +262,7 @@ Topic level (optional): "{(topic.level or '').strip()}"
 
 Produce a learning pack as ONE JSON object only. No markdown, no code fences, no commentary before or after the JSON.
 
-Exact top-level keys (snake_case):
-- vocabulary: array of objects with keys: term (string), meaning (string), collocations (array of strings, max 8 per item), example (string or null)
-- sentence_patterns: array of objects with keys: pattern, usage, example (all strings)
-- idea_prompts: array of short strings
-- common_mistakes: array of objects with keys: mistake, fix (strings), note (string or null)
-- model_responses: array of objects with keys: level (string or null), text (string)
-- tips: array of short strings
+{_LEARNING_PACK_AI_RESPONSE_JSON_SHAPE}
 
 Target sizes (approximate):
 - vocabulary: 8-12 items
@@ -239,7 +274,7 @@ Target sizes (approximate):
 
 Content must match the topic; English only; suitable for IELTS Speaking practice (Parts 1–3 style).
 
-Strict key names (do not substitute): vocabulary uses "term" and "meaning" (not "word"/"definition"); model_responses uses "text" (not "response"); every sentence_patterns object must have "pattern", "usage", and "example"; every common_mistakes object must have "mistake" and "fix".
+Aliases to avoid: use "term"/"meaning" not "word"/"definition"; use "text" in model_responses not "response".
 
 Optional extra instructions from admin:
 {idea or "(none)"}
@@ -259,15 +294,13 @@ This pack targets ONE guided step within the topic:
 
 Produce a learning pack as ONE JSON object only. No markdown, no code fences, no commentary before or after the JSON.
 
-Use the SAME key structure as a topic-wide pack, but focus vocabulary, patterns, and examples on THIS step while staying coherent with the topic.
+Use the SAME JSON shape as topic-wide packs (see below), but focus vocabulary, patterns, and examples on THIS step while staying coherent with the topic.
 
-Exact top-level keys (snake_case):
-- vocabulary, sentence_patterns, idea_prompts, common_mistakes, model_responses, tips
-(same nested shapes as described for topic-wide packs.)
+{_LEARNING_PACK_AI_RESPONSE_JSON_SHAPE}
 
 Target sizes: similar to topic packs (roughly 8-12 vocabulary items, 3-5 patterns, etc.), tailored to the step.
 
-Strict key names (do not substitute): vocabulary uses "term" and "meaning" (not "word"/"definition"); model_responses uses "text" (not "response"); every sentence_patterns object must have "pattern", "usage", and "example"; every common_mistakes object must have "mistake" and "fix".
+Aliases to avoid: use "term"/"meaning" not "word"/"definition"; use "text" in model_responses not "response".
 
 Optional extra instructions from admin:
 {idea or "(none)"}
@@ -275,18 +308,46 @@ Optional extra instructions from admin:
 
 
 async def generate_learning_pack_via_llm(prompt: str) -> LearningPackIn:
+    raw = ""
     try:
+        settings = get_settings()
+        pack_model = (settings.openai_learning_pack_model or "").strip() or None
         async with LMStudioClient() as lm:
             raw = await lm.generate_text(
                 [{"role": "user", "content": prompt}],
-                temperature=0.35,
-                max_tokens=4500,
+                temperature=settings.lm_learning_pack_temperature,
+                max_tokens=settings.lm_learning_pack_max_tokens,
+                model=pack_model,
             )
         data = extract_json_object(raw)
         data = normalize_learning_pack_ai_dict(data)
         return LearningPackIn.model_validate(data)
     except HTTPException:
         raise
+    except OpenAIError as exc:
+        err_l = str(exc).lower()
+        logger.warning("AI learning pack draft failed (OpenAI-compatible API): %s", exc)
+        if "unload" in err_l and "model" in err_l:
+            raise HTTPException(
+                status_code=503,
+                detail="LLM model is not loaded (e.g. LM Studio). Load the model and retry.",
+            )
+        raise HTTPException(
+            status_code=502,
+            detail="AI request failed. Check LM Studio is running and the model name in .env.",
+        )
+    except json.JSONDecodeError as exc:
+        tail = raw[-600:] if raw else ""
+        logger.warning(
+            "AI learning pack JSON parse failed (chars=%s): %s | tail=%r",
+            len(raw),
+            exc,
+            tail,
+        )
+        raise HTTPException(
+            status_code=502,
+            detail="AI returned invalid or truncated JSON. Try increasing LM_LEARNING_PACK_MAX_TOKENS or retry.",
+        )
     except Exception as exc:
         logger.warning("AI learning pack draft failed: %s", exc)
         raise HTTPException(
