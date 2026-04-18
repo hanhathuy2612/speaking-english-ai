@@ -25,12 +25,15 @@
     @if (!loading() && topic()) {
       <header class="hero">
         <div>
-          <h1>Edit topic</h1>
+          <div class="d-flex gap-2 align-items-center justify-content-between">
+            <h1>Edit topic</h1>
+            <button class="btn btn--secondary d-flex align-items-center gap-1" (click)="openUnits()"><i class="bi bi-list-task fs-2xl" aria-hidden="true"></i> Units</button>
+          </div>
           <p class="muted">Update title, description, and target level.</p>
         </div>
       </header>
       <app-topic-form-modal [embeddedTopic]="topic()!" />
-      <app-learning-pack-editor [topicId]="topic()!.id" />
+      <!-- <app-learning-pack-editor [topicId]="topic()!.id" /> -->
     }
   </div>
 </div>

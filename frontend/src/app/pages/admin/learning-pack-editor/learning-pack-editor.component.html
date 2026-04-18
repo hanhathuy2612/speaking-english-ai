@@ -21,12 +21,12 @@
     }
 
     <div class="lpe__ai">
-      <label class="lpe__lbl lpe__ai-label" for="lpe-ai-idea">Gợi ý cho AI (tuỳ chọn)</label>
+      <label class="lpe__lbl lpe__ai-label" for="lpe-ai-idea">AI idea (optional)</label>
       <textarea
         id="lpe-ai-idea"
         class="form-control lpe__textarea"
         rows="2"
-        placeholder="Ví dụ: Band 6.5, tập trung từ vựng du lịch; hoặc để trống để AI tự căn theo topic/step."
+        placeholder="Example: Band 6.5, focus on travel vocabulary; or leave blank for AI to generate based on topic/step."
         [ngModel]="aiIdea()"
         (ngModelChange)="aiIdea.set($event)"
       ></textarea>
@@ -37,7 +37,7 @@
           [disabled]="saving() || generating()"
           (click)="generateWithAi()"
         >
-          {{ generating() ? 'Đang tạo…' : 'Tự tạo bằng AI & điền form' }}
+          {{ generating() ? 'Generating…' : 'Generate with AI' }}
         </button>
         <button
           type="button"

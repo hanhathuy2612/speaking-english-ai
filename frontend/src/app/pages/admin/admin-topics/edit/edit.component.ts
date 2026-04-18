@@ -4,11 +4,10 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { ApiService, Topic } from '../../../../shared/services/api.service';
 import { TopicFormModalComponent } from '../../../topics/topic-form-modal/topic-form-modal.component';
-import { LearningPackEditorComponent } from '../../learning-pack-editor/learning-pack-editor.component';
 
 @Component({
   selector: 'app-admin-topic-edit',
-  imports: [CommonModule, RouterLink, TopicFormModalComponent, LearningPackEditorComponent],
+  imports: [CommonModule, RouterLink, TopicFormModalComponent],
   templateUrl: './edit.component.html',
   styleUrls: ['./edit.component.scss'],
 })
@@ -41,5 +40,9 @@ export class AdminTopicEditComponent implements OnInit {
         },
         error: (err) => this.error.set(err?.error?.detail ?? 'Could not load topic.'),
       });
+  }
+
+  openUnits(): void {
+    void this.router.navigate(['/admin/topics', this.topic()!.id, 'units']);
   }
 }

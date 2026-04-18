@@ -46,9 +46,17 @@ $font-weights: (
 :root {
   @each $key, $val in $font-sizes {
     --fs-#{$key}: #{$val};
+    
+    .fs-#{$key} {
+      font-size: #{$val};
+    }
   }
 
   @each $key, $val in $font-weights {
     --fw-#{$key}: #{$val};
+
+    .fw-#{$key} {
+      font-weight: #{$val};
+    }
   }
 }
