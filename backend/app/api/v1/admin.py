@@ -1,9 +1,12 @@
 """Admin-only: user management, topic unit CRUD, and AI draft helpers."""
 
+from backend.app.models.topic_unit import TopicUnit
+from app.models.topic_unit import TopicUnit
 import difflib
 import json
 import logging
 import re
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import delete, func, select
@@ -34,7 +37,10 @@ from app.schemas.admin import (
 from app.schemas.learning_pack import LearningPackIn, LearningPackOut
 from app.schemas.roadmap import TopicUnitOut
 from app.services.lm_client import LMStudioClient
-from app.services.learning_pack_service import parse_learning_pack, to_learning_pack_json
+from app.services.learning_pack_service import (
+    parse_learning_pack,
+    to_learning_pack_json,
+)
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -78,6 +84,153 @@ def _is_near_duplicate(candidate: str, existing_values: list[str]) -> bool:
         if difflib.SequenceMatcher(None, c, e).ratio() >= 0.88:
             return True
     return False
+
+
+def _coerce_json_int(v: object) -> int | None:
+    if v is None:
+        return None
+    try:
+        return int(v)
+    except Exception:
+        return None
+
+
+def _coerce_json_float(v: object) -> float | None:
+    if v is None:
+        return None
+    try:
+        return float(v)
+    except Exception:
+        return None
+
+
+def _collect_existing_unit_strings(
+    existing_units: list[TopicUnit],
+) -> tuple[list[str], list[str], str]:
+    existing_titles = [
+        u.title.strip() for u in existing_units if (u.title or "").strip()
+    ]
+    existing_objectives = [
+        u.objective.strip() for u in existing_units if (u.objective or "").strip()
+    ]
+    existing_lines = [
+        f"- #{idx + 1}: title='{u.title.strip()}', objective='{u.objective.strip()}'"
+        for idx, u in enumerate[TopicUnit](existing_units)
+        if (u.title or "").strip() and (u.objective or "").strip()
+    ]
+    existing_block = (
+        "\n".join(existing_lines)
+        if existing_lines
+        else "- (no existing steps yet for this topic)"
+    )
+    return existing_titles, existing_objectives, existing_block
+
+
+def _build_topic_unit_draft_prompts(
+    topic: Topic, existing_block: str, idea: str
+) -> tuple[str, str]:
+    prompt = f"""
+Generate ONE guided roadmap step for IELTS speaking topic "{topic.title}".
+Topic description: "{(topic.description or '').strip()}"
+Topic level: "{(topic.level or '').strip()}"
+Existing steps in this topic:
+{existing_block}
+
+Return STRICT JSON only, no markdown:
+{{
+  "title": "step title",
+  "objective": "clear learner objective",
+  "prompt_hint": "short instruction for AI tutor behavior",
+  "min_turns_to_complete": 3,
+  "min_avg_overall": 6.0,
+  "max_scored_turns": 10
+}}
+
+Rules:
+- objective is learner-facing, simple and actionable.
+- prompt_hint is for tutor AI to guide conversation for this step.
+- The new step MUST be semantically different from existing steps above.
+- Do NOT repeat an existing title wording/pattern.
+- Do NOT repeat the same learner objective angle as previous steps.
+- min_turns_to_complete should be 2..8.
+- min_avg_overall should be null or number 4.0..8.0.
+- max_scored_turns should be null or integer 6..20.
+- Keep values realistic and compact.
+
+Admin extra idea (optional):
+{idea or "No extra idea"}
+""".strip()
+    retry_prompt = (
+        prompt
+        + "\n\nImportant retry constraint: previous attempt was too similar to existing steps. "
+        "Generate a clearly different step focus (new sub-skill / new speaking scenario)."
+    )
+    return prompt, retry_prompt
+
+
+def _unit_draft_is_distinct(
+    maybe: dict, existing_titles: list[str], existing_objectives: list[str]
+) -> bool:
+    cand_title = str(maybe.get("title", "")).strip()
+    cand_objective = str(maybe.get("objective", "")).strip()
+    if not cand_title or not cand_objective:
+        return False
+    return not _is_near_duplicate(
+        cand_title, existing_titles
+    ) and not _is_near_duplicate(cand_objective, existing_objectives)
+
+
+async def _llm_topic_unit_draft_json(
+    prompt: str,
+    retry_prompt: str,
+    existing_titles: list[str],
+    existing_objectives: list[str],
+) -> dict:
+    attempts = ((prompt, 0.4), (retry_prompt, 0.35))
+    n = len(attempts)
+    for idx, (attempt_prompt, temp) in enumerate(attempts):
+        try:
+            async with LMStudioClient() as lm:
+                raw = await lm.generate_text(
+                    [{"role": "user", "content": attempt_prompt}],
+                    temperature=temp,
+                    max_tokens=320,
+                )
+            maybe = _extract_json_object(raw)
+        except Exception as exc:
+            logger.warning("AI topic unit draft failed (attempt %d): %s", idx + 1, exc)
+            if idx == n - 1:
+                raise HTTPException(
+                    status_code=502, detail="AI could not generate step draft"
+                )
+            continue
+        if _unit_draft_is_distinct(
+            maybe, existing_titles, existing_objectives
+        ) or idx == n - 1:
+            return maybe
+    raise HTTPException(status_code=502, detail="AI could not generate step draft")
+
+
+def _topic_unit_draft_data_to_out(data: dict) -> AITopicUnitDraftOut:
+    title = str(data.get("title", "")).strip()
+    objective = str(data.get("objective", "")).strip()
+    prompt_hint = str(data.get("prompt_hint", "")).strip()
+    if not title or not objective or not prompt_hint:
+        raise HTTPException(status_code=502, detail="AI returned invalid step draft")
+    min_turns = _coerce_json_int(data.get("min_turns_to_complete"))
+    min_turns = min(8, max(1, min_turns)) if min_turns is not None else None
+    min_avg = _coerce_json_float(data.get("min_avg_overall"))
+    min_avg = min(10.0, max(0.0, min_avg)) if min_avg is not None else None
+    max_scored = _coerce_json_int(data.get("max_scored_turns"))
+    max_scored = min(30, max(1, max_scored)) if max_scored is not None else None
+    return AITopicUnitDraftOut(
+        title=title[:255],
+        objective=objective,
+        prompt_hint=prompt_hint,
+        min_turns_to_complete=min_turns,
+        min_avg_overall=min_avg,
+        max_scored_turns=max_scored,
+    )
 
 
 async def _count_distinct_admin_users(db: AsyncSession) -> int:
@@ -146,10 +299,10 @@ async def _admin_topic_session_items_from_rows(
 
 @router.get("/users", response_model=AdminUserListOut)
 async def admin_list_users(
-    page: int = Query(1, ge=1),
-    limit: int = Query(20, ge=1, le=ADMIN_USERS_MAX_LIMIT),
-    db: AsyncSession = Depends(get_db),
-    _admin: User = Depends(get_current_admin),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _admin: Annotated[User, Depends(get_current_admin)],
+    page: Annotated[int, Query(ge=1)] = 1,
+    limit: Annotated[int, Query(ge=1, le=ADMIN_USERS_MAX_LIMIT)] = 20,
 ) -> AdminUserListOut:
     total_q = await db.execute(select(func.count()).select_from(User))
     total = int(total_q.scalar() or 0)
@@ -182,8 +335,8 @@ async def admin_list_users(
 async def admin_patch_user(
     user_id: int,
     body: AdminUserPatch,
-    db: AsyncSession = Depends(get_db),
-    admin: User = Depends(get_current_admin),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    admin: Annotated[User, Depends(get_current_admin)],
 ) -> AdminUserOut:
     r = await db.execute(
         select(User)
@@ -255,8 +408,8 @@ async def admin_patch_user(
 async def admin_create_topic_unit(
     topic_id: int,
     body: TopicUnitCreateIn,
-    db: AsyncSession = Depends(get_db),
-    _admin: User = Depends(get_current_admin),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _admin: Annotated[User, Depends(get_current_admin)],
 ) -> TopicUnitOut:
     t = await db.get(Topic, topic_id)
     if not t:
@@ -280,8 +433,8 @@ async def admin_create_topic_unit(
 @router.get("/topics/{topic_id}/learning-pack", response_model=LearningPackOut)
 async def admin_get_topic_learning_pack(
     topic_id: int,
-    db: AsyncSession = Depends(get_db),
-    _admin: User = Depends(get_current_admin),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _admin: Annotated[User, Depends(get_current_admin)],
 ) -> LearningPackOut:
     topic = await db.get(Topic, topic_id)
     if not topic:
@@ -297,8 +450,8 @@ async def admin_get_topic_learning_pack(
 async def admin_put_topic_learning_pack(
     topic_id: int,
     body: LearningPackIn,
-    db: AsyncSession = Depends(get_db),
-    _admin: User = Depends(get_current_admin),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _admin: Annotated[User, Depends(get_current_admin)],
 ) -> LearningPackOut:
     topic = await db.get(Topic, topic_id)
     if not topic:
@@ -313,8 +466,8 @@ async def admin_put_topic_learning_pack(
 @router.get("/topic-units/{unit_id}/learning-pack", response_model=LearningPackOut)
 async def admin_get_topic_unit_learning_pack(
     unit_id: int,
-    db: AsyncSession = Depends(get_db),
-    _admin: User = Depends(get_current_admin),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _admin: Annotated[User, Depends(get_current_admin)],
 ) -> LearningPackOut:
     unit = await db.get(TopicUnit, unit_id)
     if not unit:
@@ -330,8 +483,8 @@ async def admin_get_topic_unit_learning_pack(
 async def admin_put_topic_unit_learning_pack(
     unit_id: int,
     body: LearningPackIn,
-    db: AsyncSession = Depends(get_db),
-    _admin: User = Depends(get_current_admin),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _admin: Annotated[User, Depends(get_current_admin)],
 ) -> LearningPackOut:
     unit = await db.get(TopicUnit, unit_id)
     if not unit:
@@ -351,8 +504,8 @@ async def admin_update_topic_unit(
     topic_id: int,
     unit_id: int,
     body: TopicUnitUpdateIn,
-    db: AsyncSession = Depends(get_db),
-    _admin: User = Depends(get_current_admin),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _admin: Annotated[User, Depends(get_current_admin)],
 ) -> TopicUnitOut:
     unit = await db.get(TopicUnit, unit_id)
     if not unit or unit.topic_id != topic_id:
@@ -381,8 +534,8 @@ async def admin_update_topic_unit(
 async def admin_delete_topic_unit(
     topic_id: int,
     unit_id: int,
-    db: AsyncSession = Depends(get_db),
-    _admin: User = Depends(get_current_admin),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _admin: Annotated[User, Depends(get_current_admin)],
 ) -> None:
     unit = await db.get(TopicUnit, unit_id)
     if not unit or unit.topic_id != topic_id:
@@ -391,11 +544,15 @@ async def admin_delete_topic_unit(
     await db.commit()
 
 
-@router.delete("/topics/{topic_id}", status_code=204)
+@router.delete(
+    "/topics/{topic_id}",
+    status_code=204,
+    responses={404: {"description": "Topic not found"}},
+)
 async def admin_delete_topic(
     topic_id: int,
-    db: AsyncSession = Depends(get_db),
-    _admin: User = Depends(get_current_admin),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _admin: Annotated[User, Depends(get_current_admin)],
 ) -> None:
     topic = await db.get(Topic, topic_id)
     if not topic:
@@ -404,17 +561,22 @@ async def admin_delete_topic(
     await db.commit()
 
 
-@router.get("/topics/{topic_id}/sessions", response_model=AdminTopicSessionsPage)
+@router.get(
+    "/topics/{topic_id}/sessions",
+    responses={404: {"description": "Topic not found"}},
+)
 async def admin_list_topic_sessions(
     topic_id: int,
-    page: int = Query(1, ge=1),
-    limit: int = Query(20, ge=1, le=100),
-    topic_unit_id: int | None = Query(
-        None,
-        description="If set, only sessions started for this roadmap step (topic unit).",
-    ),
-    db: AsyncSession = Depends(get_db),
-    _admin: User = Depends(get_current_admin),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _admin: Annotated[User, Depends(get_current_admin)],
+    page: Annotated[int, Query(ge=1)] = 1,
+    limit: Annotated[int, Query(ge=1, le=100)] = 20,
+    topic_unit_id: Annotated[
+        int | None,
+        Query(
+            description="If set, only sessions started for this roadmap step (topic unit)."
+        ),
+    ] = None,
 ) -> AdminTopicSessionsPage:
     """Paginated sessions for this topic across all users."""
     t = await db.get(Topic, topic_id)
@@ -430,9 +592,7 @@ async def admin_list_topic_sessions(
 
     offset = (page - 1) * limit
 
-    total_q = await db.execute(
-        select(func.count()).select_from(Session).where(*conds)
-    )
+    total_q = await db.execute(select(func.count()).select_from(Session).where(*conds))
     total = int(total_q.scalar() or 0)
 
     recent_q = await db.execute(
@@ -453,16 +613,21 @@ async def admin_list_topic_sessions(
     return AdminTopicSessionsPage(items=items, total=total)
 
 
-@router.get("/sessions", response_model=AdminTopicSessionsPage)
+@router.get(
+    "/sessions",
+    responses={404: {"description": "User or topic not found"}},
+)
 async def admin_list_sessions(
-    page: int = Query(1, ge=1),
-    limit: int = Query(20, ge=1, le=100),
-    user_id: int | None = Query(
-        None, ge=1, description="Filter by session owner user id."
-    ),
-    topic_id: int | None = Query(None, ge=1, description="Filter by topic id."),
-    db: AsyncSession = Depends(get_db),
-    _admin: User = Depends(get_current_admin),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _admin: Annotated[User, Depends(get_current_admin)],
+    page: Annotated[int, Query(ge=1)] = 1,
+    limit: Annotated[int, Query(ge=1, le=100)] = 20,
+    user_id: Annotated[
+        int | None, Query(ge=1, description="Filter by session owner user id.")
+    ] = None,
+    topic_id: Annotated[
+        int | None, Query(ge=1, description="Filter by topic id.")
+    ] = None,
 ) -> AdminTopicSessionsPage:
     """Paginated sessions across users; optional filters by user and/or topic."""
     conds: list = []
@@ -505,12 +670,16 @@ async def admin_list_sessions(
     return AdminTopicSessionsPage(items=items, total=total)
 
 
-@router.delete("/topics/{topic_id}/sessions/{session_id}", status_code=204)
+@router.delete(
+    "/topics/{topic_id}/sessions/{session_id}",
+    status_code=204,
+    responses={404: {"description": "Session not found"}},
+)
 async def admin_delete_topic_session(
     topic_id: int,
     session_id: int,
-    db: AsyncSession = Depends(get_db),
-    _admin: User = Depends(get_current_admin),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _admin: Annotated[User, Depends(get_current_admin)],
 ) -> None:
     sess = await db.get(Session, session_id)
     if not sess or sess.topic_id != topic_id:
@@ -519,10 +688,13 @@ async def admin_delete_topic_session(
     await db.commit()
 
 
-@router.post("/ai/topic-draft", response_model=AITopicDraftOut)
+@router.post(
+    "/ai/topic-draft",
+    responses={502: {"description": "AI could not generate topic draft"}},
+)
 async def admin_ai_topic_draft(
     body: AITopicDraftIn,
-    _admin: User = Depends(get_current_admin),
+    _admin: Annotated[User, Depends(get_current_admin)],
 ) -> AITopicDraftOut:
     idea = (body.idea or "").strip()
     prompt = f"""
@@ -564,12 +736,18 @@ Idea from admin (optional):
     return AITopicDraftOut(title=title[:255], description=description, level=level)
 
 
-@router.post("/ai/topics/{topic_id}/unit-draft", response_model=AITopicUnitDraftOut)
+@router.post(
+    "/ai/topics/{topic_id}/unit-draft",
+    responses={
+        502: {"description": "AI could not generate step draft"},
+        404: {"description": "Topic not found"},
+    },
+)
 async def admin_ai_topic_unit_draft(
     topic_id: int,
     body: AITopicUnitDraftIn,
-    db: AsyncSession = Depends(get_db),
-    _admin: User = Depends(get_current_admin),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _admin: Annotated[User, Depends(get_current_admin)],
 ) -> AITopicUnitDraftOut:
     topic = await db.get(Topic, topic_id)
     if not topic:
@@ -579,129 +757,13 @@ async def admin_ai_topic_unit_draft(
         .where(TopicUnit.topic_id == topic_id)
         .order_by(TopicUnit.sort_order.asc(), TopicUnit.id.asc())
     )
-    existing_units = units_q.scalars().all()
-    existing_titles = [
-        u.title.strip() for u in existing_units if (u.title or "").strip()
-    ]
-    existing_objectives = [
-        u.objective.strip() for u in existing_units if (u.objective or "").strip()
-    ]
-    existing_lines = [
-        f"- #{idx + 1}: title='{u.title.strip()}', objective='{u.objective.strip()}'"
-        for idx, u in enumerate(existing_units)
-        if (u.title or "").strip() and (u.objective or "").strip()
-    ]
-    existing_block = (
-        "\n".join(existing_lines)
-        if existing_lines
-        else "- (no existing steps yet for this topic)"
+    existing_units = list[TopicUnit](units_q.scalars().all())
+    existing_titles, existing_objectives, existing_block = _collect_existing_unit_strings(
+        existing_units
     )
     idea = (body.idea or "").strip()
-    prompt = f"""
-Generate ONE guided roadmap step for IELTS speaking topic "{topic.title}".
-Topic description: "{(topic.description or '').strip()}"
-Topic level: "{(topic.level or '').strip()}"
-Existing steps in this topic:
-{existing_block}
-
-Return STRICT JSON only, no markdown:
-{{
-  "title": "step title",
-  "objective": "clear learner objective",
-  "prompt_hint": "short instruction for AI tutor behavior",
-  "min_turns_to_complete": 3,
-  "min_avg_overall": 6.0,
-  "max_scored_turns": 10
-}}
-
-Rules:
-- objective is learner-facing, simple and actionable.
-- prompt_hint is for tutor AI to guide conversation for this step.
-- The new step MUST be semantically different from existing steps above.
-- Do NOT repeat an existing title wording/pattern.
-- Do NOT repeat the same learner objective angle as previous steps.
-- min_turns_to_complete should be 2..8.
-- min_avg_overall should be null or number 4.0..8.0.
-- max_scored_turns should be null or integer 6..20.
-- Keep values realistic and compact.
-
-Admin extra idea (optional):
-{idea or "No extra idea"}
-""".strip()
-    retry_prompt = (
-        prompt
-        + "\n\nImportant retry constraint: previous attempt was too similar to existing steps. "
-        "Generate a clearly different step focus (new sub-skill / new speaking scenario)."
+    prompt, retry_prompt = _build_topic_unit_draft_prompts(topic, existing_block, idea)
+    data = await _llm_topic_unit_draft_json(
+        prompt, retry_prompt, existing_titles, existing_objectives
     )
-    attempts = ((prompt, 0.4), (retry_prompt, 0.35))
-    data: dict | None = None
-    for idx, (attempt_prompt, temp) in enumerate(attempts):
-        try:
-            async with LMStudioClient() as lm:
-                raw = await lm.generate_text(
-                    [{"role": "user", "content": attempt_prompt}],
-                    temperature=temp,
-                    max_tokens=320,
-                )
-            maybe = _extract_json_object(raw)
-        except Exception as exc:
-            logger.warning("AI topic unit draft failed (attempt %d): %s", idx + 1, exc)
-            if idx == len(attempts) - 1:
-                raise HTTPException(
-                    status_code=502, detail="AI could not generate step draft"
-                )
-            continue
-
-        cand_title = str(maybe.get("title", "")).strip()
-        cand_objective = str(maybe.get("objective", "")).strip()
-        if cand_title and cand_objective:
-            if not _is_near_duplicate(
-                cand_title, existing_titles
-            ) and not _is_near_duplicate(cand_objective, existing_objectives):
-                data = maybe
-                break
-        if idx == len(attempts) - 1:
-            # Keep last output even if similar, but surface this to admin.
-            data = maybe
-
-    if data is None:
-        raise HTTPException(status_code=502, detail="AI could not generate step draft")
-    title = str(data.get("title", "")).strip()
-    objective = str(data.get("objective", "")).strip()
-    prompt_hint = str(data.get("prompt_hint", "")).strip()
-    if not title or not objective or not prompt_hint:
-        raise HTTPException(status_code=502, detail="AI returned invalid step draft")
-
-    def _as_int(v: object) -> int | None:
-        if v is None:
-            return None
-        try:
-            n = int(v)
-        except Exception:
-            return None
-        return n
-
-    def _as_float(v: object) -> float | None:
-        if v is None:
-            return None
-        try:
-            n = float(v)
-        except Exception:
-            return None
-        return n
-
-    min_turns = _as_int(data.get("min_turns_to_complete"))
-    min_turns = min(8, max(1, min_turns)) if min_turns is not None else None
-    min_avg = _as_float(data.get("min_avg_overall"))
-    min_avg = min(10.0, max(0.0, min_avg)) if min_avg is not None else None
-    max_scored = _as_int(data.get("max_scored_turns"))
-    max_scored = min(30, max(1, max_scored)) if max_scored is not None else None
-
-    return AITopicUnitDraftOut(
-        title=title[:255],
-        objective=objective,
-        prompt_hint=prompt_hint,
-        min_turns_to_complete=min_turns,
-        min_avg_overall=min_avg,
-        max_scored_turns=max_scored,
-    )
+    return _topic_unit_draft_data_to_out(data)
