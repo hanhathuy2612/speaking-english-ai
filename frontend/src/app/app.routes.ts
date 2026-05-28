@@ -13,6 +13,16 @@ export const routes: Routes = [
     loadChildren: () => import('./pages/topics/topics.routes').then((m) => m.TOPIC_ROUTES),
   },
   {
+    path: 'free-conversation',
+    canActivate: [authGuard],
+    loadChildren: () => import('./pages/free-chat/free-chat.routes').then((m) => m.FREE_CHAT_ROUTES),
+  },
+  {
+    path: 'free-chat',
+    pathMatch: 'full',
+    redirectTo: 'free-conversation',
+  },
+  {
     path: 'conversation',
     canActivate: [authGuard],
     loadChildren: () =>

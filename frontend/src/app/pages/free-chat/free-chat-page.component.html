@@ -1,0 +1,39 @@
+<div class="page">
+  <div class="container free-chat">
+    <section class="free-chat__card">
+      <div class="free-chat__icon-wrap" aria-hidden="true">
+        <i class="bi bi-chat-dots-fill"></i>
+      </div>
+
+      <h1 class="free-chat__title">Free Conversation</h1>
+      <p class="free-chat__subtitle">
+        Chế độ trò chuyện tự do giống ChatGPT: bạn có thể chat hoặc nói với AI về bất kỳ điều gì.
+      </p>
+
+      <ul class="free-chat__benefits">
+        <li><i class="bi bi-check2-circle"></i><span>Nhắn tin hoặc giữ để nói bằng mic</span></li>
+        <li><i class="bi bi-check2-circle"></i><span>Không khóa theo roadmap</span></li>
+        <li><i class="bi bi-check2-circle"></i><span>Luyện nói tự do bất cứ lúc nào</span></li>
+      </ul>
+
+      <button
+        type="button"
+        class="btn btn--primary free-chat__cta"
+        [disabled]="creatingSession()"
+        (click)="startFreeConversation()"
+      >
+        @if (creatingSession()) {
+          <span class="spinner free-chat__spinner" aria-hidden="true"></span>
+          <span>Đang tạo phiên...</span>
+        } @else {
+          <i class="bi bi-mic-fill" aria-hidden="true"></i>
+          <span>Bắt đầu Free Conversation</span>
+        }
+      </button>
+
+      @if (errorMessage()) {
+        <p class="free-chat__error" role="alert">{{ errorMessage() }}</p>
+      }
+    </section>
+  </div>
+</div>

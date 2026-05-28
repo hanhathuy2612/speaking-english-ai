@@ -1,100 +1,109 @@
-# Speaking English App – Backend
+# Speaking English App Backend
 
-FastAPI backend for the Speaking English app: auth, topics, real-time spoken conversation (STT → LLM → TTS), scoring, and progress. Uses LM Studio for the LLM, faster-whisper for STT, and edge-tts for TTS.
+FastAPI backend for auth, topics, conversation (STT -> LLM -> TTS), scoring, and progress.
 
-## Setup
+## Requirements
 
-1. **Install dependencies** (from `backend/`):
+- Python 3.11+
+- PostgreSQL
+- ffmpeg (required for audio transcription)
+- LM Studio (or another OpenAI-compatible endpoint)
 
-   ```bash
-   poetry install
-   ```
+## Quick Start (bootstrap venv -> Poetry)
 
-2. **Database (PostgreSQL)**:
+Run from the `backend/` folder.
 
-   - Install and start PostgreSQL.
-   - Create the app database (one of):
-     - **Script (recommended):** from `backend/` run:
-       ```bash
-       poetry run poe create-db
-       ```
-       This reads `DATABASE_URL` from `.env` and creates the database if it does not exist.
-     - **Manual:** `createdb speaking_english` (Mac/Linux) or in psql: `CREATE DATABASE speaking_english;`
-   - Then create tables: `poetry run alembic upgrade head`
+### 1) Bootstrap: create venv and install Poetry
 
-3. **Configure environment**:
+- Windows (PowerShell):
+```powershell
+py -3.11 -m venv .venv
+.venv\Scripts\activate
+python -m pip install --upgrade pip
+pip install poetry
+```
 
-   ```bash
-   cp .env.example .env
-   ```
+- macOS/Linux:
+```bash
+python3.11 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+pip install poetry
+```
 
-   Edit `.env`: set `DATABASE_URL` (e.g. `postgresql+asyncpg://postgres:postgres@localhost:5432/speaking_english`) and at least `JWT_SECRET_KEY`. For local AI, start LM Studio and load a model (see below).
+### 2) Install project dependencies with Poetry
 
-4. **Run the server**:
+```bash
+poetry install
+```
 
-   ```bash
-   poetry run poe dev
-   ```
+### 3) Configure environment
 
-   Or:
+- macOS/Linux:
+```bash
+cp .env.example .env
+```
+- Windows (PowerShell):
+```powershell
+Copy-Item .env.example .env
+```
 
-   ```bash
-   uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-   ```
+Update `.env` at least:
 
-   API: `http://localhost:8000`  
-   Docs: `http://localhost:8000/docs`
+- `DATABASE_URL`
+- `JWT_SECRET_KEY`
+- `LMSTUDIO_BASE_URL` (default `http://localhost:1234`)
+- `LMSTUDIO_MODEL` (must match loaded model in LM Studio)
 
-## Dependencies
+### 4) Create DB schema
 
-- **LM Studio**: Run LM Studio, load a model, and enable **Local Server** (default port 1234). The app calls its OpenAI-compatible `/v1/chat/completions` endpoint.
-- **ffmpeg**: Required for STT when the client sends WebM (browser recording). We convert WebM → WAV before transcribing.
-  - **Windows**: Download from https://ffmpeg.org/ (or https://www.gyan.dev/ffmpeg/builds/), unzip, and add the `bin` folder to your system PATH (e.g. `C:\ffmpeg\bin`). Restart the terminal/IDE so that `ffmpeg` is found.
-  - If you see "ffmpeg not found" or "The system cannot find the file specified", ffmpeg is not on PATH.
+```bash
+poetry run alembic upgrade head
+```
 
-## Project structure
+### 5) Run server
 
-- `app/core/` – config, security, shared dependencies (e.g. `get_db`, `get_current_user`).
-- `app/db/` – engine, session, `seed_topics()`.
-- `app/models/` – SQLAlchemy models (User, Topic, ConversationSession, Turn, TurnScore).
-- `app/schemas/` – Pydantic request/response models.
-- `app/api/v1/` – versioned API: auth, topics, progress, conversation (WebSocket), sessions (REST).
-- `app/services/` – STT, TTS, LM client, scoring.
+```bash
+poetry run poe dev
+```
 
-All HTTP API routes are under **`/api/v1`** (e.g. `/api/v1/auth/login`, `/api/v1/topics`, `/api/v1/progress/summary`).
+API base: `http://localhost:8000`  
+Swagger docs: `http://localhost:8000/docs`
 
-## Endpoints
+## LM Studio Notes
 
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/health` | Health check (no auth). |
-| POST | `/api/v1/auth/register` | Register; returns JWT. |
-| POST | `/api/v1/auth/login` | Login; returns JWT. |
-| GET | `/api/v1/topics` | List topics (auth). |
-| GET | `/api/v1/progress/summary` | User progress summary (auth). |
-| GET | `/api/v1/conversation/sessions` | List user’s conversation sessions (auth). |
-| GET | `/api/v1/conversation/sessions/{id}` | Session detail with turns (auth). |
-| WS | `/api/v1/ws/conversation` | Real-time spoken conversation (token in query). |
+1. Open LM Studio.
+2. Load a chat model.
+3. Start Local Server (OpenAI-compatible API).
+4. Ensure model names in `.env` are correct (`LMSTUDIO_MODEL`, optional `LMSTUDIO_LEARNING_PACK_MODEL`).
 
-## WebSocket protocol (`/api/v1/ws/conversation`)
+If logs show `Model unloaded`, reload model in LM Studio and retry.
 
-Connect with `?token=<JWT>`.
+## Useful Commands (Poetry)
 
-**Client → Server (JSON):**
+```bash
+# Lint
+poetry run ruff check app
 
-- `{"type": "start", "topicId": <int>}` – Start a session for the given topic. Send first.
-- `{"type": "audio_end"}` – End of utterance; process accumulated binary audio (STT → LLM → TTS → score).
-- `{"type": "stop"}` – End session and close.
+# Format
+poetry run black app
 
-**Client → Server (binary):** Raw WebM/audio bytes. Accumulated until the next `audio_end`.
+# Run tests
+poetry run pytest
+```
 
-**Server → Client (JSON):**
+## Docker
 
-- `{"type": "status", "message": "..."}` – e.g. `connected`, `session_started`, `session_stopped`, `idle_timeout`.
-- `{"type": "user_transcript", "text": "..."}` – Transcribed user speech.
-- `{"type": "assistant_partial", "text": "...", "done": bool}` – Streaming AI text.
-- `{"type": "assistant_audio_chunk", "data": "<base64>"}` – TTS audio chunk.
-- `{"type": "turn_score", "fluency", "vocabulary", "grammar", "overall", "feedback"}` – Score for the turn.
-- `{"type": "error", "message": "..."}` – Error (e.g. topic not found, transcription failed).
+Build local image:
 
-**Flow:** Connect → `start` with `topicId` → send binary audio → `audio_end` → receive transcript, assistant text/audio, score → repeat or `stop`.
+```bash
+docker build -t speakai-backend:local -f Dockerfile .
+```
+
+Run:
+
+```bash
+docker run --rm -p 8000:8000 speakai-backend:local
+```
+
+GHCR build/push is automated via `.github/workflows/docker-ghcr.yml`.

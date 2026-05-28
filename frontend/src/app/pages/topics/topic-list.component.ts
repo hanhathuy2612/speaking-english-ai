@@ -9,6 +9,8 @@ import {
 } from '../../shared/ielts-levels';
 import { ApiService, Topic } from '../../shared/services/api.service';
 
+const HIDDEN_TOPIC_TITLES = new Set(['free conversation']);
+
 @Component({
   selector: 'app-topic-list',
   standalone: true,
@@ -43,7 +45,10 @@ export class TopicListComponent implements OnInit {
       .getTopics()
       .pipe(finalize(() => this.loading.set(false)))
       .subscribe({
-        next: (t) => this.topics.set(t),
+        next: (t) =>
+          this.topics.set(
+            t.filter((topic) => !HIDDEN_TOPIC_TITLES.has(topic.title.trim().toLowerCase())),
+          ),
         error: () => this.loading.set(false),
       });
   }

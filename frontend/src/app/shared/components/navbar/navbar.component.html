@@ -49,6 +49,9 @@
 
   <div class="app-nav__links">
     <a routerLink="/topics" routerLinkActive="active" (click)="onNavLinkClick()">Topics</a>
+    <a routerLink="/free-conversation" routerLinkActive="active" (click)="onNavLinkClick()"
+      >Free Conversation</a
+    >
     <a routerLink="/progress" routerLinkActive="active" (click)="onNavLinkClick()">Progress</a>
     @if (account.isAdmin()) {
       <div class="app-nav__group">

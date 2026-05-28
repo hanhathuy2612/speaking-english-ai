@@ -85,6 +85,7 @@ _AI_UNAVAILABLE_ASSISTANT_TEXT = (
     "Sorry — I couldn't reply just now. Your answer was still saved for this session."
 )
 _ERROR_SEND_START_FIRST = "Send 'start' first"
+_FREE_CONVERSATION_TOPIC_TITLE = "free conversation"
 
 
 async def generate_llm_text(
@@ -622,6 +623,11 @@ class ConversationHandler:
 
     def _opening_prompt(self) -> str:
         """Build the user prompt used for the very first assistant line."""
+        if self.topic and self.topic.title.strip().lower() == _FREE_CONVERSATION_TOPIC_TITLE:
+            return (
+                "[Greet the learner briefly, then ask what topic they want to talk about. "
+                "Keep it natural, friendly, and in one short sentence in English.]"
+            )
         if self.topic_unit is not None:
             u = self.topic_unit
             return (
@@ -639,6 +645,8 @@ class ConversationHandler:
 
     def _fallback_opening_text(self) -> str:
         """Fallback opening when LLM generation fails."""
+        if self.topic and self.topic.title.strip().lower() == _FREE_CONVERSATION_TOPIC_TITLE:
+            return "Hi! What topic would you like to talk about today?"
         if self.topic_unit is not None:
             return f"Hi! Let's work on {self.topic_unit.title}. What would you like to say?"
         return f"Hi! Let's talk about {self.topic.title}. What would you like to say?"
@@ -769,6 +777,10 @@ class ConversationHandler:
         try:
             stt_result = await asyncio.to_thread(self._stt.transcribe, audio_path)
             raw_stt: str = stt_result["text"] or "(inaudible)"
+        except ValueError as e:
+            logger.warning("STT setup/input error: %s", e)
+            await self._send({"type": "error", "message": str(e)})
+            return False
         except Exception:
             logger.exception("STT failed")
             await self._send({"type": "error", "message": "Transcription failed"})

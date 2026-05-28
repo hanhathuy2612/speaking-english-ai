@@ -14,17 +14,30 @@ log = logging.getLogger(__name__)
 _WHISPER_SAMPLE_RATE = 16000
 
 
+def _candidate_ffmpeg_paths() -> list[Path]:
+    """Best-effort ffmpeg locations for Windows developer machines."""
+    return [
+        Path("C:/ffmpeg/bin/ffmpeg.exe"),
+        Path("C:/Program Files/ffmpeg/bin/ffmpeg.exe"),
+        Path("C:/Program Files (x86)/ffmpeg/bin/ffmpeg.exe"),
+        Path("C:/ProgramData/chocolatey/bin/ffmpeg.exe"),
+    ]
+
+
 def _get_ffmpeg_exe() -> str:
-    """Path to ffmpeg: from FFMPEG_PATH env/config, or from PATH."""
+    """Path to ffmpeg: from FFMPEG_PATH, PATH, or common Windows install paths."""
     settings = get_settings()
     if settings.ffmpeg_path and Path(settings.ffmpeg_path).exists():
         return str(Path(settings.ffmpeg_path).resolve())
     exe = shutil.which("ffmpeg")
     if exe:
         return exe
+    for p in _candidate_ffmpeg_paths():
+        if p.exists():
+            return str(p.resolve())
     raise ValueError(
-        "ffmpeg not found. Set FFMPEG_PATH in .env to the full path to ffmpeg.exe, "
-        "or add ffmpeg to your PATH."
+        "ffmpeg not found. Install ffmpeg, or set FFMPEG_PATH in .env to the full path "
+        "to ffmpeg.exe, or add ffmpeg to PATH."
     )
 
 

@@ -1,0 +1,78 @@
+.free-chat {
+  display: grid;
+  place-items: center;
+  min-height: calc(100dvh - 140px);
+}
+
+.free-chat__card {
+  width: min(100%, 640px);
+  background: var(--clr-bg-elevated);
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius-lg, 20px);
+  padding: 32px;
+  text-align: center;
+}
+
+.free-chat__icon-wrap {
+  margin-inline: auto;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--clr-accent) 15%, transparent);
+  color: var(--clr-accent);
+  font-size: 1.5rem;
+}
+
+.free-chat__title {
+  margin: 18px 0 6px;
+  font-size: 1.75rem;
+}
+
+.free-chat__subtitle {
+  margin: 0 auto 20px;
+  color: var(--clr-text-muted);
+  max-width: 46ch;
+}
+
+.free-chat__benefits {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 24px;
+  display: grid;
+  gap: 10px;
+  text-align: left;
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--clr-text);
+  }
+
+  i {
+    color: var(--clr-success, #27c93f);
+  }
+}
+
+.free-chat__cta {
+  width: 100%;
+  min-height: 46px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.free-chat__spinner {
+  width: 16px;
+  height: 16px;
+  border-width: 2px;
+}
+
+.free-chat__error {
+  margin: 12px 0 0;
+  color: var(--clr-danger, #ef4444);
+  font-size: 0.875rem;
+}
