@@ -76,6 +76,38 @@
                 }
               ]
             },
+            "android-device": {
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": true,
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.android-device.ts"
+                }
+              ]
+            },
+            "mobile-emu": {
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.android-emulator.ts"
+                }
+              ],
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "2MB",
+                  "maximumError": "3MB"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "12kB",
+                  "maximumError": "16kB"
+                }
+              ],
+              "outputHashing": "all"
+            },
             "mobile": {
               "fileReplacements": [
                 {
@@ -111,6 +143,9 @@
             },
             "android-emulator": {
               "buildTarget": "speakai:build:android-emulator"
+            },
+            "android-device": {
+              "buildTarget": "speakai:build:android-device"
             }
           },
           "defaultConfiguration": "development"

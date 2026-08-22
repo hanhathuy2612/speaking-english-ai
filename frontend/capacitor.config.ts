@@ -1,13 +1,18 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 /**
- * Production / device build: `npm run android:build` (or `build:mobile` then `cap:sync` without dev URL).
+ * Physical-device APK (default): `npm run android:build`
+ *   writes the PC LAN IPv4 into lan-host.ts, then syncs Android.
+ * Override: `DEV_LAN_HOST=192.168.x.x npm run android:build`
+ * Emulator APK: `npm run android:build:emu` (API host 10.0.2.2).
  *
- * Live reload (dev, AVD):
+ * Live reload — physical phone (same Wi‑Fi):
+ * Terminal 1 — `npm run start:android:device`.
+ * Terminal 2 — `npm run cap:run:android:dev:device`.
+ *
+ * Live reload — emulator:
  * Terminal 1 — `npm run start:android:emu`.
- * Terminal 2 — `npm run cap:run:android:dev:emu` (CLI `-l` injects live URL every run).
- * If you instead use `cap:sync`, set `CAPACITOR_DEV_SERVER_URL` (via `cap:sync:android:dev:emu`).
- * Before release: run `npm run cap:sync` (no dev URL), then `npm run android:build`.
+ * Terminal 2 — `npm run cap:run:android:dev:emu`.
  */
 const devServerUrl = process.env['CAPACITOR_DEV_SERVER_URL']?.trim();
 

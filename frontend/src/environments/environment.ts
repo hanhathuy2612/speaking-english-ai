@@ -1,5 +1,9 @@
+import { devApiUrls } from './dev-host';
+
+const urls = devApiUrls();
+
 export const environment = {
   production: false,
-  apiBaseUrl: 'http://localhost:8000/api/v1',
-  wsBaseUrl: 'ws://localhost:8000/api/v1',
+  apiBaseUrl: urls.apiBaseUrl,
+  wsBaseUrl: urls.wsBaseUrl,
 };

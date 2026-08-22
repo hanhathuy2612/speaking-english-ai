@@ -109,13 +109,22 @@ class Settings(BaseSettings):
     # sends that Origin, not http://10.0.2.2 (that is only the API host from the emulator).
     cors_allowed_origins: list[str] = [
         "http://localhost:4200",
-        "http://192.168.1.44:4200",
         "http://10.0.2.2:4200",
         "http://localhost",
         "https://localhost",
         "capacitor://localhost",
         "ionic://localhost",
     ]
+    # Phone / LAN live reload: Origin is http://<PC-LAN-IP>:4200 and changes with DHCP.
+    # Empty string in env disables the regex (explicit CORS_ALLOWED_ORIGINS only).
+    cors_allow_origin_regex: str | None = (
+        r"https?://("
+        r"localhost|127\.0\.0\.1|"
+        r"10\.\d{1,3}\.\d{1,3}\.\d{1,3}|"
+        r"192\.168\.\d{1,3}\.\d{1,3}|"
+        r"172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}"
+        r")(:\d+)?"
+    )
     max_audio_upload_mb: int = 10
     # LLM + OpenAI-compatible HTTP calls (local models may need more than 60s on long prompts).
     request_timeout_seconds: int = 120
