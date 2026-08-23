@@ -8,80 +8,103 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 24px;
-  padding: 20px 24px;
+  gap: 20px;
+  padding: 16px 24px;
   background: var(--clr-bg-elevated);
   border-top: 1px solid var(--clr-border);
 }
 
-.controls-left {
-  display: flex;
-  align-items: center;
-  gap: 16px;
+.controls-switch {
+  display: none;
 }
 
-.controls-right {
+.controls-audio {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.controls-chat {
   flex: 1;
   display: flex;
   align-items: flex-end;
   gap: 8px;
+  min-width: 0;
 }
 
-.vu-bar {
+.controls-meter {
+  position: relative;
   width: 72px;
   height: 6px;
+  flex-shrink: 0;
   border-radius: var(--radius-pill);
   background: var(--clr-surface-2);
   overflow: hidden;
+
+  .controls-tip {
+    display: none;
+  }
 }
 
 .vu-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
   height: 100%;
-  border-radius: var(--radius-pill);
+  border-radius: inherit;
   background: linear-gradient(90deg, var(--clr-success), var(--clr-accent));
   transition: width 0.1s ease;
 }
 
 .btn-record {
-  width: 64px;
-  height: 64px;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
-  border: 3px solid var(--clr-border);
+  border: 2px solid var(--clr-border);
   background: var(--clr-surface);
   color: var(--clr-text);
   cursor: pointer;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
   transition:
     border-color var(--transition),
     background var(--transition),
+    color var(--transition),
     transform 0.1s ease;
 
   &:hover:not(:disabled) {
     border-color: var(--clr-accent);
-    background: var(--clr-surface-2);
+    background: var(--clr-accent-bg-soft);
+    color: var(--clr-accent);
   }
 
   &:disabled {
-    opacity: 0.6;
+    opacity: 0.45;
     cursor: not-allowed;
   }
 
   &.recording {
     border-color: var(--clr-danger);
     background: var(--clr-danger-bg-strong);
+    color: var(--clr-danger);
     animation: record-pulse 1s ease-in-out infinite;
   }
 
   &.speaking {
     border-color: var(--clr-accent);
     background: var(--clr-accent-bg-soft);
+    color: var(--clr-accent);
   }
 }
 
 .btn-record__icon {
-  font-size: var(--fs-5xl);
+  font-size: var(--fs-3xl);
+  line-height: 1;
 }
 
 @keyframes record-pulse {
@@ -97,8 +120,11 @@
 .controls-tip {
   font-size: var(--fs-sm);
   color: var(--clr-text-muted);
-  min-width: 100px;
-  text-align: center;
+  white-space: nowrap;
+}
+
+.controls-tip--desktop {
+  min-width: 6.5rem;
 }
 
 .controls-tip--recording {
@@ -106,7 +132,7 @@
 }
 
 .controls-tip--transcribing {
-  color: var(--clr-warning, #e0a800);
+  color: var(--clr-warning);
   animation: pulse-opacity 1.2s ease-in-out infinite;
 }
 
@@ -120,16 +146,16 @@
     opacity: 1;
   }
   50% {
-    opacity: 0.4;
+    opacity: 0.45;
   }
 }
 
 .chat-input {
   flex: 1;
-  min-height: 44px;
+  min-height: 72px;
   max-height: 160px;
-  padding: 8px 10px;
-  border-radius: var(--radius);
+  padding: 10px 14px;
+  border-radius: 16px;
   border: 1px solid var(--clr-border);
   background: var(--clr-surface);
   color: var(--clr-text);
@@ -140,52 +166,162 @@
   overflow-y: auto;
 
   &:focus-visible {
-    outline: 2px solid var(--clr-border-focus);
-    outline-offset: 1px;
+    outline: none;
+    border-color: var(--clr-border-focus);
+    box-shadow: var(--shadow-focus);
   }
 }
 
 .chat-send {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  border: none;
+  border-radius: 50%;
+  background: var(--clr-accent);
+  color: #fff;
+  cursor: pointer;
+  transition:
+    background var(--transition),
+    opacity var(--transition);
+
+  &:hover:not(:disabled) {
+    background: var(--clr-accent-hover);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--clr-border-focus);
+    outline-offset: 2px;
+  }
+
+  .bi {
+    font-size: var(--fs-lg);
+    margin-left: 1px;
+  }
 }
 
 @include bp.max-nav {
   .controls {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 12px;
-    padding: 12px;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px max(10px, var(--sab));
   }
 
-  .controls-left {
+  .controls-switch {
+    display: inline-flex;
+    align-items: center;
     justify-content: center;
-    flex-wrap: wrap;
-    width: 100%;
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--clr-text-muted);
+    cursor: pointer;
+
+    .bi {
+      font-size: 1.25rem;
+      line-height: 1;
+    }
+
+    &:hover:not(:disabled) {
+      background: var(--clr-surface);
+      color: var(--clr-text);
+    }
+
+    &:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--clr-border-focus);
+      outline-offset: 1px;
+    }
   }
 
-  .controls-right {
-    width: 100%;
+  .controls:not(.controls--voice) .controls-audio,
+  .controls:not(.controls--chat) .controls-chat {
+    display: none;
   }
 
-  .controls-tip {
+  .controls-audio,
+  .controls-chat {
+    flex: 1;
     min-width: 0;
-    flex: 1 1 auto;
-    text-align: center;
+    gap: 8px;
+  }
+
+  .controls-chat {
+    align-items: center;
+  }
+
+  .controls-tip--desktop {
+    display: none;
+  }
+
+  .controls-meter {
+    flex: 1;
+    width: auto;
+    height: 44px;
+    background: var(--clr-surface);
+    border: 1px solid var(--clr-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    .controls-tip {
+      display: inline;
+      position: relative;
+      z-index: 1;
+    }
+
+    &.controls-meter--recording {
+      border-color: color-mix(in srgb, var(--clr-danger) 45%, var(--clr-border));
+      background: var(--clr-danger-bg);
+    }
+
+    &.controls-meter--speaking {
+      border-color: color-mix(in srgb, var(--clr-accent) 45%, var(--clr-border));
+      background: var(--clr-accent-bg-soft);
+    }
+  }
+
+  .vu-fill {
+    opacity: 0.35;
   }
 
   .btn-record {
-    width: 56px;
-    height: 56px;
+    width: 44px;
+    height: 44px;
   }
 
   .btn-record__icon {
-    font-size: var(--fs-4xl);
+    font-size: var(--fs-xl);
   }
 
-  .vu-bar {
-    width: 56px;
+  .chat-input {
+    min-height: 44px;
+    height: 44px;
+    max-height: 44px;
+    padding: 10px 14px;
+    border-radius: var(--radius-pill);
+    resize: none;
+  }
+
+  .chat-send {
+    width: 44px;
+    height: 44px;
   }
 }

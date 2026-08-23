@@ -1,6 +1,6 @@
 'use strict';
 
-const DEFAULT_LAN_HOST = '192.168.1.100';
+const DEFAULT_LAN_HOST = '192.168.0.100';
 
 function pickLanIPv4() {
   const override = (process.env.DEV_LAN_HOST || '').trim();

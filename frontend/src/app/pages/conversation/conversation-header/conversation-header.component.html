@@ -1,4 +1,8 @@
-<header class="conv-header">
+<header
+  class="conv-header"
+  [class.conv-header--settings-open]="settingsOpen()"
+  [class.conv-header--archive]="archiveView()"
+>
   <div class="conv-header__row conv-header__row--primary">
     <a routerLink="/topics/{{ topicId() }}/roadmap" class="btn btn--ghost conv-header__back">
       <i class="bi bi-arrow-left conv-header__back-arrow" aria-hidden="true"></i>
@@ -6,28 +10,65 @@
     </a>
     <h1 class="conv-title">{{ topicTitle() }}</h1>
     @if (detailLoading()) {
-      <span class="conv-status conv-status--loading">
+      <span class="conv-status conv-status--loading" title="Loading…">
         <span class="conv-status__dot"></span>
-        Loading…
+        <span class="conv-status__text">Loading…</span>
       </span>
     } @else if (archiveView()) {
-      <span class="conv-status conv-status--ended">
+      <span class="conv-status conv-status--ended" title="Ended · view only">
         <span class="conv-status__dot"></span>
-        Ended · view only
+        <span class="conv-status__text">Ended · view only</span>
       </span>
     } @else {
       <span
         class="conv-status"
         [class.connected]="connected()"
         [class.reconnecting]="reconnecting()"
+        [title]="reconnecting() ? 'Reconnecting…' : connected() ? 'Connected' : 'Connecting…'"
       >
         <span class="conv-status__dot"></span>
-        {{ reconnecting() ? 'Reconnecting…' : connected() ? 'Connected' : 'Connecting…' }}
+        <span class="conv-status__text">
+          {{ reconnecting() ? 'Reconnecting…' : connected() ? 'Connected' : 'Connecting…' }}
+        </span>
       </span>
     }
+    <div class="conv-header__toolbar">
+      @if (!archiveView()) {
+        <button
+          type="button"
+          class="btn btn--ghost conv-header__tts"
+          (click)="toggleTts.emit()"
+          [title]="ttsEnabled() ? 'Turn off speech' : 'Turn on speech'"
+          [attr.aria-label]="ttsEnabled() ? 'Turn off speech' : 'Turn on speech'"
+        >
+          @if (ttsEnabled()) {
+            <i class="bi bi-volume-up-fill" aria-hidden="true"></i>
+            <span class="conv-header__tts-text">Sound on</span>
+          } @else {
+            <i class="bi bi-volume-mute-fill" aria-hidden="true"></i>
+            <span class="conv-header__tts-text">Sound off</span>
+          }
+        </button>
+        <button
+          type="button"
+          class="btn btn--ghost conv-header__settings"
+          (click)="settingsOpen.update((open) => !open)"
+          [attr.aria-expanded]="settingsOpen()"
+          aria-controls="conv-header-settings"
+          [title]="settingsOpen() ? 'Hide session settings' : 'Session settings'"
+          [attr.aria-label]="settingsOpen() ? 'Hide session settings' : 'Session settings'"
+        >
+          @if (settingsOpen()) {
+            <i class="bi bi-x-lg" aria-hidden="true"></i>
+          } @else {
+            <i class="bi bi-sliders" aria-hidden="true"></i>
+          }
+        </button>
+      }
+    </div>
   </div>
   <hr />
-  <div class="conv-header__row conv-header__row--secondary">
+  <div id="conv-header-settings" class="conv-header__row conv-header__row--secondary">
     @if (archiveView()) {
       <p class="conv-header__archive-hint">
         This session has ended. You can read the transcript but cannot send new messages.
@@ -166,20 +207,6 @@
           </ng-select>
         </label>
       </div>
-      <button
-        type="button"
-        class="btn btn--ghost conv-header__tts"
-        (click)="toggleTts.emit()"
-        [title]="ttsEnabled() ? 'Turn off speech' : 'Turn on speech'"
-      >
-        @if (ttsEnabled()) {
-          <i class="bi bi-volume-up-fill" aria-hidden="true"></i>
-          <span class="conv-header__tts-text">Sound on</span>
-        } @else {
-          <i class="bi bi-volume-mute-fill" aria-hidden="true"></i>
-          <span class="conv-header__tts-text">Sound off</span>
-        }
-      </button>
     }
   </div>
 </header>

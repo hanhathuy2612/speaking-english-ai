@@ -1,6 +1,6 @@
 import { LEVEL_OPTIONS, TTS_RATE_OPTIONS } from '../model/constants';
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { NgOptionTemplateDirective, NgSelectComponent } from '@ng-select/ng-select';
@@ -14,6 +14,9 @@ import { NgOptionTemplateDirective, NgSelectComponent } from '@ng-select/ng-sele
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ConversationHeaderComponent {
+  /** Mobile-only: session settings (band / speed / voice / end) stay collapsed. */
+  readonly settingsOpen = signal(false);
+
   readonly levelOptions = LEVEL_OPTIONS;
   readonly ttsRateOptions = TTS_RATE_OPTIONS;
 

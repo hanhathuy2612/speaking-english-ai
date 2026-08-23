@@ -28,7 +28,7 @@ from app.services.learning_pack_service import (
 from app.services.lm_client import LMStudioClient, transcript_normalization_plausible
 from app.services.scoring_service import ScoringService
 from app.services.stt_service import STTService
-from app.services.tts_service import TTSService
+from app.services.tts_service import TTSService, TtsWordTiming
 from sqlalchemy import delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -71,14 +71,33 @@ AUDIO_DIR = Path("audio")
 AUDIO_DIR.mkdir(exist_ok=True)
 
 _BATCH_CHARS = 12
-_BATCH_INTERVAL = 0.04
 _TTS_BATCH_BYTES = 4000
 _TTS_BATCH_INTERVAL = 0.05
-_TEXT_BASE_CHARS_PER_SEC = 18.0
+# Fallback only — live sync prefers TTS WordBoundary / MP3 duration.
+_TEXT_BASE_CHARS_PER_SEC = 14.0
 _TEXT_MIN_CHARS_PER_SEC = 6.0
 _TEXT_MAX_CHARS_PER_SEC = 42.0
-_MIN_VALID_WEBM_BYTES = 64
+# edge-tts CBR: audio-24khz-48kbitrate-mono-mp3
+_TTS_MP3_BYTES_PER_SEC = 6000.0
+_WORD_ALIGN_MIN_MATCH_RATIO = 0.5
+# Give the client time to start decoding after audio_end before word clocks start.
+_TEXT_AFTER_AUDIO_LEAD_SEC = 0.08
+_MIN_VALID_AUDIO_BYTES = 64
 _WEBM_EBML_HEADER = b"\x1a\x45\xdf\xa3"
+
+
+def _audio_file_suffix(raw: bytes) -> str:
+    """Guess container from magic bytes (Android WebView often records MP4/AAC, not WebM)."""
+    if raw.startswith(_WEBM_EBML_HEADER):
+        return ".webm"
+    if len(raw) >= 12 and raw[4:8] == b"ftyp":
+        return ".m4a"
+    if raw.startswith(b"OggS"):
+        return ".ogg"
+    if raw.startswith(b"RIFF"):
+        return ".wav"
+    return ".bin"
+
 
 # When the tutor LM fails after the user's line was shown, we still persist a chat message so end-session scoring can run.
 _AI_UNAVAILABLE_ASSISTANT_TEXT = (
@@ -126,31 +145,116 @@ def _paced_chars_per_second(rate: str | None) -> float:
     return max(_TEXT_MIN_CHARS_PER_SEC, min(cps, _TEXT_MAX_CHARS_PER_SEC))
 
 
-async def emit_text_chunks(
-    send: Callable[[dict], Any], text: str, *, rate: str | None = None
+def _duration_from_mp3_bytes(n: int) -> float | None:
+    if n < 100:
+        return None
+    return n / _TTS_MP3_BYTES_PER_SEC
+
+
+def _duration_from_word_timings(words: list[TtsWordTiming]) -> float | None:
+    if not words:
+        return None
+    last = words[-1]
+    return max(last.offset_sec + last.duration_sec, 0.0)
+
+
+def _slices_from_word_timings(
+    text: str, words: list[TtsWordTiming]
+) -> list[tuple[str, float]] | None:
+    """Map spoken words back onto the original string so punctuation stays attached."""
+    if not text or not words:
+        return None
+    pos = 0
+    slices: list[tuple[str, float]] = []
+    lower = text.lower()
+    for w in words:
+        token = w.text.strip()
+        if not token:
+            continue
+        idx = text.find(token, pos)
+        if idx < 0:
+            idx = lower.find(token.lower(), pos)
+        if idx < 0:
+            continue
+        end = idx + len(token)
+        slices.append((text[pos:end], w.offset_sec))
+        pos = end
+    if not slices:
+        return None
+    min_matches = max(2, int(len(words) * _WORD_ALIGN_MIN_MATCH_RATIO))
+    if len(slices) < min_matches and len(words) >= 2:
+        return None
+    if pos < len(text):
+        last_piece, last_t = slices[-1]
+        slices[-1] = (last_piece + text[pos:], last_t)
+    return slices
+
+
+async def _sleep_until(t0: float, target_sec: float) -> None:
+    delay = target_sec - (time.monotonic() - t0)
+    if delay > 0.001:
+        await asyncio.sleep(delay)
+
+
+async def _emit_timed_slices(
+    send: Callable[[dict], Any], slices: list[tuple[str, float]]
 ) -> None:
-    """Send assistant text in paced chunks after audio is fully sent."""
-    cps = _paced_chars_per_second(rate)
-    batch = ""
-    last_sent = time.monotonic()
-    for ch in text:
-        batch += ch
-        now = time.monotonic()
-        if (
-            len(batch) >= _BATCH_CHARS
-            or "\n" in batch
-            or (now - last_sent) >= _BATCH_INTERVAL
-        ):
-            out = batch
-            await send({"type": "assistant_partial", "text": out, "done": False})
-            batch = ""
-            last_sent = now
-            await asyncio.sleep(max(0.015, min(len(out) / cps, 0.30)))
-    if batch:
-        out = batch
-        await send({"type": "assistant_partial", "text": out, "done": False})
-        await asyncio.sleep(max(0.015, min(len(out) / cps, 0.30)))
+    t0 = time.monotonic()
+    for piece, offset in slices:
+        if not piece:
+            continue
+        await _sleep_until(t0, max(0.0, offset))
+        await send({"type": "assistant_partial", "text": piece, "done": False})
     await send({"type": "assistant_partial", "text": "", "done": True})
+
+
+async def _emit_paced_chars(
+    send: Callable[[dict], Any],
+    text: str,
+    *,
+    chars_per_sec: float,
+) -> None:
+    cps = max(_TEXT_MIN_CHARS_PER_SEC, min(chars_per_sec, _TEXT_MAX_CHARS_PER_SEC))
+    t0 = time.monotonic()
+    sent = 0
+    batch = ""
+    n = len(text)
+    for i, ch in enumerate[str](text):
+        batch += ch
+        is_last = i == n - 1
+        if not is_last and len(batch) < _BATCH_CHARS and "\n" not in batch:
+            continue
+        await send({"type": "assistant_partial", "text": batch, "done": False})
+        sent += len(batch)
+        batch = ""
+        await _sleep_until(t0, sent / cps)
+    await send({"type": "assistant_partial", "text": "", "done": True})
+
+
+async def emit_text_chunks(
+    send: Callable[[dict], Any],
+    text: str,
+    *,
+    rate: str | None = None,
+    word_timings: list[TtsWordTiming] | None = None,
+    audio_byte_len: int = 0,
+) -> None:
+    """Send assistant text paced to the spoken audio that was just streamed."""
+    if not text:
+        await send({"type": "assistant_partial", "text": "", "done": True})
+        return
+    slices = _slices_from_word_timings(text, word_timings or [])
+    if slices:
+        await _emit_timed_slices(send, slices)
+        return
+    duration = _duration_from_word_timings(
+        word_timings or []
+    ) or _duration_from_mp3_bytes(audio_byte_len)
+    if duration and duration > 0.05:
+        cps = max(_TEXT_MIN_CHARS_PER_SEC, len(text) / duration)
+        await _emit_paced_chars(send, text, chars_per_sec=cps)
+        return
+    await _emit_paced_chars(send, text, chars_per_sec=_paced_chars_per_second(rate))
 
 
 async def stream_tts(
@@ -160,13 +264,16 @@ async def stream_tts(
     *,
     voice: str | None = None,
     rate: str | None = None,
-) -> bytes:
-    """Stream TTS to client via assistant_audio_chunk; return full audio bytes."""
+) -> tuple[bytes, list[TtsWordTiming]]:
+    """Stream TTS to client via assistant_audio_chunk; return audio + word timings."""
     out = bytearray()
     batch = bytearray()
+    timings: list[TtsWordTiming] = []
     last_sent = time.monotonic()
     try:
-        async for chunk in tts.synthesize_stream(text, voice=voice, rate=rate):
+        async for chunk in tts.synthesize_stream(
+            text, voice=voice, rate=rate, word_timings=timings
+        ):
             out.extend(chunk)
             batch.extend(chunk)
             now = time.monotonic()
@@ -194,7 +301,28 @@ async def stream_tts(
         logger.warning("TTS failed: %s", e)
         await send({"type": "status", "message": "tts_unavailable"})
     await send({"type": "assistant_audio_end"})
-    return bytes(out)
+    return bytes(out), timings
+
+
+async def stream_tts_then_text(
+    send: Callable[[dict], Any],
+    tts: TTSService,
+    text: str,
+    *,
+    voice: str | None = None,
+    rate: str | None = None,
+) -> bytes:
+    audio, timings = await stream_tts(send, tts, text, voice=voice, rate=rate)
+    if audio:
+        await asyncio.sleep(_TEXT_AFTER_AUDIO_LEAD_SEC)
+    await emit_text_chunks(
+        send,
+        text,
+        rate=rate,
+        word_timings=timings,
+        audio_byte_len=len(audio),
+    )
+    return audio
 
 
 class ConversationHandler:
@@ -623,7 +751,10 @@ class ConversationHandler:
 
     def _opening_prompt(self) -> str:
         """Build the user prompt used for the very first assistant line."""
-        if self.topic and self.topic.title.strip().lower() == _FREE_CONVERSATION_TOPIC_TITLE:
+        if (
+            self.topic
+            and self.topic.title.strip().lower() == _FREE_CONVERSATION_TOPIC_TITLE
+        ):
             return (
                 "[Greet the learner briefly, then ask what topic they want to talk about. "
                 "Keep it natural, friendly, and in one short sentence in English.]"
@@ -645,7 +776,10 @@ class ConversationHandler:
 
     def _fallback_opening_text(self) -> str:
         """Fallback opening when LLM generation fails."""
-        if self.topic and self.topic.title.strip().lower() == _FREE_CONVERSATION_TOPIC_TITLE:
+        if (
+            self.topic
+            and self.topic.title.strip().lower() == _FREE_CONVERSATION_TOPIC_TITLE
+        ):
             return "Hi! What topic would you like to talk about today?"
         if self.topic_unit is not None:
             return f"Hi! Let's work on {self.topic_unit.title}. What would you like to say?"
@@ -661,7 +795,9 @@ class ConversationHandler:
         )
         resolved = resolve_effective_learning_pack(
             unit_pack_raw=(
-                self.topic_unit.learning_pack_json if self.topic_unit is not None else None
+                self.topic_unit.learning_pack_json
+                if self.topic_unit is not None
+                else None
             ),
             topic_pack_raw=self.topic.learning_pack_json,
             fallback_pack=fallback,
@@ -715,14 +851,13 @@ class ConversationHandler:
         self._opening_text = opening_text or None
         tts_bytes = b""
         if opening_text:
-            tts_bytes = await stream_tts(
+            tts_bytes = await stream_tts_then_text(
                 self._send,
                 self._tts,
                 opening_text,
                 voice=self._tts_voice,
                 rate=self._tts_rate,
             )
-            await emit_text_chunks(self._send, opening_text, rate=self._tts_rate)
         opening_audio_path: str | None = None
         if opening_text and self.session_id:
             user_dir = AUDIO_DIR / str(self._user_id) / str(self.session_id)
@@ -751,9 +886,7 @@ class ConversationHandler:
             await self._send({"type": "error", "message": "No audio received"})
             return False
         raw_audio = bytes(self.audio_buffer)
-        if len(raw_audio) < _MIN_VALID_WEBM_BYTES or not raw_audio.startswith(
-            _WEBM_EBML_HEADER
-        ):
+        if len(raw_audio) < _MIN_VALID_AUDIO_BYTES:
             self.audio_buffer = bytearray()
             await self._send(
                 {
@@ -769,7 +902,9 @@ class ConversationHandler:
 
         user_dir = AUDIO_DIR / str(self._user_id) / str(self.session_id)
         user_dir.mkdir(parents=True, exist_ok=True)
-        audio_path = user_dir / f"turn_{self.turn_index}_user.webm"
+        audio_path = (
+            user_dir / f"turn_{self.turn_index}_user{_audio_file_suffix(raw_audio)}"
+        )
         audio_path.write_bytes(raw_audio)
         self.audio_buffer = bytearray()
 
@@ -842,14 +977,13 @@ class ConversationHandler:
         await db.refresh(assistant_msg)
 
         tts_path = user_dir / f"turn_{self.turn_index}_ai.mp3"
-        tts_bytes = await stream_tts(
+        tts_bytes = await stream_tts_then_text(
             self._send,
             self._tts,
             assistant_text,
             voice=self._tts_voice,
             rate=self._tts_rate,
         )
-        await emit_text_chunks(self._send, assistant_text, rate=self._tts_rate)
         await self._send(
             {
                 "type": "turn_saved",
@@ -938,14 +1072,13 @@ class ConversationHandler:
         user_dir = AUDIO_DIR / str(self._user_id) / str(self.session_id)
         user_dir.mkdir(parents=True, exist_ok=True)
         tts_path = user_dir / f"turn_{self.turn_index}_ai.mp3"
-        tts_bytes = await stream_tts(
+        tts_bytes = await stream_tts_then_text(
             self._send,
             self._tts,
             assistant_text,
             voice=self._tts_voice,
             rate=self._tts_rate,
         )
-        await emit_text_chunks(self._send, assistant_text, rate=self._tts_rate)
         await self._send(
             {
                 "type": "turn_saved",

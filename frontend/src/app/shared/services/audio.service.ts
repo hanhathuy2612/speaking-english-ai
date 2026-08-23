@@ -1,6 +1,21 @@
 import { Injectable } from '@angular/core';
 import { Subject } from 'rxjs';
 
+const RECORDER_MIME_CANDIDATES = [
+  'audio/webm;codecs=opus',
+  'audio/webm',
+  'audio/mp4',
+  'audio/aac',
+  'audio/ogg;codecs=opus',
+];
+
+function pickRecorderMimeType(): string {
+  if (typeof MediaRecorder === 'undefined' || !MediaRecorder.isTypeSupported) {
+    return '';
+  }
+  return RECORDER_MIME_CANDIDATES.find((t) => MediaRecorder.isTypeSupported(t)) ?? '';
+}
+
 @Injectable({ providedIn: 'root' })
 export class AudioService {
   private mediaRecorder: MediaRecorder | null = null;
@@ -34,25 +49,28 @@ export class AudioService {
     }
 
     this.audioCtx = new AudioContext();
+    if (this.audioCtx.state === 'suspended') {
+      await this.audioCtx.resume();
+    }
     const source = this.audioCtx.createMediaStreamSource(this.stream!);
     this.analyser = this.audioCtx.createAnalyser();
     this.analyser.fftSize = 256;
     source.connect(this.analyser);
     this._watchVolume();
 
-    const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-      ? 'audio/webm;codecs=opus'
-      : 'audio/webm';
-
+    const mimeType = pickRecorderMimeType();
     this.recordedChunks = [];
     this.pendingOnChunk = onChunk;
-    this.mediaRecorder = new MediaRecorder(this.stream!, { mimeType });
+    this.mediaRecorder = mimeType
+      ? new MediaRecorder(this.stream!, { mimeType })
+      : new MediaRecorder(this.stream!);
     this.mediaRecorder.ondataavailable = (e) => {
       if (e.data.size > 0) {
         this.recordedChunks.push(e.data);
       }
     };
-    this.mediaRecorder.start();
+    // Timeslice is required on many Android WebViews; start() with no slice often yields 0 bytes.
+    this.mediaRecorder.start(250);
 
     this._attachTrackEndedListeners();
   }

@@ -1,7 +1,7 @@
 import { AccountService } from '@/app/shared/services/account.service';
 import { ApiService, UnitStepSummary } from '@/services/api.service';
 import { AudioService } from '@/services/audio.service';
-import { WsMessage, WsService } from '@/services/ws.service';
+import { WsService } from '@/services/ws.service';
 import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
@@ -41,7 +41,6 @@ import { mergeTurnScoresAndSessionFeedback } from './scoring/session-scoring';
 import { ConversationWsStartPayload } from './ws/helpers';
 import {
   WS_STATUS_SESSION_STARTED,
-  WS_TYPE_ASSISTANT_PARTIAL,
   WS_TYPE_AUDIO_END,
   WS_TYPE_REWORK,
   WS_TYPE_SET_LEVEL,
@@ -184,7 +183,6 @@ export class ConversationComponent implements OnInit, OnDestroy {
   private preTextAiAudioChunks: ArrayBuffer[] = [];
   private preTextAiAudioEnded = false;
   private lastUserRecording: ArrayBuffer | null = null;
-  private partialUpdateScheduled = false;
   private readonly userPrefsApplied = signal(false);
   private startSentForConnection = false;
   private readonly _mqMinNav =
@@ -246,7 +244,7 @@ export class ConversationComponent implements OnInit, OnDestroy {
     this._effectUnitBannerResetOnStepChange();
     this.ws.messages$.pipe(takeUntilDestroyed()).subscribe((msg) => {
       this._handleMessage(msg as Record<string, unknown> & { type: string });
-      this._scheduleDetectChanges(msg as WsMessage);
+      this.cdr.detectChanges();
     });
     this.audio.deviceLostDuringRecording$
       .pipe(takeUntilDestroyed())
@@ -424,6 +422,7 @@ export class ConversationComponent implements OnInit, OnDestroy {
       next: (list) => this.ttsVoices.set(list.map((v) => ({ id: v.id, name: v.name }))),
       error: () => {},
     });
+    void this.audio.requestPermission();
   }
 
   ngOnDestroy(): void {
@@ -726,20 +725,44 @@ export class ConversationComponent implements OnInit, OnDestroy {
     });
   }
 
+  private recordingStart: Promise<void> = Promise.resolve();
+
   async startRecording(): Promise<void> {
     if (this.sessionArchiveView() || this.recording() || !this.canRecord()) return;
     this.recording.set(true);
-    await this.audio.startRecording((buf) => {
-      this.lastUserRecording = buf;
-      this.ws.sendBinary(buf);
-    });
+    this.errorMessage.set('');
+    this.lastUserRecording = null;
+    const start = this.audio
+      .startRecording((buf) => {
+        this.lastUserRecording = buf;
+        this.ws.sendBinary(buf);
+      })
+      .catch((err: unknown) => {
+        this.recording.set(false);
+        this.errorMessage.set(
+          err instanceof Error ? err.message : 'Microphone permission denied',
+        );
+      });
+    this.recordingStart = start;
+    await start;
   }
 
   async stopRecording(): Promise<void> {
+    await this.recordingStart;
     if (!this.recording()) return;
     this.recording.set(false);
     await this.audio.stopRecording();
-    this.ws.sendJson({ type: WS_TYPE_AUDIO_END });
+    if (!this.lastUserRecording?.byteLength) {
+      this.errorMessage.set(
+        'Không nhận được âm thanh. Giữ nút mic lâu hơn và cho phép quyền micro.',
+      );
+      return;
+    }
+    if (!this.ws.sendJson({ type: WS_TYPE_AUDIO_END })) {
+      this.errorMessage.set(
+        'Không gửi được tin — kết nối WebSocket chưa sẵn sàng hoặc đã ngắt.',
+      );
+    }
   }
 
   sendText(): void {
@@ -904,13 +927,11 @@ export class ConversationComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Backend sends TTS chunks before text. Buffer playback until the first `assistant_partial`
-   * for this turn. After a completed assistant message, `lastAiMessageIndex` is not -1, so
-   * never use that alone as the guard — use "last bubble is still the user's line".
+   * Backend sends the full TTS stream, then paced text. Buffer audio until this turn
+   * has an AI bubble (`pendingAiMsgIndex`) so playback can start with the first word.
    */
   private _assistantAudioShouldWaitForFirstTextChunk(): boolean {
-    const last = this.messages().at(-1);
-    return last?.role === CHAT_ROLE_USER;
+    return this.pendingAiMsgIndex === -1;
   }
 
   private _onWsUserTranscript(text: string, userAudio: ArrayBuffer | undefined): void {
@@ -951,7 +972,8 @@ export class ConversationComponent implements OnInit, OnDestroy {
     if (startsNewAiMessage && this.preTextAiAudioChunks.length > 0) {
       this.currentAiAudioChunks = [...this.preTextAiAudioChunks];
       this.preTextAiAudioChunks = [];
-      if (this.ttsEnabled()) {
+      // Playback may already have started on audio_end so text can follow word timings.
+      if (this.ttsEnabled() && !this.preTextAiAudioEnded) {
         this.audio.stopPlayback();
         for (const preChunk of this.currentAiAudioChunks) {
           this.audio.enqueueStreamingChunk(preChunk);
@@ -967,15 +989,19 @@ export class ConversationComponent implements OnInit, OnDestroy {
     if (startsNewAiMessage && this.preTextAiAudioEnded && this.preTextAiAudioChunks.length === 0) {
       this.preTextAiAudioEnded = false;
     }
-    if (done) {
-      // Final status guard: clear speaking state when the assistant text stream is fully delivered.
-      this.aiSpeaking.set(false);
-    }
   }
 
   private _onWsAssistantAudioEnd(): void {
     if (this._assistantAudioShouldWaitForFirstTextChunk()) {
       this.preTextAiAudioEnded = true;
+      if (this.ttsEnabled() && this.preTextAiAudioChunks.length > 0) {
+        this.audio.stopPlayback();
+        for (const preChunk of this.preTextAiAudioChunks) {
+          this.audio.enqueueStreamingChunk(preChunk);
+        }
+        this.aiSpeaking.set(true);
+        this.cdr.detectChanges();
+      }
       return;
     }
     this._finalizeAssistantAudioPlayback();
@@ -1128,24 +1154,6 @@ export class ConversationComponent implements OnInit, OnDestroy {
     const tid = s?.topic_id ?? this.topicId();
     this.unitCompleteSummary.set(null);
     void this.router.navigate(['/topics', tid, 'roadmap']);
-  }
-
-  private _scheduleDetectChanges(msg: WsMessage): void {
-    if (msg['type'] === WS_TYPE_ASSISTANT_PARTIAL) {
-      if (msg['done'] === true) {
-        this.cdr.detectChanges();
-        return;
-      }
-      if (!this.partialUpdateScheduled) {
-        this.partialUpdateScheduled = true;
-        setTimeout(() => {
-          this.partialUpdateScheduled = false;
-          this.cdr.detectChanges();
-        }, 50);
-      }
-    } else {
-      this.cdr.detectChanges();
-    }
   }
 
   scrollToBottom(): void {

@@ -1,17 +1,46 @@
-<div class="controls">
-  <div class="controls-left">
-    <div class="vu-bar" aria-hidden="true">
-      <div class="vu-fill" [style.width.%]="vuLevel()"></div>
+<div
+  class="controls"
+  [class.controls--voice]="mode() === 'voice'"
+  [class.controls--chat]="mode() === 'chat'"
+>
+  <button
+    type="button"
+    class="controls-switch"
+    [disabled]="recording()"
+    [title]="mode() === 'voice' ? 'Type a reply' : 'Speak instead'"
+    [attr.aria-label]="mode() === 'voice' ? 'Switch to chat' : 'Switch to voice'"
+    (click)="toggleMode()"
+  >
+    @if (mode() === 'voice') {
+      <i class="bi bi-keyboard" aria-hidden="true"></i>
+    } @else {
+      <i class="bi bi-mic" aria-hidden="true"></i>
+    }
+  </button>
+
+  <div id="controls-audio-panel" class="controls-audio">
+    <div
+      class="controls-meter"
+      [class.controls-meter--recording]="recording()"
+      [class.controls-meter--speaking]="aiSpeaking() && !recording()"
+    >
+      <div class="vu-fill" [style.width.%]="vuLevel()" aria-hidden="true"></div>
+      <span
+        class="controls-tip"
+        [class.controls-tip--recording]="statusTip().kind === 'recording'"
+        [class.controls-tip--transcribing]="statusTip().kind === 'transcribing'"
+        [class.controls-tip--speaking]="statusTip().kind === 'speaking'"
+        >{{ statusTip().text }}</span
+      >
     </div>
     <button
       type="button"
       class="btn-record"
       [class.recording]="recording()"
       [class.speaking]="aiSpeaking()"
-      (mousedown)="startRecording.emit()"
-      (mouseup)="stopRecording.emit()"
-      (touchstart)="startRecording.emit()"
-      (touchend)="stopRecording.emit()"
+      (pointerdown)="onRecordPointerDown($event)"
+      (pointerup)="onRecordPointerUp($event)"
+      (pointercancel)="onRecordPointerUp($event)"
       [disabled]="!canRecord()"
       [attr.aria-label]="
         recording()
@@ -29,22 +58,20 @@
         }
       </span>
     </button>
-    <span class="controls-tip">
-      @if (recording()) {
-        <span class="controls-tip--recording">Recording…</span>
-      } @else if (transcribing()) {
-        <span class="controls-tip--transcribing">Transcribing…</span>
-      } @else if (aiSpeaking()) {
-        <span class="controls-tip--speaking">AI speaking…</span>
-      } @else {
-        Hold to speak
-      }
-    </span>
+    <span
+      class="controls-tip controls-tip--desktop"
+      [class.controls-tip--recording]="statusTip().kind === 'recording'"
+      [class.controls-tip--transcribing]="statusTip().kind === 'transcribing'"
+      [class.controls-tip--speaking]="statusTip().kind === 'speaking'"
+      >{{ statusTip().text }}</span
+    >
   </div>
-  <div class="controls-right">
+
+  <div id="controls-chat-panel" class="controls-chat">
     <textarea
+      #chatField
       class="chat-input"
-      rows="3"
+      rows="1"
       [ngModel]="chatInput()"
       (ngModelChange)="chatInput.set($event)"
       (keydown.enter)="onChatEnterKey($event)"
@@ -55,12 +82,13 @@
     ></textarea>
     <button
       type="button"
-      class="btn btn--primary btn--sm chat-send"
+      class="chat-send"
       (click)="sendText.emit()"
       [disabled]="
         !connected() || messagesCount() === 0 || !chatInput().trim().length || aiSpeaking()
       "
       title="Send message"
+      aria-label="Send message"
     >
       <i class="bi bi-send-fill" aria-hidden="true"></i>
     </button>

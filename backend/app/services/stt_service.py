@@ -41,9 +41,9 @@ def _get_ffmpeg_exe() -> str:
     )
 
 
-def _webm_to_wav(webm_path: Path) -> Path:
-    """Convert WebM (e.g. from browser MediaRecorder) to WAV for faster_whisper."""
-    path = Path(webm_path).resolve()
+def _audio_to_wav(audio_path: Path) -> Path:
+    """Convert MediaRecorder output (WebM/MP4/AAC/OGG) to WAV for faster_whisper."""
+    path = Path(audio_path).resolve()
     if not path.exists() or path.stat().st_size == 0:
         raise ValueError(
             "Audio file missing or empty (record something first)."
@@ -114,14 +114,14 @@ class STTService:
 
     def transcribe(self, audio_path: Path) -> dict[str, Any]:
         """
-        Transcribe audio file. For .webm (browser), converts to WAV first via ffmpeg.
+        Transcribe audio file. Converts browser/WebView recordings to WAV via ffmpeg.
         """
         path = Path(audio_path)
-        use_temp = path.suffix.lower() == ".webm"
+        use_temp = path.suffix.lower() not in {".wav", ".wave"}
         wav_path = path
 
         if use_temp:
-            wav_path = _webm_to_wav(path)
+            wav_path = _audio_to_wav(path)
 
         try:
             model = self._get_model()
