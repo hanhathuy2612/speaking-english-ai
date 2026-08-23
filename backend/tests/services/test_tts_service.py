@@ -34,8 +34,8 @@ def test_plan_inserts_vietnamese_note() -> None:
         extra_text="Hãy nói hai câu tiếng Anh.",
         extra_voice="vi-VN-HoaiMyNeural",
     )
-    voices = [p.voice for p in parts]
-    assert "en-US-JennyNeural" in voices
+    assert len(parts) == 2
+    assert parts[0].voice == "en-US-JennyNeural"
     assert parts[-1].voice == "vi-VN-HoaiMyNeural"
     assert parts[-1].text.startswith("Hãy nói")
     assert parts[-1].pause_before_sec > 0

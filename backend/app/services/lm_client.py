@@ -134,8 +134,9 @@ def split_tutor_reply(raw: str) -> tuple[str, str]:
         return "", ""
     m = _SAY_NOTE_RE.match(text)
     if not m:
-        return text, ""
-    spoken = re.sub(r"(?i)^SAY\s*:\s*", "", m.group(1).strip()).strip()
+        spoken = _LEADING_SAY_RE.sub("", text).strip()
+        return spoken or text, ""
+    spoken = _LEADING_SAY_RE.sub("", m.group(1).strip()).strip()
     note = m.group(2).strip()
     return spoken or text, note
 
@@ -143,6 +144,39 @@ def split_tutor_reply(raw: str) -> tuple[str, str]:
 def parse_tutor_reply(raw: str) -> tuple[str, str, bool]:
     """Return (spoken English, Vietnamese note, must_retry)."""
     return (*split_tutor_reply(raw), parse_tutor_retry(raw))
+
+
+_PARTIAL_CUT_RE = re.compile(r"(?im)^\s*(?:NOTE|LƯU Ý|LUU Y|RETRY)\s*:")
+_LEADING_SAY_RE = re.compile(r"(?is)^\s*SAY\s*:\s*")
+_FIRST_SENT_RE = re.compile(r"^(.+?[.!?…])(\s+|$)", re.DOTALL)
+
+
+def spoken_prefix_from_partial(raw: str) -> tuple[str, bool]:
+    """Spoken English seen so far while the model is still streaming. done=NOTE/RETRY started."""
+    text = raw or ""
+    cut = _PARTIAL_CUT_RE.search(text)
+    done = cut is not None
+    body = text[: cut.start()] if cut else text
+    body = _LEADING_SAY_RE.sub("", body).strip()
+    return body, done
+
+
+def first_flushable_sentence(spoken: str, *, section_done: bool) -> str | None:
+    """First SAY sentence ready to TTS, or the whole SAY once that section finishes."""
+    spoken_s = (spoken or "").strip()
+    if not spoken_s:
+        return None
+    m = _FIRST_SENT_RE.match(spoken_s)
+    if m:
+        sentence = m.group(1).strip()
+        words = sentence.split()
+        has_more = bool(m.group(2)) and len(spoken_s) > len(sentence) + 2
+        if section_done or has_more or len(words) >= 5 or len(sentence) >= 28:
+            return sentence
+        return None
+    if section_done and len(spoken_s) >= 8:
+        return spoken_s
+    return None
 
 
 def format_tutor_display(spoken: str, note: str, *, retry: bool = False) -> str:

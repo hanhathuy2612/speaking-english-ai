@@ -1,3 +1,4 @@
+import asyncio
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
 from functools import lru_cache
@@ -14,9 +15,7 @@ from app.core.config import get_settings
 # Microsoft TTS metadata uses 100-nanosecond ticks.
 _TTS_TICKS_PER_SEC = 10_000_000.0
 _TTS_MP3_BYTES_PER_SEC = 6000.0
-_PAUSE_SENTENCE_SEC = 0.38
-_PAUSE_CLAUSE_SEC = 0.26
-_PAUSE_NOTE_SEC = 0.55
+_PAUSE_NOTE_SEC = 0.35
 _VI_VOICE_FEMALE = "vi-VN-HoaiMyNeural"
 _VI_VOICE_MALE = "vi-VN-NamMinhNeural"
 _FEMALE_VOICE_HINTS = (
@@ -128,36 +127,29 @@ def plan_tts_parts(
     extra_text: str = "",
     extra_voice: str | None = None,
 ) -> list[_TtsPart]:
-    """English clauses + optional Vietnamese note, with pause hints."""
+    """At most two Edge TTS calls: spoken line, then optional Vietnamese note."""
     parts: list[_TtsPart] = []
-    for i, chunk in enumerate(split_spoken_chunks(text)):
-        use_vi = looks_vietnamese(chunk)
-        if i == 0:
-            pause = 0.0
-        elif parts and parts[-1].text.endswith(":"):
-            pause = _PAUSE_CLAUSE_SEC
-        else:
-            pause = _PAUSE_SENTENCE_SEC
+    spoken = (text or "").strip()
+    note = (extra_text or "").strip()
+    if spoken:
+        use_vi = looks_vietnamese(spoken)
         parts.append(
             _TtsPart(
-                text=chunk,
+                text=spoken,
                 voice=extra_voice if use_vi and extra_voice else voice,
-                pause_before_sec=pause,
+                pause_before_sec=0.0,
                 track_words=not use_vi,
             )
         )
-    if extra_text.strip():
-        note_voice = extra_voice or voice
-        for i, chunk in enumerate(split_spoken_chunks(extra_text.strip())):
-            pause = _PAUSE_NOTE_SEC if i == 0 else _PAUSE_CLAUSE_SEC
-            parts.append(
-                _TtsPart(
-                    text=chunk,
-                    voice=note_voice,
-                    pause_before_sec=pause,
-                    track_words=False,
-                )
+    if note:
+        parts.append(
+            _TtsPart(
+                text=note,
+                voice=extra_voice or voice,
+                pause_before_sec=_PAUSE_NOTE_SEC if parts else 0.0,
+                track_words=False,
             )
+        )
     return parts
 
 
@@ -241,29 +233,46 @@ class TTSService:
         parts = plan_tts_parts(text, voice=v, extra_text=extra_text, extra_voice=vi)
         if not parts:
             return
-        elapsed = 0.0
-        for part in parts:
-            pause = _pause_bytes(part.pause_before_sec)
+        extra_task: asyncio.Task[tuple[bytes, list[TtsWordTiming]]] | None = None
+        if len(parts) > 1:
+            extra = parts[1]
+            extra_task = asyncio.create_task(
+                _collect_one(extra.text, extra.voice, r)
+            )
+        first = parts[0]
+        local: list[TtsWordTiming] = []
+        try:
+            async for chunk in _stream_one(
+                first.text,
+                first.voice,
+                r,
+                local,
+            ):
+                yield chunk
+            if word_timings is not None and first.track_words:
+                word_timings.extend(local)
+            if extra_task is None:
+                return
+            extra_audio, _extra_words = await extra_task
+            extra = parts[1]
+            pause = _pause_bytes(extra.pause_before_sec)
             if pause:
                 yield pause
-                elapsed += part.pause_before_sec
-            local: list[TtsWordTiming] = []
-            part_audio = 0
-            async for chunk in _stream_one(part.text, part.voice, r, local):
-                part_audio += len(chunk)
-                yield chunk
-            if word_timings is not None and part.track_words:
-                for w in local:
-                    word_timings.append(
-                        TtsWordTiming(
-                            text=w.text,
-                            offset_sec=w.offset_sec + elapsed,
-                            duration_sec=w.duration_sec,
-                        )
-                    )
-            from_words = (local[-1].offset_sec + local[-1].duration_sec) if local else 0.0
-            from_bytes = part_audio / _TTS_MP3_BYTES_PER_SEC if part_audio else 0.0
-            elapsed += max(from_words, from_bytes, 0.05)
+            if extra_audio:
+                yield extra_audio
+        finally:
+            if extra_task is not None and not extra_task.done():
+                extra_task.cancel()
+
+
+async def _collect_one(
+    text: str, voice: str, rate: str
+) -> tuple[bytes, list[TtsWordTiming]]:
+    timings: list[TtsWordTiming] = []
+    out = bytearray()
+    async for chunk in _stream_one(text, voice, rate, timings):
+        out.extend(chunk)
+    return bytes(out), timings
 
 
 async def _stream_one(

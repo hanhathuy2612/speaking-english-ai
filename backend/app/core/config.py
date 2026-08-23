@@ -135,13 +135,13 @@ class Settings(BaseSettings):
     ffmpeg_path: str | None = None
 
     # STT (faster-whisper) — defaults favor accuracy over speed (override in .env).
-    stt_model_size: str = "small"
+    stt_model_size: str = "base"
     stt_beam_size: int = 5
     stt_device: str = "cpu"
     stt_compute_type: str = "int8"
 
-    # TTS (edge-tts): speech rate. "-20%" default (learner-friendly); "+0%" is native/fast.
-    tts_rate: str = "-20%"
+    # TTS (edge-tts): speech rate. "-10%" default; "+0%" is native/fast.
+    tts_rate: str = "-10%"
     tts_voice: str = "en-US-JennyNeural"
     tts_voice_vi: str = "vi-VN-HoaiMyNeural"
 

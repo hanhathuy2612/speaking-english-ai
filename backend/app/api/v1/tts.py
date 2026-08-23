@@ -44,7 +44,7 @@ async def list_voices(_user: Annotated[User, Depends(get_current_user)]) -> list
 @router.get("/preview")
 async def preview_voice(
     voice: str,
-    rate: str = "-20%",
+    rate: str = "-10%",
     _user: Annotated[User | None, Depends(get_current_user)] = None,
 ) -> Response:
     """Return short TTS audio for the given voice/rate so user can try before selecting."""

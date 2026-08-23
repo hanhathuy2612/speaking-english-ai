@@ -28,9 +28,11 @@ from app.services.learning_pack_service import (
 from app.services.lm_client import (
     LMStudioClient,
     OPENING_SYSTEM,
+    first_flushable_sentence,
     format_tutor_display,
     parse_tutor_reply,
     spoken_from_stored_assistant,
+    spoken_prefix_from_partial,
     split_tutor_reply,
     transcript_normalization_plausible,
 )
@@ -207,11 +209,12 @@ async def _sleep_until(t0: float, target_sec: float) -> None:
 
 
 async def _finish_assistant_text(
-    send: Callable[[dict], Any], suffix: str = ""
+    send: Callable[[dict], Any], suffix: str = "", *, finish: bool = True
 ) -> None:
     if suffix:
         await send({"type": "assistant_partial", "text": suffix, "done": False})
-    await send({"type": "assistant_partial", "text": "", "done": True})
+    if finish:
+        await send({"type": "assistant_partial", "text": "", "done": True})
 
 
 async def _emit_timed_slices(
@@ -219,6 +222,7 @@ async def _emit_timed_slices(
     slices: list[tuple[str, float]],
     *,
     suffix: str = "",
+    finish: bool = True,
 ) -> None:
     t0 = time.monotonic()
     for piece, offset in slices:
@@ -226,7 +230,7 @@ async def _emit_timed_slices(
             continue
         await _sleep_until(t0, max(0.0, offset))
         await send({"type": "assistant_partial", "text": piece, "done": False})
-    await _finish_assistant_text(send, suffix)
+    await _finish_assistant_text(send, suffix, finish=finish)
 
 
 async def _emit_paced_chars(
@@ -235,6 +239,7 @@ async def _emit_paced_chars(
     *,
     chars_per_sec: float,
     suffix: str = "",
+    finish: bool = True,
 ) -> None:
     cps = max(_TEXT_MIN_CHARS_PER_SEC, min(chars_per_sec, _TEXT_MAX_CHARS_PER_SEC))
     t0 = time.monotonic()
@@ -250,7 +255,7 @@ async def _emit_paced_chars(
         sent += len(batch)
         batch = ""
         await _sleep_until(t0, sent / cps)
-    await _finish_assistant_text(send, suffix)
+    await _finish_assistant_text(send, suffix, finish=finish)
 
 
 async def emit_text_chunks(
@@ -261,25 +266,75 @@ async def emit_text_chunks(
     word_timings: list[TtsWordTiming] | None = None,
     audio_byte_len: int = 0,
     suffix: str = "",
+    finish: bool = True,
 ) -> None:
     """Send assistant text paced to the spoken audio that was just streamed."""
     if not text:
-        await _finish_assistant_text(send, suffix)
+        await _finish_assistant_text(send, suffix, finish=finish)
         return
     slices = _slices_from_word_timings(text, word_timings or [])
     if slices:
-        await _emit_timed_slices(send, slices, suffix=suffix)
+        await _emit_timed_slices(send, slices, suffix=suffix, finish=finish)
         return
     duration = _duration_from_word_timings(
         word_timings or []
     ) or _duration_from_mp3_bytes(audio_byte_len)
     if duration and duration > 0.05:
         cps = max(_TEXT_MIN_CHARS_PER_SEC, len(text) / duration)
-        await _emit_paced_chars(send, text, chars_per_sec=cps, suffix=suffix)
+        await _emit_paced_chars(
+            send, text, chars_per_sec=cps, suffix=suffix, finish=finish
+        )
         return
     await _emit_paced_chars(
-        send, text, chars_per_sec=_paced_chars_per_second(rate), suffix=suffix
+        send,
+        text,
+        chars_per_sec=_paced_chars_per_second(rate),
+        suffix=suffix,
+        finish=finish,
     )
+
+
+async def _collect_tts(
+    tts: TTSService,
+    text: str,
+    *,
+    voice: str | None = None,
+    rate: str | None = None,
+    extra_text: str = "",
+    extra_voice: str | None = None,
+) -> tuple[bytes, list[TtsWordTiming]]:
+    """Synthesize TTS in memory (no WebSocket send) so text can stay paced to speech."""
+    timings: list[TtsWordTiming] = []
+    if not (text or "").strip() and not (extra_text or "").strip():
+        return b"", timings
+    out = bytearray()
+    try:
+        async for chunk in tts.synthesize_stream(
+            text,
+            voice=voice,
+            rate=rate,
+            word_timings=timings,
+            extra_text=extra_text,
+            extra_voice=extra_voice,
+        ):
+            out.extend(chunk)
+    except Exception as e:
+        logger.warning("TTS collect failed: %s", e)
+        return b"", timings
+    return bytes(out), timings
+
+
+async def _send_audio_chunks(send: Callable[[dict], Any], audio: bytes) -> None:
+    if not audio:
+        return
+    for i in range(0, len(audio), _TTS_BATCH_BYTES):
+        batch = audio[i : i + _TTS_BATCH_BYTES]
+        await send(
+            {
+                "type": "assistant_audio_chunk",
+                "data": base64.b64encode(batch).decode(),
+            }
+        )
 
 
 async def stream_tts(
@@ -291,12 +346,18 @@ async def stream_tts(
     rate: str | None = None,
     extra_text: str = "",
     extra_voice: str | None = None,
+    finalize: bool = True,
 ) -> tuple[bytes, list[TtsWordTiming]]:
-    """Stream TTS to client via assistant_audio_chunk; return audio + word timings."""
+    """Stream TTS audio only; caller paces assistant_partial to the returned timings."""
     out = bytearray()
     batch = bytearray()
     timings: list[TtsWordTiming] = []
     last_sent = time.monotonic()
+
+    if not (text or "").strip() and not (extra_text or "").strip():
+        if finalize:
+            await send({"type": "assistant_audio_end"})
+        return b"", timings
     try:
         async for chunk in tts.synthesize_stream(
             text,
@@ -332,7 +393,8 @@ async def stream_tts(
     except Exception as e:
         logger.warning("TTS failed: %s", e)
         await send({"type": "status", "message": "tts_unavailable"})
-    await send({"type": "assistant_audio_end"})
+    if finalize:
+        await send({"type": "assistant_audio_end"})
     return bytes(out), timings
 
 
@@ -854,6 +916,137 @@ class ConversationHandler:
         )
         return pack_to_prompt_snippet(resolved, max_items_per_section=5)
 
+    async def _generate_and_stream_tutor_reply(
+        self,
+        messages: list[dict[str, str]],
+        *,
+        max_tokens: int,
+    ) -> tuple[str, bytes, bool]:
+        """Stream LLM, TTS the first sentence early, then reveal SAY text at speech pace."""
+        raw = ""
+        first_sent: str | None = None
+        first_task: asyncio.Task[tuple[bytes, list[TtsWordTiming]]] | None = None
+        try:
+            async for delta in self._lm.generate_stream(
+                messages, temperature=0.7, max_tokens=max_tokens
+            ):
+                raw += delta
+                spoken_so_far, say_done = spoken_prefix_from_partial(raw)
+                if first_sent is None:
+                    first_sent = first_flushable_sentence(
+                        spoken_so_far, section_done=say_done
+                    )
+                    if first_sent:
+                        first_task = asyncio.create_task(
+                            stream_tts(
+                                self._send,
+                                self._tts,
+                                first_sent,
+                                voice=self._tts_voice,
+                                rate=self._tts_rate,
+                                finalize=False,
+                            )
+                        )
+        except Exception:
+            logger.exception("LM stream failed")
+            await self._send({"type": "error", "message": "AI unavailable"})
+            if not raw.strip():
+                raw = _AI_UNAVAILABLE_ASSISTANT_TEXT
+
+        spoken, note, retry = parse_tutor_reply(raw)
+        if not spoken.strip():
+            spoken = _AI_UNAVAILABLE_ASSISTANT_TEXT
+            note = ""
+            retry = False
+        suffix = ""
+        if note:
+            label = "Thử lại" if retry else "Lưu ý"
+            suffix = f"\n\n> **{label}:** {note}"
+
+        first_audio = b""
+        first_timings: list[TtsWordTiming] = []
+        if first_task is not None:
+            try:
+                first_audio, first_timings = await first_task
+            except Exception:
+                logger.warning("First-sentence TTS failed")
+                first_audio = b""
+        if first_sent and spoken.startswith(first_sent):
+            rest = spoken[len(first_sent) :]
+        elif first_sent:
+            rest = ""
+        else:
+            rest = spoken
+
+        need_rest = bool(rest.strip()) or bool(note)
+        if first_sent and first_audio:
+            rest_task: asyncio.Task[tuple[bytes, list[TtsWordTiming]]] | None = None
+            if need_rest:
+                rest_task = asyncio.create_task(
+                    _collect_tts(
+                        self._tts,
+                        rest.strip(),
+                        voice=self._tts_voice,
+                        rate=self._tts_rate,
+                        extra_text=note,
+                    )
+                )
+            # Open the bubble so the client starts buffered sentence-1 audio.
+            await self._send({"type": "assistant_partial", "text": "", "done": False})
+            await asyncio.sleep(_TEXT_AFTER_AUDIO_LEAD_SEC)
+            await emit_text_chunks(
+                self._send,
+                first_sent,
+                rate=self._tts_rate,
+                word_timings=first_timings,
+                audio_byte_len=len(first_audio),
+                finish=False,
+            )
+            if first_timings:
+                leftover = first_timings[-1].duration_sec
+                if leftover > 0.01:
+                    await asyncio.sleep(leftover)
+            rest_audio = b""
+            rest_timings: list[TtsWordTiming] = []
+            if rest_task is not None:
+                try:
+                    rest_audio, rest_timings = await rest_task
+                except Exception:
+                    logger.warning("Rest TTS failed")
+                    rest_audio = b""
+                await _send_audio_chunks(self._send, rest_audio)
+            await self._send({"type": "assistant_audio_end"})
+            if rest or suffix:
+                await asyncio.sleep(_TEXT_AFTER_AUDIO_LEAD_SEC)
+                await emit_text_chunks(
+                    self._send,
+                    rest,
+                    rate=self._tts_rate,
+                    word_timings=rest_timings,
+                    audio_byte_len=len(rest_audio),
+                    suffix=suffix,
+                )
+            else:
+                await self._send(
+                    {"type": "assistant_partial", "text": "", "done": True}
+                )
+            display = format_tutor_display(spoken, note, retry=retry)
+            self.history.append({"role": "assistant", "content": spoken})
+            return display, first_audio + rest_audio, retry
+
+        tts_bytes = await stream_tts_then_text(
+            self._send,
+            self._tts,
+            spoken,
+            voice=self._tts_voice,
+            rate=self._tts_rate,
+            text_suffix=suffix,
+            extra_text=note,
+        )
+        display = format_tutor_display(spoken, note, retry=retry)
+        self.history.append({"role": "assistant", "content": spoken})
+        return display, tts_bytes, retry
+
     async def _stream_tutor_reply(self, raw_assistant: str) -> tuple[str, bytes, bool]:
         """Parse SAY/NOTE/RETRY, TTS only SAY, keep spoken text in LM history."""
         spoken, note, retry = parse_tutor_reply(raw_assistant)
@@ -1073,19 +1266,9 @@ class ConversationHandler:
             settings.lm_conversation_max_tokens, effective
         )
 
-        try:
-            assistant_raw = await generate_llm_text(
-                self._lm,
-                messages,
-                temperature=0.7,
-                max_tokens=max_tokens,
-            )
-        except Exception:
-            logger.exception("LM generate failed")
-            assistant_raw = _AI_UNAVAILABLE_ASSISTANT_TEXT
-            await self._send({"type": "error", "message": "AI unavailable"})
-
-        assistant_text, tts_bytes, retry = await self._stream_tutor_reply(assistant_raw)
+        assistant_text, tts_bytes, retry = await self._generate_and_stream_tutor_reply(
+            messages, max_tokens=max_tokens
+        )
         await self._commit_turn_and_ack(
             db,
             user_text=user_text,
@@ -1126,19 +1309,9 @@ class ConversationHandler:
             settings.lm_conversation_max_tokens, effective
         )
 
-        try:
-            assistant_raw = await generate_llm_text(
-                self._lm,
-                messages,
-                temperature=0.7,
-                max_tokens=max_tokens,
-            )
-        except Exception:
-            logger.exception("LM generate failed (text turn)")
-            assistant_raw = _AI_UNAVAILABLE_ASSISTANT_TEXT
-            await self._send({"type": "error", "message": "AI unavailable"})
-
-        assistant_text, tts_bytes, retry = await self._stream_tutor_reply(assistant_raw)
+        assistant_text, tts_bytes, retry = await self._generate_and_stream_tutor_reply(
+            messages, max_tokens=max_tokens
+        )
         await self._commit_turn_and_ack(
             db,
             user_text=user_text,
