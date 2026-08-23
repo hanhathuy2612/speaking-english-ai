@@ -14,6 +14,7 @@ export function mergeTurnSavedIntoMessages(
   userMessageId: number,
   hasUserAudio: boolean,
   indexInSession: number,
+  retry = false,
 ): TurnSavedMergeResult {
   const hasOpening = list.length > 0 && list[0].isOpeningLine === true;
   const offset = hasOpening ? 1 : 0;
@@ -29,13 +30,18 @@ export function mergeTurnSavedIntoMessages(
       ...next[userIdx],
       turnId: userMessageId,
       ...(hasUserAudio ? { hasUserRecording: true } : {}),
+      ...(retry ? { needsRetry: true } : {}),
     };
   }
 
   const ai = next[aiIdx];
   let persistGuideline: TurnSavedMergeResult['persistGuideline'] = null;
   if (ai?.role === CHAT_ROLE_AI && !ai.isOpeningLine) {
-    next[aiIdx] = { ...ai, turnId: assistantMessageId };
+    next[aiIdx] = {
+      ...ai,
+      turnId: assistantMessageId,
+      ...(retry ? { needsRetry: true } : {}),
+    };
     const g = ai.guideline;
     if (g != null && String(g).trim() !== '') {
       persistGuideline = { messageId: assistantMessageId, guideline: g };

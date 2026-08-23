@@ -35,6 +35,7 @@ import {
   GUIDE_PANEL_MIN_W,
   GUIDE_PANEL_WIDTH_LS,
   NOOP,
+  TTS_RATE_DEFAULT,
 } from './model/constants';
 import type { ChatMessage, SessionScoreTurn, TopicUnitWsMeta } from './model/models';
 import { mergeTurnScoresAndSessionFeedback } from './scoring/session-scoring';
@@ -169,7 +170,7 @@ export class ConversationComponent implements OnInit, OnDestroy {
   );
 
   ttsEnabled = signal(true);
-  ttsRate = signal('+0%');
+  ttsRate = signal(TTS_RATE_DEFAULT);
   ttsVoice = signal('en-US-JennyNeural');
   ttsVoices = signal<{ id: string; name: string }[]>([]);
   previewingVoiceId = signal<string | null>(null);
@@ -234,8 +235,14 @@ export class ConversationComponent implements OnInit, OnDestroy {
     onAssistantAudioEnd: () => this._onWsAssistantAudioEnd(),
     onAssistantAudioChunk: (bytes) => this._onWsAssistantAudioChunk(bytes),
     onSessionScores: (turns, sessionFeedback) => this._onWsSessionScores(turns, sessionFeedback),
-    onTurnSaved: (assistantMessageId, userMessageId, hasUserAudio, indexInSession) =>
-      this._onWsTurnSaved(assistantMessageId, userMessageId, hasUserAudio, indexInSession),
+    onTurnSaved: (assistantMessageId, userMessageId, hasUserAudio, indexInSession, retry) =>
+      this._onWsTurnSaved(
+        assistantMessageId,
+        userMessageId,
+        hasUserAudio,
+        indexInSession,
+        retry,
+      ),
   };
 
   constructor() {
@@ -947,11 +954,6 @@ export class ConversationComponent implements OnInit, OnDestroy {
     this.messages.update((m) => [...m, userMsg]);
     this.pendingTurnSaves.update((n) => n + 1);
     this.pendingAiMsgIndex = -1;
-    if (this.unitStepMeta()) {
-      this.unitStepMeta.update((meta) =>
-        meta ? { ...meta, scoredTurnsSoFar: meta.scoredTurnsSoFar + 1 } : null,
-      );
-    }
   }
 
   private _onWsAssistantPartial(chunk: string, done: boolean): void {
@@ -1030,8 +1032,14 @@ export class ConversationComponent implements OnInit, OnDestroy {
     userMessageId: number,
     hasUserAudio: boolean,
     indexInSession: number,
+    retry: boolean,
   ): void {
     this.pendingTurnSaves.update((n) => (n > 0 ? n - 1 : 0));
+    if (!retry && this.unitStepMeta()) {
+      this.unitStepMeta.update((meta) =>
+        meta ? { ...meta, scoredTurnsSoFar: meta.scoredTurnsSoFar + 1 } : null,
+      );
+    }
     this.messages.update((list) => {
       const { next, persistGuideline } = mergeTurnSavedIntoMessages(
         list,
@@ -1039,6 +1047,7 @@ export class ConversationComponent implements OnInit, OnDestroy {
         userMessageId,
         hasUserAudio,
         indexInSession,
+        retry,
       );
       if (persistGuideline) {
         this.api

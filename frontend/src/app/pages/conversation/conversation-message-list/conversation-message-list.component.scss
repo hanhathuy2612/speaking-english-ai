@@ -108,6 +108,17 @@
     border-radius: 8px;
     padding: 8px 10px;
   }
+
+  :where(blockquote) {
+    margin: 0.75rem 0 0;
+    padding: 8px 12px;
+    border: none;
+    border-left: 3px solid var(--clr-accent, #2563eb);
+    border-radius: 0 8px 8px 0;
+    background: var(--clr-accent-bg-soft, rgba(37 99 235 / 0.08));
+    color: var(--clr-text);
+    font-size: 0.95em;
+  }
 }
 
 .bubble--user {
@@ -121,6 +132,10 @@
   border: 1px solid var(--clr-border);
   color: var(--clr-text);
   border-bottom-left-radius: 4px;
+}
+
+.bubble--retry.bubble--ai {
+  border-color: color-mix(in srgb, #d97706 45%, var(--clr-border));
 }
 
 .bubble--clickable {

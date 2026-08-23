@@ -140,9 +140,10 @@ class Settings(BaseSettings):
     stt_device: str = "cpu"
     stt_compute_type: str = "int8"
 
-    # TTS (edge-tts): speech rate. "+0%" = default; "-20%" = slower; "+20%" = faster.
-    tts_rate: str = "+0%"
+    # TTS (edge-tts): speech rate. "-20%" default (learner-friendly); "+0%" is native/fast.
+    tts_rate: str = "-20%"
     tts_voice: str = "en-US-JennyNeural"
+    tts_voice_vi: str = "vi-VN-HoaiMyNeural"
 
     # Comma-separated emails that receive the "admin" role on app startup (must match registered users).
     bootstrap_admin_emails: str = ""

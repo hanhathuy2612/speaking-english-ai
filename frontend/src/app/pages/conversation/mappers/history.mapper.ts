@@ -10,6 +10,7 @@ export interface WsHistoryRow {
   hasUserAudio?: boolean;
   hasAssistantAudio?: boolean;
   isOpening?: boolean;
+  retry?: boolean;
 }
 
 export function mapWsHistoryToChatMessages(rows: WsHistoryRow[]): ChatMessage[] {
@@ -20,6 +21,7 @@ export function mapWsHistoryToChatMessages(rows: WsHistoryRow[]): ChatMessage[] 
         text: decodeEscapedLineBreaks(m.text),
         turnId: m.turnId,
         ...(m.hasUserAudio ? { hasUserRecording: true } : {}),
+        ...(m.retry ? { needsRetry: true } : {}),
       };
     }
     return {
@@ -29,6 +31,7 @@ export function mapWsHistoryToChatMessages(rows: WsHistoryRow[]): ChatMessage[] 
       guideline: m.guideline ?? undefined,
       ...(m.hasAssistantAudio ? { hasAiAudio: true } : {}),
       ...(m.isOpening ? { isOpeningLine: true } : {}),
+      ...(m.retry ? { needsRetry: true } : {}),
     };
   });
 }

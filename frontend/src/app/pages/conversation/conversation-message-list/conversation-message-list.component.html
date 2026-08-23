@@ -18,12 +18,19 @@
   @for (m of messages(); track $index) {
     <div class="msg" [class.msg--user]="m.role === 'user'">
       <span class="msg-label">{{
-        m.sessionRecap ? 'Tổng kết phiên' : m.role === 'user' ? 'You' : 'AI Tutor'
+        m.sessionRecap
+          ? 'Tổng kết phiên'
+          : m.role === 'user'
+            ? 'You'
+            : asksRetry(m)
+              ? 'AI Tutor · Trả lời lại'
+              : 'AI Tutor'
       }}</span>
       <div
         class="bubble"
         [class.bubble--user]="m.role === 'user'"
         [class.bubble--ai]="m.role === 'ai'"
+        [class.bubble--retry]="asksRetry(m)"
         [class.bubble--clickable]="m.role === 'ai' && !m.partial && !m.sessionRecap"
         (click)="
           m.role === 'ai' &&

@@ -1,6 +1,6 @@
 """TTS API: list voices for UI dropdown and voice preview."""
 
-from typing import Annotated
+from typing import Annotated, Any
 import edge_tts
 from fastapi import APIRouter, Depends
 from fastapi.responses import Response
@@ -12,6 +12,7 @@ from app.models.user import User
 router = APIRouter(prefix="/tts", tags=["tts"])
 
 _PREVIEW_TEXT = "Hello, this is a sample of this voice."
+_PREVIEW_TEXT_VI = "Xin chào, đây là giọng đọc tiếng Việt."
 
 
 @router.get("/voices")
@@ -20,7 +21,7 @@ async def list_voices(_user: Annotated[User, Depends(get_current_user)]) -> list
     raw = await edge_tts.list_voices()
     # Prefer English; include others
     out = []
-    seen = set()
+    seen: set[str] = set()
     for v in raw:
         name = v.get("ShortName") or v.get("Name") or ""
         if not name or name in seen:
@@ -43,14 +44,15 @@ async def list_voices(_user: Annotated[User, Depends(get_current_user)]) -> list
 @router.get("/preview")
 async def preview_voice(
     voice: str,
-    rate: str = "+0%",
+    rate: str = "-20%",
     _user: Annotated[User | None, Depends(get_current_user)] = None,
 ) -> Response:
     """Return short TTS audio for the given voice/rate so user can try before selecting."""
     settings = get_settings()
     voice_id = voice or settings.tts_voice
     rate_val = rate or settings.tts_rate
-    communicate = edge_tts.Communicate(_PREVIEW_TEXT, voice_id, rate=rate_val)
+    sample = _PREVIEW_TEXT_VI if voice_id.lower().startswith("vi-") else _PREVIEW_TEXT
+    communicate = edge_tts.Communicate(sample, voice_id, rate=rate_val)
     chunks = []
     async for chunk in communicate.stream():
         if chunk.get("type") == "audio":

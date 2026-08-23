@@ -21,17 +21,20 @@ export function mapSessionDetailTurnsToMessages(
     });
   }
   for (const t of turns) {
+    const retry = /\*\*Thử lại:\*\*/.test(t.assistant_text);
     out.push({
       role: CHAT_ROLE_USER,
       text: decodeEscapedLineBreaks(t.user_text),
       turnId: t.user_message_id,
       ...(t.has_user_audio ? { hasUserRecording: true } : {}),
+      ...(retry ? { needsRetry: true } : {}),
     }, {
       role: CHAT_ROLE_AI,
       text: decodeEscapedLineBreaks(t.assistant_text),
       turnId: t.turn_id,
       ...(t.has_assistant_audio ? { hasAiAudio: true } : {}),
       ...(t.guideline ? { guideline: t.guideline } : {}),
+      ...(retry ? { needsRetry: true } : {}),
     });
   }
   const recap = typeof sessionFeedback === 'string' ? sessionFeedback.trim() : '';

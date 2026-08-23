@@ -25,7 +25,15 @@ from app.services.learning_pack_service import (
     pack_to_prompt_snippet,
     resolve_effective_learning_pack,
 )
-from app.services.lm_client import LMStudioClient, transcript_normalization_plausible
+from app.services.lm_client import (
+    LMStudioClient,
+    OPENING_SYSTEM,
+    format_tutor_display,
+    parse_tutor_reply,
+    spoken_from_stored_assistant,
+    split_tutor_reply,
+    transcript_normalization_plausible,
+)
 from app.services.scoring_service import ScoringService
 from app.services.stt_service import STTService
 from app.services.tts_service import TTSService, TtsWordTiming
@@ -59,12 +67,12 @@ def _lm_max_reply_tokens(base: int, level_raw: str) -> int:
     if n is None:
         return base
     if n <= 5.0:
-        return min(base, 85)
+        return min(base, 200)
     if n <= 6.0:
-        return min(base, 120)
+        return min(base, 240)
     if n <= 7.0:
-        return min(base, 150)
-    return min(base, 180)
+        return min(base, 280)
+    return min(base, 320)
 
 
 AUDIO_DIR = Path("audio")
@@ -103,6 +111,8 @@ def _audio_file_suffix(raw: bytes) -> str:
 _AI_UNAVAILABLE_ASSISTANT_TEXT = (
     "Sorry — I couldn't reply just now. Your answer was still saved for this session."
 )
+_MSG_KIND_CHAT = "chat"
+_MSG_KIND_RETRY = "retry"
 _ERROR_SEND_START_FIRST = "Send 'start' first"
 _FREE_CONVERSATION_TOPIC_TITLE = "free conversation"
 
@@ -196,8 +206,19 @@ async def _sleep_until(t0: float, target_sec: float) -> None:
         await asyncio.sleep(delay)
 
 
+async def _finish_assistant_text(
+    send: Callable[[dict], Any], suffix: str = ""
+) -> None:
+    if suffix:
+        await send({"type": "assistant_partial", "text": suffix, "done": False})
+    await send({"type": "assistant_partial", "text": "", "done": True})
+
+
 async def _emit_timed_slices(
-    send: Callable[[dict], Any], slices: list[tuple[str, float]]
+    send: Callable[[dict], Any],
+    slices: list[tuple[str, float]],
+    *,
+    suffix: str = "",
 ) -> None:
     t0 = time.monotonic()
     for piece, offset in slices:
@@ -205,7 +226,7 @@ async def _emit_timed_slices(
             continue
         await _sleep_until(t0, max(0.0, offset))
         await send({"type": "assistant_partial", "text": piece, "done": False})
-    await send({"type": "assistant_partial", "text": "", "done": True})
+    await _finish_assistant_text(send, suffix)
 
 
 async def _emit_paced_chars(
@@ -213,6 +234,7 @@ async def _emit_paced_chars(
     text: str,
     *,
     chars_per_sec: float,
+    suffix: str = "",
 ) -> None:
     cps = max(_TEXT_MIN_CHARS_PER_SEC, min(chars_per_sec, _TEXT_MAX_CHARS_PER_SEC))
     t0 = time.monotonic()
@@ -228,7 +250,7 @@ async def _emit_paced_chars(
         sent += len(batch)
         batch = ""
         await _sleep_until(t0, sent / cps)
-    await send({"type": "assistant_partial", "text": "", "done": True})
+    await _finish_assistant_text(send, suffix)
 
 
 async def emit_text_chunks(
@@ -238,23 +260,26 @@ async def emit_text_chunks(
     rate: str | None = None,
     word_timings: list[TtsWordTiming] | None = None,
     audio_byte_len: int = 0,
+    suffix: str = "",
 ) -> None:
     """Send assistant text paced to the spoken audio that was just streamed."""
     if not text:
-        await send({"type": "assistant_partial", "text": "", "done": True})
+        await _finish_assistant_text(send, suffix)
         return
     slices = _slices_from_word_timings(text, word_timings or [])
     if slices:
-        await _emit_timed_slices(send, slices)
+        await _emit_timed_slices(send, slices, suffix=suffix)
         return
     duration = _duration_from_word_timings(
         word_timings or []
     ) or _duration_from_mp3_bytes(audio_byte_len)
     if duration and duration > 0.05:
         cps = max(_TEXT_MIN_CHARS_PER_SEC, len(text) / duration)
-        await _emit_paced_chars(send, text, chars_per_sec=cps)
+        await _emit_paced_chars(send, text, chars_per_sec=cps, suffix=suffix)
         return
-    await _emit_paced_chars(send, text, chars_per_sec=_paced_chars_per_second(rate))
+    await _emit_paced_chars(
+        send, text, chars_per_sec=_paced_chars_per_second(rate), suffix=suffix
+    )
 
 
 async def stream_tts(
@@ -264,6 +289,8 @@ async def stream_tts(
     *,
     voice: str | None = None,
     rate: str | None = None,
+    extra_text: str = "",
+    extra_voice: str | None = None,
 ) -> tuple[bytes, list[TtsWordTiming]]:
     """Stream TTS to client via assistant_audio_chunk; return audio + word timings."""
     out = bytearray()
@@ -272,7 +299,12 @@ async def stream_tts(
     last_sent = time.monotonic()
     try:
         async for chunk in tts.synthesize_stream(
-            text, voice=voice, rate=rate, word_timings=timings
+            text,
+            voice=voice,
+            rate=rate,
+            word_timings=timings,
+            extra_text=extra_text,
+            extra_voice=extra_voice,
         ):
             out.extend(chunk)
             batch.extend(chunk)
@@ -311,8 +343,19 @@ async def stream_tts_then_text(
     *,
     voice: str | None = None,
     rate: str | None = None,
+    text_suffix: str = "",
+    extra_text: str = "",
+    extra_voice: str | None = None,
 ) -> bytes:
-    audio, timings = await stream_tts(send, tts, text, voice=voice, rate=rate)
+    audio, timings = await stream_tts(
+        send,
+        tts,
+        text,
+        voice=voice,
+        rate=rate,
+        extra_text=extra_text,
+        extra_voice=extra_voice,
+    )
     if audio:
         await asyncio.sleep(_TEXT_AFTER_AUDIO_LEAD_SEC)
     await emit_text_chunks(
@@ -321,6 +364,7 @@ async def stream_tts_then_text(
         rate=rate,
         word_timings=timings,
         audio_byte_len=len(audio),
+        suffix=text_suffix,
     )
     return audio
 
@@ -495,7 +539,12 @@ class ConversationHandler:
                 continue
             if m.kind == "score_feedback":
                 continue
-            h.append({"role": m.role, "content": m.text})
+            content = (
+                spoken_from_stored_assistant(m.text)
+                if m.role == "assistant"
+                else m.text
+            )
+            h.append({"role": m.role, "content": content})
         self.history = h
 
     def _client_history_messages_from_messages(
@@ -519,6 +568,7 @@ class ConversationHandler:
                 "text": m.text,
                 "turnId": m.id,
                 "guideline": m.guideline,
+                "retry": m.kind == _MSG_KIND_RETRY,
             }
             if m.role == "user" and m.audio_path and str(m.audio_path).strip():
                 row["hasUserAudio"] = True
@@ -804,6 +854,85 @@ class ConversationHandler:
         )
         return pack_to_prompt_snippet(resolved, max_items_per_section=5)
 
+    async def _stream_tutor_reply(self, raw_assistant: str) -> tuple[str, bytes, bool]:
+        """Parse SAY/NOTE/RETRY, TTS only SAY, keep spoken text in LM history."""
+        spoken, note, retry = parse_tutor_reply(raw_assistant)
+        if not spoken.strip():
+            spoken = _AI_UNAVAILABLE_ASSISTANT_TEXT
+            note = ""
+            retry = False
+        display = format_tutor_display(spoken, note, retry=retry)
+        self.history.append({"role": "assistant", "content": spoken})
+        suffix = ""
+        if note:
+            label = "Thử lại" if retry else "Lưu ý"
+            suffix = f"\n\n> **{label}:** {note}"
+        tts_bytes = await stream_tts_then_text(
+            self._send,
+            self._tts,
+            spoken,
+            voice=self._tts_voice,
+            rate=self._tts_rate,
+            text_suffix=suffix,
+            extra_text=note,
+        )
+        return display, tts_bytes, retry
+
+    async def _commit_turn_and_ack(
+        self,
+        db: AsyncSession,
+        *,
+        user_text: str,
+        assistant_text: str,
+        user_audio_path: str | None,
+        tts_bytes: bytes,
+        retry: bool,
+    ) -> None:
+        kind = _MSG_KIND_RETRY if retry else _MSG_KIND_CHAT
+        user_msg = SessionMessage(
+            session_id=self.session_id,
+            index_in_session=self.turn_index * 2,
+            role="user",
+            kind=kind,
+            text=user_text,
+            audio_path=user_audio_path,
+        )
+        db.add(user_msg)
+        await db.commit()
+        assistant_msg = SessionMessage(
+            session_id=self.session_id,
+            index_in_session=self.turn_index * 2 + 1,
+            role="assistant",
+            kind=kind,
+            text=assistant_text,
+            audio_path=None,
+        )
+        db.add(assistant_msg)
+        await db.commit()
+        await db.refresh(user_msg)
+        await db.refresh(assistant_msg)
+
+        user_dir = AUDIO_DIR / str(self._user_id) / str(self.session_id)
+        user_dir.mkdir(parents=True, exist_ok=True)
+        tts_path = user_dir / f"turn_{self.turn_index}_ai.mp3"
+        await self._send(
+            {
+                "type": "turn_saved",
+                "turnId": assistant_msg.id,
+                "userMessageId": user_msg.id,
+                "hasUserAudio": bool(
+                    user_msg.audio_path and str(user_msg.audio_path).strip()
+                ),
+                "indexInSession": self.turn_index,
+                "retry": retry,
+            }
+        )
+        if tts_bytes:
+            tts_path.write_bytes(tts_bytes)
+            assistant_msg.audio_path = str(tts_path)
+            await db.commit()
+        self.turn_index += 1
+
     async def _opening_topic_context_with_learning_pack(
         self, db: AsyncSession
     ) -> str | None:
@@ -835,6 +964,7 @@ class ConversationHandler:
             [{"role": "user", "content": prompt}],
             topic_context=ctx,
             topic_level=effective or None,
+            system_prompt=OPENING_SYSTEM,
         )
         max_open_tokens = _opening_max_tokens(effective)
         try:
@@ -846,6 +976,9 @@ class ConversationHandler:
             )
         except Exception as e:
             logger.warning("Opening message failed: %s", e)
+            opening_text = self._fallback_opening_text()
+        opening_text, _ = split_tutor_reply(opening_text)
+        if not opening_text.strip():
             opening_text = self._fallback_opening_text()
         self.history.append({"role": "assistant", "content": opening_text})
         self._opening_text = opening_text or None
@@ -930,9 +1063,10 @@ class ConversationHandler:
         user_text = _unescape_chat_newlines(user_text)
         await self._send({"type": "user_transcript", "text": user_text})
         self.history.append({"role": "user", "content": user_text})
+        reply_ctx = await self._opening_topic_context_with_learning_pack(db)
         messages = self._lm.build_messages(
             self.history,
-            topic_context=ctx,
+            topic_context=reply_ctx,
             topic_level=effective or None,
         )
         max_tokens = _lm_max_reply_tokens(
@@ -940,7 +1074,7 @@ class ConversationHandler:
         )
 
         try:
-            assistant_text = await generate_llm_text(
+            assistant_raw = await generate_llm_text(
                 self._lm,
                 messages,
                 temperature=0.7,
@@ -948,58 +1082,18 @@ class ConversationHandler:
             )
         except Exception:
             logger.exception("LM generate failed")
-            assistant_text = _AI_UNAVAILABLE_ASSISTANT_TEXT
+            assistant_raw = _AI_UNAVAILABLE_ASSISTANT_TEXT
             await self._send({"type": "error", "message": "AI unavailable"})
 
-        self.history.append({"role": "assistant", "content": assistant_text})
-
-        user_msg = SessionMessage(
-            session_id=self.session_id,
-            index_in_session=self.turn_index * 2,
-            role="user",
-            kind="chat",
-            text=user_text,
-            audio_path=str(audio_path),
+        assistant_text, tts_bytes, retry = await self._stream_tutor_reply(assistant_raw)
+        await self._commit_turn_and_ack(
+            db,
+            user_text=user_text,
+            assistant_text=assistant_text,
+            user_audio_path=str(audio_path),
+            tts_bytes=tts_bytes,
+            retry=retry,
         )
-        db.add(user_msg)
-        await db.commit()
-        assistant_msg = SessionMessage(
-            session_id=self.session_id,
-            index_in_session=self.turn_index * 2 + 1,
-            role="assistant",
-            kind="chat",
-            text=assistant_text,
-            audio_path=None,
-        )
-        db.add(assistant_msg)
-        await db.commit()
-        await db.refresh(user_msg)
-        await db.refresh(assistant_msg)
-
-        tts_path = user_dir / f"turn_{self.turn_index}_ai.mp3"
-        tts_bytes = await stream_tts_then_text(
-            self._send,
-            self._tts,
-            assistant_text,
-            voice=self._tts_voice,
-            rate=self._tts_rate,
-        )
-        await self._send(
-            {
-                "type": "turn_saved",
-                "turnId": assistant_msg.id,
-                "userMessageId": user_msg.id,
-                "hasUserAudio": bool(
-                    user_msg.audio_path and str(user_msg.audio_path).strip()
-                ),
-                "indexInSession": self.turn_index,
-            }
-        )
-        if tts_bytes:
-            tts_path.write_bytes(tts_bytes)
-            assistant_msg.audio_path = str(tts_path)
-            await db.commit()
-        self.turn_index += 1
         return True
 
     async def handle_user_text(self, db: AsyncSession, data: dict) -> bool:
@@ -1021,10 +1115,10 @@ class ConversationHandler:
         self.history.append({"role": "user", "content": user_text})
 
         effective = self._effective_level() or ""
-        ctx = await self._topic_context_for_llm(db)
+        reply_ctx = await self._opening_topic_context_with_learning_pack(db)
         messages = self._lm.build_messages(
             self.history,
-            topic_context=ctx,
+            topic_context=reply_ctx,
             topic_level=effective or None,
         )
         settings = get_settings()
@@ -1033,7 +1127,7 @@ class ConversationHandler:
         )
 
         try:
-            assistant_text = await generate_llm_text(
+            assistant_raw = await generate_llm_text(
                 self._lm,
                 messages,
                 temperature=0.7,
@@ -1041,60 +1135,18 @@ class ConversationHandler:
             )
         except Exception:
             logger.exception("LM generate failed (text turn)")
-            assistant_text = _AI_UNAVAILABLE_ASSISTANT_TEXT
+            assistant_raw = _AI_UNAVAILABLE_ASSISTANT_TEXT
             await self._send({"type": "error", "message": "AI unavailable"})
 
-        self.history.append({"role": "assistant", "content": assistant_text})
-
-        user_msg = SessionMessage(
-            session_id=self.session_id,
-            index_in_session=self.turn_index * 2,
-            role="user",
-            kind="chat",
-            text=user_text,
-            audio_path=None,
+        assistant_text, tts_bytes, retry = await self._stream_tutor_reply(assistant_raw)
+        await self._commit_turn_and_ack(
+            db,
+            user_text=user_text,
+            assistant_text=assistant_text,
+            user_audio_path=None,
+            tts_bytes=tts_bytes,
+            retry=retry,
         )
-        db.add(user_msg)
-        await db.commit()
-        assistant_msg = SessionMessage(
-            session_id=self.session_id,
-            index_in_session=self.turn_index * 2 + 1,
-            role="assistant",
-            kind="chat",
-            text=assistant_text,
-            audio_path=None,
-        )
-        db.add(assistant_msg)
-        await db.commit()
-        await db.refresh(user_msg)
-        await db.refresh(assistant_msg)
-
-        user_dir = AUDIO_DIR / str(self._user_id) / str(self.session_id)
-        user_dir.mkdir(parents=True, exist_ok=True)
-        tts_path = user_dir / f"turn_{self.turn_index}_ai.mp3"
-        tts_bytes = await stream_tts_then_text(
-            self._send,
-            self._tts,
-            assistant_text,
-            voice=self._tts_voice,
-            rate=self._tts_rate,
-        )
-        await self._send(
-            {
-                "type": "turn_saved",
-                "turnId": assistant_msg.id,
-                "userMessageId": user_msg.id,
-                "hasUserAudio": bool(
-                    user_msg.audio_path and str(user_msg.audio_path).strip()
-                ),
-                "indexInSession": self.turn_index,
-            }
-        )
-        if tts_bytes:
-            tts_path.write_bytes(tts_bytes)
-            assistant_msg.audio_path = str(tts_path)
-            await db.commit()
-        self.turn_index += 1
         return True
 
     async def _score_pending_turns_and_send_summary(self, db: AsyncSession) -> None:

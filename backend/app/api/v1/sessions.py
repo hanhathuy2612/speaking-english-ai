@@ -267,11 +267,11 @@ async def get_session(
         select(SessionMessage)
         .where(
             SessionMessage.session_id == session.id,
-            SessionMessage.kind == "chat",
+            SessionMessage.kind.in_(("chat", "retry")),
         )
         .order_by(SessionMessage.index_in_session, SessionMessage.id)
     )
-    messages = list(msg_q.scalars().all())
+    messages = list[SessionMessage](msg_q.scalars().all())
     turns_out = []
     pending_user: SessionMessage | None = None
     t_idx = 0

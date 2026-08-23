@@ -42,6 +42,7 @@ export interface ConversationWsSink {
     userMessageId: number,
     hasUserAudio: boolean,
     indexInSession: number,
+    retry: boolean,
   ): void;
 }
 
@@ -102,7 +103,7 @@ export function routeConversationWsMessage(
         Number.isFinite(idx)
       ) {
         const uid = typeof userId === 'number' && Number.isFinite(userId) ? userId : assistantId;
-        sink.onTurnSaved(assistantId, uid, hasUserAudio, idx);
+        sink.onTurnSaved(assistantId, uid, hasUserAudio, idx, msg['retry'] === true);
       }
       break;
     }

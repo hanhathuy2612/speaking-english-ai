@@ -4,6 +4,8 @@ export const GUIDE_PANEL_MAX_W = 560;
 export const GUIDE_PANEL_DEFAULT_W = 320;
 
 export const TTS_RATE_OPTIONS = ['-30%', '-20%', '-10%', '+0%', '+10%', '+20%', '+30%'];
+/** Learner-friendly default — Edge TTS +0% is brisk for speaking practice. */
+export const TTS_RATE_DEFAULT = '-20%';
 const IELTS_BANDS: ReadonlyArray<string> = [
   '4',
   '4.5',

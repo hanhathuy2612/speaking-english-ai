@@ -71,6 +71,10 @@ export class ConversationMessageListComponent {
     }
   }
 
+  asksRetry(m: ChatMessage): boolean {
+    return m.needsRetry === true || /\*\*Thử lại:\*\*/.test(m.text ?? '');
+  }
+
   renderMarkdown(text: string | null | undefined): SafeHtml {
     const raw = decodeEscapedLineBreaks(text ?? '').trim();
     if (!raw) return this.sanitizer.bypassSecurityTrustHtml('');

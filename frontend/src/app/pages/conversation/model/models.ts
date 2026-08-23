@@ -13,6 +13,8 @@ export interface ChatMessage {
   turnId?: number;
   guideline?: string;
   sessionRecap?: boolean;
+  /** Tutor asked the learner to answer the same question again. */
+  needsRetry?: boolean;
 }
 
 /** Roadmap step meta from WebSocket (camelCase). */

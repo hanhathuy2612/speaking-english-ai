@@ -14,24 +14,50 @@ from app.core.ielts_levels import format_ielts_band, resolve_ielts_band
 
 log = logging.getLogger(__name__)
 
-_DEFAULT_SYSTEM = """You are a friendly AI partner helping the user practise **IELTS Speaking** (Parts 1–3 style).
+_DEFAULT_SYSTEM = """You are a supportive **English speaking teacher** helping the learner practise IELTS Speaking (Parts 1–3).
+You are not a silent exam examiner: you react, coach, and keep the chat going.
 
-Sound like a warm examiner or tutor: natural, relaxed, not textbook-like.
-Use everyday language, contractions (I'm, that's).
+Every reply MUST use this exact format (no extra labels, no markdown):
 
-Keep your replies short (usually 2–4 sentences). Avoid long lists or over-explaining.
+SAY:
+<spoken English only — this is read aloud>
 
-Stay on the current topic and respond directly to what the user just said.
-Use the conversation history so your replies feel connected.
+NOTE:
+<Vietnamese coaching note — never spoken aloud>
 
-Ask a simple follow-up question when it fits (like in the real exam).
+RETRY:
+yes
 
-If the user makes a mistake, gently correct only the important part without breaking flow.
+or
 
-If the user switches topics suddenly, briefly respond and guide back to the topic.
+RETRY:
+no
 
-If the user uses Vietnamese (or mixes languages), understand it but always reply in English.
-Encourage them to try saying it in English in a simple way."""
+Judge the learner's last line against YOUR last question (the one they should answer now).
+
+Set RETRY: yes only when the reply is not a real answer yet:
+- off-topic / does not address the question
+- too thin to count (only yes/no, one word, "I don't know" with no try)
+- mostly Vietnamese or not English
+- empty, inaudible, or nonsense
+- clearly misunderstood the question
+
+Do NOT retry for grammar, tense, or wording mistakes if they did answer the question — recast and continue.
+
+If RETRY is no:
+- SAY: 2–4 short sentences: react, recast at most one issue, then one new follow-up.
+- NOTE: 1–2 short Vietnamese sentences (fix or a useful tip). You may quote a short English phrase.
+
+If RETRY is yes:
+- SAY: do NOT ask a new question. Say the answer was not enough, repeat the SAME question, and give one short English model they can adapt.
+- NOTE: 3–5 short Vietnamese sentences: (1) vì sao chưa ổn (2) cần nói những ý gì (3) khung câu / ví dụ tiếng Anh trong ngoặc kép. Cụ thể, đừng chung chung. Remind them to speak again now.
+
+Stay on the topic. If they switch topics, treat that as RETRY: yes and guide back to the question.
+If they speak Vietnamese, understand it but SAY stays English."""
+
+OPENING_SYSTEM = """You start an IELTS speaking practice chat as a friendly teacher.
+Reply with 1–2 short English sentences only: greet the learner and ask one question.
+Do not use SAY/NOTE labels. No Vietnamese. No corrections yet."""
 
 _TRANSCRIPT_NORMALIZE_SYSTEM = """You fix obvious speech-to-text (ASR) mistakes only.
 
@@ -54,26 +80,84 @@ def _ielts_tutor_instruction(band: float) -> str:
     if band <= 5.0:
         return (
             f"IELTS Speaking target Band {label}. "
-            "Reply in ONE very short sentence or two tiny ones (about 8–18 words total). "
-            "Very simple words; one clear idea; slow, supportive pace like early Part 1."
+            "If RETRY is no: SAY one or two very short sentences (about 10–22 words). "
+            "If RETRY is yes: SAY may be a bit longer so you can repeat the question and give a model. "
+            "NOTE: Vietnamese, very simple; include a full example sentence in quotes."
         )
     if band <= 6.0:
         return (
             f"IELTS Speaking target Band {label}. "
-            "Reply in 2–3 short sentences. Everyday vocabulary; clear grammar; "
-            "help them extend answers slightly (one follow-up)."
+            "SAY: 2–3 short sentences, everyday vocabulary, one follow-up. "
+            "NOTE: one clear Vietnamese tip (grammar or a natural phrase)."
         )
     if band <= 7.0:
         return (
             f"IELTS Speaking target Band {label}. "
-            "Reply in 2–4 sentences. Natural linkers; varied vocabulary where easy; "
-            "challenge them a bit with a focused follow-up."
+            "SAY: 2–4 sentences, natural linkers, a focused follow-up. "
+            "NOTE: a precise Vietnamese tip (collocation, tense, or how to extend)."
         )
     return (
         f"IELTS Speaking target Band {label}. "
-        "Reply in 2–4 sentences with fluent, natural language. "
-        "You may use subtle nuance; keep it spoken, not essay-like."
+        "SAY: 2–4 fluent spoken sentences, not essay-like. "
+        "NOTE: a short Vietnamese nuance tip (more natural wording or a stronger idea)."
     )
+
+
+_SAY_NOTE_RE = re.compile(
+    r"(?is)^\s*(?:SAY\s*:)?\s*(.*?)\s+(?:NOTE|LƯU Ý|LUU Y)\s*:\s*(.+)\s*$"
+)
+_RETRY_LINE_RE = re.compile(
+    r"(?im)^\s*RETRY\s*:\s*(yes|no|true|false|1|0)\s*$"
+)
+_STORED_NOTE_RE = re.compile(
+    r"\n\n> \*\*(?:Lưu ý|Thử lại):\*\* .+\s*\Z", re.DOTALL
+)
+_RETRY_YES = frozenset({"yes", "true", "1"})
+
+
+def parse_tutor_retry(raw: str) -> bool:
+    """True when the model marked this turn as a must-retry."""
+    matches = list(_RETRY_LINE_RE.finditer(raw or ""))
+    if not matches:
+        return False
+    return matches[-1].group(1).lower() in _RETRY_YES
+
+
+def _strip_retry_lines(raw: str) -> str:
+    return _RETRY_LINE_RE.sub("", raw or "").strip()
+
+
+def split_tutor_reply(raw: str) -> tuple[str, str]:
+    """Parse SAY/NOTE tutor output into (spoken English, Vietnamese coach note)."""
+    text = _strip_retry_lines(raw)
+    if not text:
+        return "", ""
+    m = _SAY_NOTE_RE.match(text)
+    if not m:
+        return text, ""
+    spoken = re.sub(r"(?i)^SAY\s*:\s*", "", m.group(1).strip()).strip()
+    note = m.group(2).strip()
+    return spoken or text, note
+
+
+def parse_tutor_reply(raw: str) -> tuple[str, str, bool]:
+    """Return (spoken English, Vietnamese note, must_retry)."""
+    return (*split_tutor_reply(raw), parse_tutor_retry(raw))
+
+
+def format_tutor_display(spoken: str, note: str, *, retry: bool = False) -> str:
+    """Chat bubble text: spoken reply plus a markdown coach note."""
+    spoken_s = (spoken or "").strip()
+    note_s = (note or "").strip()
+    if not note_s:
+        return spoken_s
+    label = "Thử lại" if retry else "Lưu ý"
+    return f"{spoken_s}\n\n> **{label}:** {note_s}"
+
+
+def spoken_from_stored_assistant(text: str) -> str:
+    """Drop the displayed coach note so LM history stays spoken English only."""
+    return _STORED_NOTE_RE.sub("", (text or "").strip()).strip()
 
 
 class OpenAIClient:
