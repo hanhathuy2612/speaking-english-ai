@@ -16,10 +16,25 @@ android {
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    def releasePropsFile = rootProject.file('keystore.properties')
+    if (releasePropsFile.exists()) {
+        signingConfigs {
+            release {
+                def props = new Properties()
+                releasePropsFile.withInputStream { props.load(it) }
+                storeFile rootProject.file(props['storeFile'])
+                storePassword props['storePassword']
+                keyAlias props['keyAlias']
+                keyPassword props['keyPassword']
+            }
+        }
+    }
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            // Local test: debug keystore so the APK installs. Production: add android/keystore.properties.
+            signingConfig releasePropsFile.exists() ? signingConfigs.release : signingConfigs.debug
         }
     }
 }

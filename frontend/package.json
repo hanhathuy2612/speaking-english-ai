@@ -17,6 +17,8 @@
     "cap:open": "cap open android",
     "android:build": "npm run build:mobile && npm run cap:sync",
     "android:build:emu": "npm run build:mobile:emu && npm run cap:sync",
+    "android:apk": "npm run android:build && node scripts/android-gradle.cjs assembleDebug",
+    "android:apk:release": "npm run android:build && node scripts/android-gradle.cjs assembleRelease",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "format": "prettier --write \"src/**/*.{ts,html}\"",

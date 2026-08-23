@@ -43,7 +43,9 @@ if "://" not in parse_url:
 u = urlparse(parse_url)
 dbname = (u.path or "/").strip("/").split("?")[0] or "speaking_english"
 # Connect to default "postgres" DB to run CREATE DATABASE
-connect_url = urlunparse((u.scheme, u.netloc, "/postgres", u.params, u.query, u.fragment))
+connect_url = urlunparse(
+    (u.scheme, u.netloc, "/postgres", u.params, u.query, u.fragment)
+)
 
 try:
     import psycopg2
