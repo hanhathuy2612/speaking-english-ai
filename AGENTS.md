@@ -74,4 +74,26 @@ python -m scripts.stt_bench --config large-v3-turbo,cuda,float16,3 --show
 - Giữ code đơn giản, không thêm framework hay bước build cho frontend. Giữ hướng phụ thuộc giữa các lớp như trên.
 - Đổi prompt thì kiểm chứng bằng `scripts/replay.py`. Đổi STT thì đo bằng `scripts/stt_bench.py`. Không đoán.
 - **Cổng 8000 là server của người dùng.** Thử nghiệm ở cổng 8001, không tắt `python.exe` theo tên, không xóa `recordings/`.
-- **Sửa tính năng nào thì cập nhật file docs tương ứng trong cùng lần sửa.** Thêm tính năng mới thì thêm file trong `docs/features/` và một dòng vào bảng trên.
+- **Sửa tính năng nào thì cập nhật file docs tương ứng trong cùng commit.** Thêm tính năng mới thì thêm file trong `docs/features/` và một dòng vào bảng trên.
+
+## Git và commit
+
+Theo [Conventional Commits 1.0.0](https://www.conventionalcommits.org/en/v1.0.0/). Commit message viết bằng tiếng Anh.
+
+```
+<type>(<scope>): <subject>
+
+<body: vì sao thay đổi, không chỉ thay đổi gì>
+
+<footer: BREAKING CHANGE: ..., Refs: ..., Co-Authored-By: ...>
+```
+
+- **type:** `feat` (tính năng mới), `fix` (sửa lỗi), `refactor` (đổi cấu trúc, không đổi hành vi), `perf`, `test`, `docs`, `style` (định dạng, không đổi logic), `build` (dependency, requirements), `chore` (việc vặt, cấu hình), `revert`.
+- **scope** (không bắt buộc): `backend`, `frontend`, `stt`, `tts`, `llm`, `interview`, `bench`, `config`, `docs`.
+- **subject:** câu mệnh lệnh, chữ thường ở đầu, không dấu chấm cuối, tối đa 72 ký tự. Ví dụ: `fix(stt): fall back to cpu when cuda dlls are missing`.
+- **body:** xuống dòng ở khoảng 72 ký tự. Nêu lý do và cách đã kiểm chứng (test, replay, stt_bench).
+- **Thay đổi phá vỡ tương thích** (đổi lệnh chạy, đổi biến `.env`, đổi giao thức WebSocket): thêm `!` sau type (`refactor!: ...`) và footer `BREAKING CHANGE: <mô tả + cách chuyển đổi>`.
+- Mỗi commit là một thay đổi logic trọn vẹn. Không gộp việc không liên quan vào một commit.
+- Trước khi commit: `python -m pytest` phải qua. Đổi prompt hoặc STT thì ghi kết quả `replay.py` / `stt_bench.py` vào body.
+- Không commit `.env`, `recordings/`, file âm thanh (đã có trong `.gitignore`). Thêm biến cấu hình mới thì cập nhật `.env.example` trong cùng commit.
+- **Nhánh:** `<type>/<mô-tả-ngắn>`, ví dụ `feat/shadowing-mode`, `fix/stt-unclear-threshold`. Không commit thẳng vào `main`. Chỉ commit, push hay gộp nhánh khi người dùng yêu cầu.
