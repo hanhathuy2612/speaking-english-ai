@@ -1,15 +1,16 @@
 # Môi trường phát triển và kiểm thử
 
-Windows 11, Python 3.11, venv tại `.venv`. GPU RTX 3060 12 GB. LM Studio chạy ở cổng 1234.
+Windows 11, Python 3.11 (venv tại `.venv`), Node 22 / npm 12. GPU RTX 3060 12 GB. LM Studio chạy ở cổng 1234.
 
 ## Kiểm thử
 
 | Việc | Lệnh |
 |---|---|
-| Test logic thuần (không cần model) | `python -m pytest` |
+| Test backend (không cần model) | `python -m pytest` (trong `backend/`) |
+| Test và build frontend | `npm test`, `npm run build` (trong `frontend/`) |
 | Kiểm chứng prompt | `python -m scripts.replay answers.txt --runs 3 --url ws://localhost:8001/ws` |
 | Đo STT | `python -m scripts.stt_bench --config ...` (xem [stt-benchmark.md](features/stt-benchmark.md)) |
-| Thử giao diện | Mở `http://localhost:8001` trên trình duyệt. Ô gõ chữ cho phép thử mà không cần micro. |
+| Thử giao diện | `npm run build` rồi mở `http://localhost:8001`, hoặc `BACKEND_URL=http://localhost:8001 npm run dev` rồi mở `http://localhost:5173`. Ô gõ chữ cho phép thử mà không cần micro. |
 
 ## Quy tắc khi chạy thử
 
@@ -35,5 +36,7 @@ powershell -NoProfile -Command "Get-NetTCPConnection -LocalPort 8001 -State List
 
 - **In tiếng Việt lỗi `UnicodeEncodeError: 'charmap'`** khi chuyển output ra file: đặt `PYTHONIOENCODING=utf-8`. `app/main.py` đã tự `reconfigure` stdout, nhưng các script khác thì chưa.
 - **Python 3.11** không cho dùng lại cùng loại dấu nháy bên trong f-string lồng nhau.
+- **npm 12 chặn script cài đặt** (`install-scripts`). Cảnh báo về esbuild là bình thường, build vẫn chạy.
+- **Trình duyệt thử không có micro.** Để thử luồng ghi âm (kể cả nói lại), tạo file MP3 bằng edge-tts rồi gửi thẳng qua WebSocket (`ws://localhost:8001/ws`) bằng script Python, hoặc gửi vào đúng socket của trang.
 - **CRLF:** một số file có thể dùng xuống dòng CRLF, nên thay chuỗi nhiều dòng bằng script dễ không khớp. Dùng công cụ Edit.
 - **`cublas64_12.dll` not found:** thiếu gói CUDA trong venv (xem [speech-recognition.md](features/speech-recognition.md)), hoặc quên gọi `add_cuda_dlls()` (`core/cuda.py`) trước khi import faster_whisper.

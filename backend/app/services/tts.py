@@ -1,6 +1,6 @@
 """Text-to-speech with edge-tts (MP3). Swap point: changing TTS only touches tts_bytes().
 
-If the new TTS returns WAV/PCM, change the Blob `type` in frontend/js/app.js (currently audio/mpeg).
+If the new TTS returns WAV/PCM, change the Blob `type` in frontend/src/hooks/useAudioQueue.ts (currently audio/mpeg).
 """
 
 from __future__ import annotations

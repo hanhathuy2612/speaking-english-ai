@@ -1,67 +1,72 @@
 # Giao diện (`frontend/`)
 
-HTML/CSS/JS thuần, không build, không framework, không tải tài nguyên ngoài (font hệ thống, icon SVG viết thẳng trong HTML).
-Server phục vụ `/` và `/bench`; file tĩnh nằm dưới `/static/` (xem `backend/app/main.py`).
+React 19 + TypeScript + Vite, định tuyến bằng React Router 7. Không có thư viện UI hay state manager: style là CSS thuần dùng chung token (`src/styles/`), trạng thái phòng tập là một `useReducer`. Không tải tài nguyên ngoài lúc chạy (font hệ thống, icon SVG viết trong code), nên app chạy offline.
 
-## File
+## Lệnh (trong `frontend/`, cần Node 22.12+)
 
-| File | Vai trò |
+| Lệnh | Việc |
 |---|---|
-| `index.html` | Phòng tập |
-| `history.html` | Trang Tiến bộ (xem [session-history.md](session-history.md)) |
-| `bench.html` | Trang đọc theo câu mẫu (xem [stt-benchmark.md](stt-benchmark.md)) |
-| `css/base.css` | Design token (màu, bo góc, bóng, font), chế độ tối, reset và component dùng chung: `.appbar`, `.brand`, `.card`, `.btn`, `.chip`, `.status`, `.mic`, `.eyebrow` |
-| `css/app.css`, `css/history.css`, `css/bench.css` | Bố cục và component riêng từng trang |
-| `js/app.js` | Toàn bộ logic phòng tập |
-| `js/history.js` | Ô số liệu, biểu đồ đường SVG (đường dóng + chú thích nổi), bảng các buổi tập |
-| `js/bench.js` | Thu âm và lưu từng câu mẫu |
+| `npm install` | Cài dependency (lần đầu, hoặc khi `package.json` đổi) |
+| `npm run dev` | Dev server ở http://localhost:5173, tự nạp lại khi sửa code. Chuyển `/api` và `/ws` sang backend (mặc định cổng 8000, đổi bằng biến `BACKEND_URL`) |
+| `npm run build` | Kiểm tra kiểu (`tsc -b`) rồi build vào `frontend/dist/`. Backend phục vụ thư mục này |
+| `npm run typecheck` | Chỉ kiểm tra kiểu |
+| `npm test` | Vitest (hàm thuần trong `src/lib/`) |
 
-## Hệ thiết kế (`css/base.css`)
+Backend phục vụ bản build: `/`, `/history`, `/bench` đều trả `dist/index.html`, React Router chọn trang; JS/CSS nằm dưới `/assets`. Chưa build thì các trang này trả hướng dẫn build (HTTP 503). Xem `backend/app/main.py`.
 
-- **Màu:** chỉ dùng biến token, không viết mã màu trực tiếp trong CSS trang. Nền `--bg`, bề mặt `--surface`/`--surface-2`, viền `--border`/`--border-strong`, chữ `--text`/`--text-2`/`--text-3`, màu nhấn `--primary` (+ `-hover`, `-soft`, `--on-primary`), trạng thái `--success`/`--warning`/`--danger` (+ `-soft`).
-- **Chế độ tối:** định nghĩa lại cùng các token trong `@media (prefers-color-scheme: dark)`. Thêm token mới thì phải khai báo ở cả hai chế độ.
-- **Biểu đồ:** `--chart-line`, `--chart-grid`. Màu biểu đồ phải qua `validate_palette.js` (skill dataviz) ở cả hai chế độ.
-- **Component:**
-  - `.btn` (biến thể `.btn-ghost`, `.btn-sm`).
+## Cấu trúc `src/`
+
+```
+main.tsx                    # gắn React Router: / , /history , /bench
+api/types.ts                # kiểu dữ liệu của API và giao thức WebSocket
+lib/format.ts               # hàm thuần: fmtDate, fmtNum, niceMax, latestWithDelta (+ format.test.ts)
+components/                 # dùng chung: AppBar (thanh trên + điều hướng), Icons, ui (Chip, StatusLine)
+hooks/
+  useHoldToTalk.ts          # ghi âm giữ để nói (MediaRecorder webm/opus) + giữ phím Space
+  useAudioQueue.ts          # hàng đợi phát MP3, báo khi một câu bắt đầu phát
+features/
+  practice/                 # phòng tập
+    useInterview.ts         # WebSocket + reducer trạng thái + hành động (gửi chữ, ghi âm, hoàn tác, nói lại)
+    PracticePage.tsx        # bố cục trang, nối hook ghi âm với useInterview
+    Sidebar.tsx, Chat.tsx, CoachCard.tsx (thẻ NOTE + kết quả nói lại)
+  history/                  # HistoryPage.tsx, LineChart.tsx (biểu đồ SVG)
+  bench/                    # BenchPage.tsx
+styles/                     # base.css (token, component chung), practice.css, history.css, bench.css
+```
+
+## Luồng dữ liệu phòng tập (`useInterview.ts`)
+
+- Một WebSocket cho mỗi lần mở trang. Tin JSON từ server đi vào reducer (`onServer`), trạng thái là `InterviewState`.
+- Tin `sentence` không vào reducer: nó được ghép với khung nhị phân MP3 ngay sau đó và đẩy vào `useAudioQueue`. Khi câu **bắt đầu phát**, hook gửi action `aiSentence` để thêm chữ vào tin nhắn AI của lượt đó (chữ đi theo giọng).
+- `turnRef` đếm lượt **đồng bộ theo từng tin nhắn**, vì khung âm thanh của một lượt có thể tới trước khi React render lại. Tin `started` đặt lại bộ đếm.
+- Hoàn tác (`undone`) gỡ cả tin nhắn của người học và của AI có cùng `lastMeTurn`, cùng thẻ tổng kết nếu có.
+- Nói lại: `beginShadow` bật `shadow.waiting`; khi có bản ghi, `sendRecording` gửi `{"type":"shadow"}` ngay trước khung âm thanh. Gõ chữ luôn là câu trả lời phỏng vấn (tắt chế độ nói lại).
+
+## Hệ thiết kế (`src/styles/base.css`)
+
+- **Màu:** chỉ dùng token, không viết mã màu trực tiếp. Nền `--bg`, bề mặt `--surface`/`--surface-2`, viền `--border`/`--border-strong`, chữ `--text`/`--text-2`/`--text-3`, màu nhấn `--primary` (+ `-hover`, `-soft`, `--on-primary`), trạng thái `--success`/`--warning`/`--danger` (+ `-soft`), biểu đồ `--chart-line`/`--chart-grid`.
+- **Chế độ tối:** định nghĩa lại cùng token trong `@media (prefers-color-scheme: dark)`. Thêm token mới phải khai báo ở cả hai chế độ. Màu biểu đồ phải qua `validate_palette.js` (skill dataviz) ở cả hai chế độ.
+- **Component CSS:**
+  - `.btn` (biến thể `.btn-primary`, `.btn-ghost`, `.btn-sm`).
   - `.chip` (biến thể `.chip-success`, `.chip-warning`).
-  - `.status` với `data-state` = `ready` | `busy` | `recording` | `warn` | `error`, quyết định màu chấm trạng thái.
-  - `.mic`: nút micro tròn, có class `.rec` khi đang ghi âm.
+  - `.status[data-state]` với `ready` | `busy` | `recording` | `warn` | `error`.
+  - `.mic` / `.mic.rec`, `.card`, `.appbar`, `.nav`.
+- CSS của mỗi trang được import trong component trang, nhưng Vite gộp tất cả thành một file. Vì vậy **tên class là toàn cục**: không đặt trùng tên class giữa các trang với ý nghĩa khác nhau.
 - Giảm chuyển động khi người dùng bật `prefers-reduced-motion`.
 
-## Bố cục `index.html`
+## Bố cục phòng tập
 
-- **Thanh trên (`.appbar`):** logo, chọn bài (`#unit`), tiến độ (`#progress` + thanh `#progressFill`), nhãn cấu hình STT (`#sttLabel`, ẩn khi màn hình hẹp hơn 1180px), thanh điều hướng `.nav` (Phòng tập, Tiến bộ, Đo nhận dạng; trang hiện tại có `aria-current="page"`). Cả ba trang dùng chung `.nav`.
-- **Cột trái (`.sidebar`):** thẻ mục tiêu (`#goal`), thẻ mẫu câu (`#phrases`, bộ đếm `#phraseCount`), mục thu gọn "Chỉ số kỹ thuật" (`#timing`, `#conf`).
-- **Giữa (`.stage`):**
-  - Hội thoại (`#chat`): mỗi lượt là một `.msg.ai` hoặc `.msg.me`, gồm avatar, `.who`, `.bubble`, `.meta` (các chip chỉ số nói). Lượt "nghe chưa rõ" có thêm class `.unclear`. Khi hết phiên, thẻ tổng kết `.summary` được thêm vào cuối hội thoại.
-  - Thanh dưới (`.dock`): thẻ NOTE (`#coach`, ẩn bằng thuộc tính `hidden`; có nút nói lại `#shadowStart`/`#shadowCancel`, vùng kết quả `#shadowResult`, class `.shadowing` khi đang chờ đọc và `.has-result` khi đã có kết quả) và khung trả lời (`.composer`), gồm nút micro `#talk`, ô gõ chữ `#typed`, nút hoàn tác `#undo`, trạng thái `#status`.
-- **Màn hình hẹp (từ 960px trở xuống):** một cột, trang cuộn bình thường, thanh dưới dính đáy màn hình, cột trái xuống sau hội thoại. Từ 560px trở xuống: ẩn tên ứng dụng, nút hoàn tác xuống dòng dưới ô gõ chữ.
-
-## Hàm chính trong `js/app.js`
-
-| Hàm | Việc |
-|---|---|
-| `init()`, `loadUnits()`, `startUnit()` | Kết nối WebSocket, tải danh sách bài, bắt đầu bài |
-| `onMessage()` | Xử lý mọi tin từ server (xem giao thức trong [architecture.md](../architecture.md)) |
-| `setStatus(text, state)` | Dòng trạng thái kèm chấm màu |
-| `renderUnit()`, `markUsed()`, `renderProgress()` | Mục tiêu, danh sách mẫu câu kèm bộ đếm, thanh tiến độ |
-| `addMessage()`, `speechChips()`, `chip()` | Một tin nhắn trong hội thoại và các chip chỉ số nói |
-| `renderCoach()`, `renderSummary()` | Thẻ NOTE và thẻ tổng kết |
-| `beginShadow()`, `endShadow()`, `renderShadow()` | Chế độ nói lại câu NOTE và kết quả tô từng từ (xem [shadowing.md](shadowing.md)) |
-| `enqueue()`, `playNext()`, `appendAi()`, `stopPlayback()` | Hàng đợi phát MP3 (xem [tts-audio.md](tts-audio.md)) |
-| `startRec()`, `stopRec()` | Ghi âm giữ để nói bằng MediaRecorder (webm/opus). File dưới 3000 byte bị bỏ. |
-
-Giữ nút micro **hoặc phím Space** để nói. Space không có tác dụng khi đang gõ trong ô nhập hay ô chọn.
-
-## Trạng thái `st` trong `js/app.js`
-
-`shadow` (câu NOTE đang chờ đọc lại), `turn` (đếm lượt), `lines` (tin nhắn AI theo lượt), `lastMe` (tin nhắn gần nhất của người học, dùng cho hoàn tác), `queue`/`playing`/`audio` (phát âm thanh), `pending` (metadata câu đang chờ khung MP3).
+- **Thanh trên:** logo, chọn bài, tiến độ, nhãn cấu hình STT (ẩn khi màn hình hẹp hơn 1180px), điều hướng (`NavLink` tự gắn `aria-current="page"`).
+- **Cột trái:** mục tiêu, mẫu câu kèm bộ đếm, "Chỉ số kỹ thuật" thu gọn.
+- **Giữa:** hội thoại (`.msg.ai` / `.msg.me`, chip chỉ số nói, `.unclear`; thẻ tổng kết ở cuối) và thanh dưới (`.dock`): thẻ NOTE (`.coach`, thêm `.shadowing` khi chờ đọc lại, `.has-result` khi có kết quả) và khung trả lời (`.composer`).
+- **Màn hình hẹp** (từ 960px trở xuống): một cột, thanh dưới dính đáy. Từ 560px trở xuống: ẩn tên app, nút hoàn tác xuống dòng, ẩn chú giải của kết quả nói lại.
 
 ## Quy ước
 
-- Mọi chữ hiện cho người dùng bằng tiếng Việt, trừ lời AI và câu mẫu.
-- Không dùng `innerHTML` cho dữ liệu từ server. Chỉ dùng `textContent` (`innerHTML` chỉ dành cho khung HTML tĩnh viết sẵn trong code).
+- TypeScript `strict`. Kiểu dữ liệu từ server khai báo trong `api/types.ts`; sửa giao thức thì sửa cả file này và `docs/architecture.md`.
+- Component là function component + hooks. Logic không phụ thuộc giao diện để trong `lib/` và có test Vitest.
+- Mọi chữ hiện cho người dùng bằng tiếng Việt, trừ lời AI và câu mẫu. Code, comment, tên biến bằng tiếng Anh.
+- Không dùng `dangerouslySetInnerHTML`. Dữ liệu từ server luôn render qua JSX (React tự escape).
 - Nút chỉ có icon phải có `aria-label`. Vùng nội dung thay đổi dùng `aria-live` hoặc `role="status"`.
-- Đường dẫn trong HTML là tuyệt đối từ gốc server (`/static/css/...`).
-- Ẩn/hiện bằng thuộc tính `hidden`, không dùng class riêng.
-- Sửa giao diện thì kiểm tra cả chế độ sáng, tối và màn hình 375px, và trang không được cuộn ngang.
+- Thêm dependency phải ghim phiên bản cụ thể và `npm audit` không còn lỗ hổng.
+- Sửa giao diện thì kiểm tra cả chế độ sáng, tối, màn hình 375px, trang không cuộn ngang, và `npm run build` không lỗi.

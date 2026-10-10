@@ -40,7 +40,7 @@
 
 - `handle_user_input()` lưu `s.prev = s.snapshot()` trước khi thay đổi trạng thái.
 - `undo` khôi phục snapshot (kể cả `done`, `used`, `history`). Chỉ hoàn tác được 1 lượt.
-- Frontend xóa dòng của người học và dòng AI của lượt đó (`st.lastMe`, `st.lines[turn]`).
+- Frontend xóa tin nhắn của người học và của AI có cùng lượt (`lastMeTurn` trong `useInterview.ts`).
 - Lượt bị coi là "nghe chưa rõ" không thay đổi trạng thái, nên không có gì để hoàn tác.
 
 ## Khi sửa

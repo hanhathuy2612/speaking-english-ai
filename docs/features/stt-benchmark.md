@@ -7,7 +7,7 @@ Nguyên tắc: so mọi cấu hình trên **cùng một bộ file ghi âm**, vì
 
 | Phần | Vị trí |
 |---|---|
-| Trang đọc theo câu mẫu | `frontend/bench.html`, `frontend/js/bench.js`, route `/bench` trong `backend/app/main.py` |
+| Trang đọc theo câu mẫu | `frontend/src/features/bench/BenchPage.tsx` (route `/bench`) |
 | Danh sách câu | `backend/app/data/bench_sentences.json` (18 câu, theo nghề của người dùng và các mẫu câu) |
 | API lưu file | `bench_list()`, `bench_save()` trong `backend/app/api/routes/bench.py`; lưu vào `recordings/bench/NN.webm` + `NN.ref.txt` |
 | Chạy so sánh | `backend/scripts/stt_bench.py` |

@@ -8,8 +8,8 @@ Không chấm điểm bằng LLM. Mọi chỉ số đều lấy khách quan từ
 |---|---|
 | Chỉ số mỗi lượt | `speech_metrics()` trong `backend/app/utils/parsing.py` |
 | Mẫu câu đã dùng | `used_phrase_indices()`, `norm()` trong `backend/app/utils/parsing.py` |
-| Tổng kết phiên | `summary()` trong `backend/app/interview/session.py`, `renderSummary()` trong `frontend/js/app.js` |
-| Hiển thị | `addLine()` và `markUsed()` trong `frontend/js/app.js` |
+| Tổng kết phiên | `summary()` trong `backend/app/interview/session.py`, `SummaryCard` trong `frontend/src/features/practice/Chat.tsx` |
+| Hiển thị | `SpeechChips` trong `Chat.tsx`, danh sách mẫu câu trong `Sidebar.tsx` (`frontend/src/features/practice/`) |
 | Test | `backend/tests/test_parsing.py` |
 
 ## `speech_metrics(words)`

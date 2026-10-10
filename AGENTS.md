@@ -4,7 +4,7 @@ Người dùng là lập trình viên Java người Việt, hiểu tiếng Anh t
 App tạo một buổi phỏng vấn giả: nghe câu hỏi, nói, xem cách nói tự nhiên hơn (NOTE), nói lại.
 Đây là bản demo để thử luồng nói, sau đó sẽ ghép vào dự án chính (dự án chính đã có đăng nhập, DB, roadmap).
 
-**Stack:** backend FastAPI + WebSocket (Python 3.11), frontend HTML/CSS/JS thuần (không build).
+**Stack:** backend FastAPI + WebSocket (Python 3.11), frontend React 19 + TypeScript + Vite (Node 22.12+).
 LLM Qwen2.5-7B qua LM Studio, STT faster-whisper `large-v3-turbo` trên GPU, TTS edge-tts. Cấu hình nằm trong `.env` ở thư mục gốc.
 
 ## Cấu trúc
@@ -22,10 +22,15 @@ backend/
   scripts/               # replay.py (so prompt), stt_bench.py (đo STT)
   tests/                 # pytest
   pyproject.toml, requirements*.txt
-frontend/
-  index.html, history.html, bench.html
-  css/                   # base.css (biến màu, component dùng chung), app.css, history.css, bench.css
-  js/                    # app.js, history.js, bench.js
+frontend/                # React + TypeScript + Vite; build vào frontend/dist (backend phục vụ)
+  src/
+    main.tsx             # React Router: / , /history , /bench
+    api/types.ts         # kiểu dữ liệu API + giao thức WebSocket
+    components/          # AppBar, Icons, ui (Chip, StatusLine)
+    hooks/               # useHoldToTalk (ghi âm), useAudioQueue (phát MP3)
+    features/            # practice/ (useInterview + các component), history/, bench/
+    lib/                 # hàm thuần + test Vitest
+    styles/              # base.css (token, component chung), practice.css, history.css, bench.css
 docs/                    # tài liệu theo tính năng (bảng bên dưới)
 recordings/              # giọng nói thật của người dùng, không commit
 data/                    # history.db: lịch sử luyện tập của người dùng, không commit
@@ -33,14 +38,25 @@ data/                    # history.db: lịch sử luyện tập của người 
 
 Lớp phụ thuộc một chiều: `api` -> `interview` -> `services` / `utils` -> `core`. `utils/parsing.py` không phụ thuộc gì (dễ test).
 
-## Lệnh (chạy từ thư mục `backend/`)
+## Lệnh
+
+Backend (từ `backend/`):
 
 ```
 ..\.venv\Scripts\activate
 uvicorn app.main:app --port 8000      # app của người dùng; agent thử nghiệm ở cổng 8001
-python -m pytest                      # test logic thuần
+python -m pytest                      # test backend
 python -m scripts.replay answers.txt --runs 3 --url ws://localhost:8001/ws
 python -m scripts.stt_bench --config large-v3-turbo,cuda,float16,3 --show
+```
+
+Frontend (từ `frontend/`):
+
+```
+npm install
+npm run dev        # http://localhost:5173, proxy /api và /ws sang backend (BACKEND_URL, mặc định :8000)
+npm run build      # tsc + build vào dist/, backend phục vụ bản này ở :8000
+npm test           # Vitest
 ```
 
 ## Bản đồ tài liệu
@@ -53,12 +69,12 @@ python -m scripts.stt_bench --config large-v3-turbo,cuda,float16,3 --show
 | Luồng phỏng vấn: câu hỏi, hỏi lại, câu hỏi phụ, hoàn tác, tổng kết | [docs/features/interview-flow.md](docs/features/interview-flow.md) | `data/units.json`, `interview/session.py`, `interview/turn.py` |
 | Prompt LLM, định dạng RETRY/SAY/ASK/NOTE, chặn NOTE xấu | [docs/features/llm-prompt.md](docs/features/llm-prompt.md) | `interview/prompts.py`, `services/llm.py`, `utils/parsing.py`, `scripts/replay.py` |
 | Nhận dạng giọng nói, GPU, chặn khi nghe không chắc | [docs/features/speech-recognition.md](docs/features/speech-recognition.md) | `services/stt.py`, `core/cuda.py` |
-| Giọng đọc, cache, phát âm thanh | [docs/features/tts-audio.md](docs/features/tts-audio.md) | `services/tts.py`, `frontend/js/app.js` |
+| Giọng đọc, cache, phát âm thanh | [docs/features/tts-audio.md](docs/features/tts-audio.md) | `services/tts.py`, `frontend/src/hooks/useAudioQueue.ts` |
 | Chỉ số nói, mẫu câu đã dùng | [docs/features/speech-metrics.md](docs/features/speech-metrics.md) | `utils/parsing.py`, `interview/session.py` (`summary`) |
-| Nói lại câu mẫu (shadowing): so từng từ, chuẩn hóa số và viết tắt | [docs/features/shadowing.md](docs/features/shadowing.md) | `interview/shadow.py`, `utils/compare.py`, `frontend/js/app.js` (`renderShadow`) |
-| Lịch sử luyện tập, trang Tiến bộ, biểu đồ xu hướng | [docs/features/session-history.md](docs/features/session-history.md) | `services/history.py`, `api/routes/history.py`, `frontend/history.html` |
-| Đo độ chính xác STT, trang đọc theo câu mẫu | [docs/features/stt-benchmark.md](docs/features/stt-benchmark.md) | `scripts/stt_bench.py`, `api/routes/bench.py`, `frontend/bench.html` |
-| Giao diện | [docs/features/frontend.md](docs/features/frontend.md) | `frontend/` |
+| Nói lại câu mẫu (shadowing): so từng từ, chuẩn hóa số và viết tắt | [docs/features/shadowing.md](docs/features/shadowing.md) | `interview/shadow.py`, `utils/compare.py`, `frontend/src/features/practice/CoachCard.tsx` |
+| Lịch sử luyện tập, trang Tiến bộ, biểu đồ xu hướng | [docs/features/session-history.md](docs/features/session-history.md) | `services/history.py`, `api/routes/history.py`, `frontend/src/features/history/` |
+| Đo độ chính xác STT, trang đọc theo câu mẫu | [docs/features/stt-benchmark.md](docs/features/stt-benchmark.md) | `scripts/stt_bench.py`, `api/routes/bench.py`, `frontend/src/features/bench/` |
+| Giao diện React: cấu trúc, luồng dữ liệu, hệ thiết kế | [docs/features/frontend.md](docs/features/frontend.md) | `frontend/src/` |
 | Biến cấu hình | [docs/configuration.md](docs/configuration.md) | `.env`, `core/config.py` |
 | Môi trường Windows, kiểm thử, lỗi thường gặp | [docs/dev-environment.md](docs/dev-environment.md) | |
 
@@ -74,8 +90,8 @@ python -m scripts.stt_bench --config large-v3-turbo,cuda,float16,3 --show
   - **Prompt và lời AI nói bằng tiếng Anh**, không bao giờ có tiếng Việt.
   - **Tài liệu (`docs/`, `AGENTS.md`, `README.md`) bằng tiếng Việt.**
 - Không chấm điểm bằng LLM. Chỉ dùng chỉ số khách quan.
-- Giữ code đơn giản, không thêm framework hay bước build cho frontend. Giữ hướng phụ thuộc giữa các lớp như trên.
-- Đổi prompt thì kiểm chứng bằng `scripts/replay.py`. Đổi STT thì đo bằng `scripts/stt_bench.py`. Không đoán.
+- Giữ code đơn giản. Frontend dùng React + TypeScript, không thêm thư viện UI hay state manager khi chưa thật cần; dependency mới phải ghim phiên bản và `npm audit` sạch. Giữ hướng phụ thuộc giữa các lớp backend như trên.
+- Đổi prompt thì kiểm chứng bằng `scripts/replay.py`. Đổi STT thì đo bằng `scripts/stt_bench.py`. Đổi frontend thì `npm run build` + `npm test` phải qua. Không đoán.
 - **Cổng 8000 là server của người dùng.** Thử nghiệm ở cổng 8001 với `HISTORY_DB` trỏ sang file tạm (không ghi lẫn vào lịch sử thật), không tắt `python.exe` theo tên, không xóa `recordings/` hay `data/`.
 - **Sửa tính năng nào thì cập nhật file docs tương ứng trong cùng commit.** Thêm tính năng mới thì thêm file trong `docs/features/` và một dòng vào bảng trên.
 

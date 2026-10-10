@@ -2,7 +2,7 @@
 
 Run from backend/ (LM Studio's local server must be running):
     uvicorn app.main:app --port 8000
-Open: http://localhost:8000  (STT read-aloud page: /bench)
+Open: http://localhost:8000 (build the React app first: cd frontend && npm run build)
 
 Docs: AGENTS.md at the project root, details in docs/.
 """
@@ -14,11 +14,11 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from app.api.routes import bench, history, units, ws
-from app.core.config import FRONTEND_DIR
+from app.core.config import FRONTEND_DIST
 from app.services import history as history_store
 from app.services import stt
 
@@ -38,19 +38,28 @@ app.include_router(units.router)
 app.include_router(bench.router)
 app.include_router(history.router)
 app.include_router(ws.router)
-app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")
+# The React app (frontend/, built into frontend/dist) is a single page: every page route returns
+# index.html and React Router picks the view. Hashed JS/CSS bundles are served from /assets.
+SPA_ROUTES = ["/", "/history", "/bench"]
+NOT_BUILT = """<!doctype html><meta charset="utf-8"><title>Chưa build giao diện</title>
+<body style="font-family:system-ui;max-width:640px;margin:48px auto;padding:0 16px;line-height:1.6">
+<h1>Chưa build giao diện</h1>
+<p>Chạy một lần (cần Node 22.12+):</p>
+<pre>cd frontend
+npm install
+npm run build</pre>
+<p>rồi tải lại trang. Khi phát triển giao diện, dùng <code>npm run dev</code> và mở http://localhost:5173.</p>"""
+
+# check_dir=False: building the app after the server started works without a restart.
+app.mount("/assets", StaticFiles(directory=FRONTEND_DIST / "assets", check_dir=False), name="assets")
 
 
-@app.get("/", include_in_schema=False)
-async def index_page() -> FileResponse:
-    return FileResponse(FRONTEND_DIR / "index.html")
+async def spa_page() -> Response:
+    index = FRONTEND_DIST / "index.html"
+    if not index.exists():
+        return HTMLResponse(NOT_BUILT, status_code=503)
+    return FileResponse(index)
 
 
-@app.get("/bench", include_in_schema=False)
-async def bench_page() -> FileResponse:
-    return FileResponse(FRONTEND_DIR / "bench.html")
-
-
-@app.get("/history", include_in_schema=False)
-async def history_page() -> FileResponse:
-    return FileResponse(FRONTEND_DIR / "history.html")
+for _route in SPA_ROUTES:
+    app.add_api_route(_route, spa_page, include_in_schema=False)

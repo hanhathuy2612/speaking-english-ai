@@ -13,12 +13,12 @@ Lượt nói lại **không gọi LLM, không chuyển câu hỏi**, không tín
 | Nhận tin, chọn prompt STT | `_on_text()` (tin `shadow`) và `_on_audio()` trong `backend/app/api/routes/ws.py` |
 | Trạng thái | `Session.shadow_target`, `Session.last_speech` trong `backend/app/interview/session.py` |
 | Lưu | bảng `shadows`, `add_shadow()` trong `backend/app/services/history.py` |
-| Giao diện | `beginShadow()`, `endShadow()`, `renderShadow()` trong `frontend/js/app.js`; `.shadow-*`, `.tok.*` trong `frontend/css/app.css` |
+| Giao diện | `CoachCard.tsx` (`ShadowResult`), hành động `beginShadow`/`cancelShadow`/`sendRecording` trong `useInterview.ts` (`frontend/src/features/practice/`); `.shadow-*`, `.tok.*` trong `frontend/src/styles/practice.css` |
 | Test | `backend/tests/test_compare.py`, `test_shadow_attempts_...` trong `backend/tests/test_history.py` |
 
 ## Luồng
 
-1. Frontend bấm "Nói lại câu này": `st.shadow = NOTE`, thẻ NOTE có viền nổi bật, nút Hủy hiện ra.
+1. Bấm "Nói lại câu này": `shadow.waiting = true`, thẻ NOTE có viền nổi bật, nút Hủy hiện ra.
 2. Khi thả micro, frontend gửi `{"type": "shadow", "text": NOTE}` **ngay trước** khung âm thanh. Server đặt `shadow_target`.
 3. Server nhận dạng **không có `initial_prompt`**. Gợi ý từ vựng sẽ kéo Whisper về đúng các từ trong câu mẫu và che mất lỗi phát âm.
 4. `handle_shadow()` gửi `shadow_result`: `target`, `heard`, `compare`, `speech` (chỉ số nói của lần đọc lại), `original` (chỉ số của câu trả lời đã sinh ra NOTE, `null` nếu câu đó gõ chữ). Mỗi yêu cầu chỉ dùng cho **một** lần ghi âm; "Thử lại" gửi lại `shadow`.

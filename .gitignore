@@ -7,6 +7,10 @@ venv/
 .ruff_cache/
 .mypy_cache/
 
+# Frontend (React): dependency và bản build, tạo lại bằng npm install / npm run build
+node_modules/
+frontend/dist/
+
 # Cấu hình máy cá nhân (commit .env.example thay thế)
 .env
 .env.*

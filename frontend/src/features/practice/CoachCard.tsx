@@ -1,0 +1,107 @@
+import type { ShadowResult as Result } from "../../api/types";
+import { BulbIcon, MicIcon, PlayIcon } from "../../components/Icons";
+import { Chip } from "../../components/ui";
+
+/** Word-by-word result of reading the NOTE aloud (docs/features/shadowing.md). */
+function ShadowResult({ r }: { r: Result }) {
+  const { correct, total, accuracy } = r.compare;
+  const pct = Math.round(accuracy * 100);
+  const o = r.original;
+  const faster = o?.wpm_speaking != null && r.speech.wpm_speaking != null && r.speech.wpm_speaking > o.wpm_speaking;
+  const fewer = !!o && r.speech.long_pauses < o.long_pauses;
+  return (
+    <div className="shadow-result" aria-live="polite">
+      <p className="shadow-line">
+        {r.compare.items.map((it, i) =>
+          it.kind === "extra" ? (
+            <span key={i} className="tok extra" title="Bạn nói thêm">
+              + {it.text}
+            </span>
+          ) : (
+            <span
+              key={i}
+              className={`tok ${it.status}`}
+              title={
+                it.status === "wrong"
+                  ? `Máy nghe thành: ${it.heard}`
+                  : it.status === "miss"
+                    ? "Máy không nghe thấy từ này"
+                    : undefined
+              }
+            >
+              <span className="tok-text">{it.text}</span>
+              {it.status === "wrong" && <span className="tok-heard">{it.heard}</span>}
+            </span>
+          ),
+        )}
+      </p>
+      <p className="shadow-heard">Máy nghe được: {r.heard}</p>
+      <div className="meta">
+        <Chip tone={pct >= 90 ? "success" : "warning"}>
+          {correct === total ? `Đúng hết ${total}/${total} từ` : `Đúng ${correct}/${total} từ (${pct}%)`}
+        </Chip>
+        {r.speech.wpm_speaking != null ? (
+          <Chip tone={faster ? "success" : ""}>
+            Khi nói {r.speech.wpm_speaking} từ/phút
+            {o?.wpm_speaking != null ? ` · lần đầu ${o.wpm_speaking}` : ""}
+          </Chip>
+        ) : (
+          <Chip>Câu ngắn, chưa tính tốc độ</Chip>
+        )}
+        <Chip tone={fewer ? "success" : ""}>
+          {r.speech.long_pauses} lần ngắt dài{o ? ` · lần đầu ${o.long_pauses}` : ""}
+        </Chip>
+      </div>
+      <p className="shadow-legend">
+        Gạch chân cam: máy nghe thành từ khác (chữ nhỏ bên dưới). Gạch ngang: máy không nghe thấy. Dấu +: bạn
+        nói thêm.
+      </p>
+    </div>
+  );
+}
+
+export function CoachCard({
+  coach,
+  shadow,
+  onPlay,
+  onShadow,
+  onCancelShadow,
+}: {
+  coach: { text: string; retry: boolean };
+  shadow: { waiting: boolean; result: Result | null };
+  onPlay: () => void;
+  onShadow: () => void;
+  onCancelShadow: () => void;
+}) {
+  const cls = ["card", "coach", shadow.waiting && "shadowing", shadow.result && "has-result"].filter(Boolean);
+  return (
+    <section className={cls.join(" ")}>
+      <div className="coach-head">
+        <span className="coach-icon" aria-hidden>
+          <BulbIcon />
+        </span>
+        <span className="coach-label">
+          {coach.retry ? "Câu mẫu để bạn nói theo" : "Cách nói tự nhiên hơn, thử nói lại"}
+        </span>
+        {coach.retry && <Chip tone="warning">Chưa đủ ý, hãy trả lời lại</Chip>}
+      </div>
+      <p className="coach-text">{coach.text}</p>
+      {shadow.result && <ShadowResult r={shadow.result} />}
+      <div className="coach-actions">
+        <button className="btn btn-sm" onClick={onPlay}>
+          <PlayIcon />
+          Nghe câu này
+        </button>
+        <button className="btn btn-sm btn-primary" onClick={onShadow} disabled={shadow.waiting}>
+          <MicIcon size={14} />
+          {shadow.waiting ? "Đang chờ bạn đọc…" : shadow.result ? "Thử lại" : "Nói lại câu này"}
+        </button>
+        {shadow.waiting && (
+          <button className="btn btn-sm btn-ghost" onClick={onCancelShadow}>
+            Hủy
+          </button>
+        )}
+      </div>
+    </section>
+  );
+}

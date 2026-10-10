@@ -11,7 +11,7 @@ Mỗi lượt trả lời được ghi vào một file SQLite cục bộ. Trang 
 | Ghi mỗi lượt | `handle_user_input()`, `run_turn()`, `_history_id()` trong `backend/app/interview/turn.py` |
 | Hoàn tác | nhánh `undo` trong `_on_text()` (`backend/app/api/routes/ws.py`): xóa dòng của lượt vừa rồi |
 | API | `backend/app/api/routes/history.py` |
-| Trang | `frontend/history.html`, `frontend/js/history.js`, `frontend/css/history.css` |
+| Trang | `frontend/src/features/history/` (`HistoryPage.tsx`, `LineChart.tsx`), `frontend/src/styles/history.css` |
 | Test | `backend/tests/test_history.py` |
 
 ## Dữ liệu

@@ -11,6 +11,7 @@ APP_DIR = Path(__file__).resolve().parents[1]  # backend/app
 ROOT_DIR = APP_DIR.parents[1]  # project root
 DATA_DIR = APP_DIR / "data"
 FRONTEND_DIR = ROOT_DIR / "frontend"
+FRONTEND_DIST = FRONTEND_DIR / "dist"  # output of `npm run build` (React app)
 RECORDINGS_DIR = ROOT_DIR / "recordings"
 BENCH_DIR = RECORDINGS_DIR / "bench"
 

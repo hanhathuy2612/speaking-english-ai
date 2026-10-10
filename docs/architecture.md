@@ -3,7 +3,7 @@
 ## Một lượt nói
 
 ```
-Trình duyệt (frontend/js/app.js)        Server (backend/app)
+Trình duyệt (React: useInterview.ts)    Server (backend/app)
   giữ nút -> MediaRecorder (webm) ──bytes──> api/routes/ws.py: stt.save_recording -> stt.transcribe (GPU)
                                               │ nghe không chắc? -> "transcript" unclear, dừng
                                               v
@@ -53,7 +53,7 @@ Server gửi:
 
 ## HTTP
 
-- `GET /`: `frontend/index.html`. `GET /bench`: `frontend/bench.html`. `/static/...`: file trong `frontend/` (css, js).
-- `GET /history`: `frontend/history.html`. `/api/history/...`: xem [session-history.md](features/session-history.md).
+- `GET /`, `/history`, `/bench`: `frontend/dist/index.html` (app React một trang; React Router chọn trang). `/assets/...`: JS/CSS đã build. Chưa build thì trả hướng dẫn (503).
+- `/api/history/...`: xem [session-history.md](features/session-history.md).
 - `GET /api/units`: danh sách bài (`api/routes/units.py`).
 - `GET /bench`, `GET /api/bench`, `POST /api/bench/{i}`: xem [stt-benchmark.md](features/stt-benchmark.md).
