@@ -14,8 +14,8 @@ backend/
   app/
     main.py              # tạo FastAPI app, nạp Whisper lúc khởi động, gắn router, phục vụ frontend
     core/                # config.py (đọc .env, đường dẫn), cuda.py (DLL CUDA trên Windows)
-    api/routes/          # ws.py (WebSocket /ws), units.py (/api/units), bench.py (/api/bench)
-    services/            # stt.py (Whisper), tts.py (edge-tts + cache), llm.py (LM Studio)
+    api/routes/          # ws.py (WebSocket /ws), units.py, bench.py, history.py (/api/...)
+    services/            # stt.py (Whisper), tts.py (edge-tts + cache), llm.py (LM Studio), history.py (SQLite)
     interview/           # session.py (trạng thái, next_step), prompts.py, turn.py (một lượt), units.py
     utils/               # parsing.py (hàm thuần), ws.py (Conn)
     data/                # units.json (bài tập), bench_sentences.json
@@ -23,11 +23,12 @@ backend/
   tests/                 # pytest
   pyproject.toml, requirements*.txt
 frontend/
-  index.html, bench.html
-  css/                   # base.css (biến màu dùng chung), app.css, bench.css
-  js/                    # app.js, bench.js
+  index.html, history.html, bench.html
+  css/                   # base.css (biến màu, component dùng chung), app.css, history.css, bench.css
+  js/                    # app.js, history.js, bench.js
 docs/                    # tài liệu theo tính năng (bảng bên dưới)
 recordings/              # giọng nói thật của người dùng, không commit
+data/                    # history.db: lịch sử luyện tập của người dùng, không commit
 ```
 
 Lớp phụ thuộc một chiều: `api` -> `interview` -> `services` / `utils` -> `core`. `utils/parsing.py` không phụ thuộc gì (dễ test).
@@ -54,6 +55,7 @@ python -m scripts.stt_bench --config large-v3-turbo,cuda,float16,3 --show
 | Nhận dạng giọng nói, GPU, chặn khi nghe không chắc | [docs/features/speech-recognition.md](docs/features/speech-recognition.md) | `services/stt.py`, `core/cuda.py` |
 | Giọng đọc, cache, phát âm thanh | [docs/features/tts-audio.md](docs/features/tts-audio.md) | `services/tts.py`, `frontend/js/app.js` |
 | Chỉ số nói, mẫu câu đã dùng | [docs/features/speech-metrics.md](docs/features/speech-metrics.md) | `utils/parsing.py`, `interview/session.py` (`summary`) |
+| Lịch sử luyện tập, trang Tiến bộ, biểu đồ xu hướng | [docs/features/session-history.md](docs/features/session-history.md) | `services/history.py`, `api/routes/history.py`, `frontend/history.html` |
 | Đo độ chính xác STT, trang đọc theo câu mẫu | [docs/features/stt-benchmark.md](docs/features/stt-benchmark.md) | `scripts/stt_bench.py`, `api/routes/bench.py`, `frontend/bench.html` |
 | Giao diện | [docs/features/frontend.md](docs/features/frontend.md) | `frontend/` |
 | Biến cấu hình | [docs/configuration.md](docs/configuration.md) | `.env`, `core/config.py` |
@@ -73,7 +75,7 @@ python -m scripts.stt_bench --config large-v3-turbo,cuda,float16,3 --show
 - Không chấm điểm bằng LLM. Chỉ dùng chỉ số khách quan.
 - Giữ code đơn giản, không thêm framework hay bước build cho frontend. Giữ hướng phụ thuộc giữa các lớp như trên.
 - Đổi prompt thì kiểm chứng bằng `scripts/replay.py`. Đổi STT thì đo bằng `scripts/stt_bench.py`. Không đoán.
-- **Cổng 8000 là server của người dùng.** Thử nghiệm ở cổng 8001, không tắt `python.exe` theo tên, không xóa `recordings/`.
+- **Cổng 8000 là server của người dùng.** Thử nghiệm ở cổng 8001 với `HISTORY_DB` trỏ sang file tạm (không ghi lẫn vào lịch sử thật), không tắt `python.exe` theo tên, không xóa `recordings/` hay `data/`.
 - **Sửa tính năng nào thì cập nhật file docs tương ứng trong cùng commit.** Thêm tính năng mới thì thêm file trong `docs/features/` và một dòng vào bảng trên.
 
 ## Git và commit

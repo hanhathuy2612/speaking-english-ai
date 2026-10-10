@@ -39,6 +39,9 @@ STT_MIN_LOGPROB = float(os.getenv("STT_MIN_LOGPROB", "-1.0"))
 STT_MAX_NO_SPEECH = float(os.getenv("STT_MAX_NO_SPEECH", "0.6"))
 SAVE_AUDIO_DIR = os.getenv("SAVE_AUDIO_DIR", "")  # relative to the project root, e.g. "recordings"
 
+# ----- Practice history (SQLite) -----
+HISTORY_DB = os.getenv("HISTORY_DB", "data/history.db")  # relative to the project root; empty disables
+
 # ----- TTS (edge-tts) -----
 TTS_VOICE = os.getenv("TTS_VOICE", "en-US-JennyNeural")
 TTS_RATE = os.getenv("TTS_RATE", "-10%")

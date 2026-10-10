@@ -23,6 +23,8 @@ class Session:
     used: set[int] = field(default_factory=set)
     speech: list[dict] = field(default_factory=list)  # speech metrics per spoken turn (for the summary)
     prev: dict | None = None  # state before the last turn, for the undo button
+    history_id: int | None = None  # sessions row in the history DB (None when history is off)
+    last_turn_id: int | None = None  # turns row of the last answered turn, deleted on undo
 
     def snapshot(self) -> dict:
         return {k: copy.deepcopy(getattr(self, k)) for k in STATE_FIELDS}

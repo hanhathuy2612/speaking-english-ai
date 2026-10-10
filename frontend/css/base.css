@@ -20,6 +20,9 @@
   --warning-soft: #fdf3e2;
   --danger: #dc2626;
   --danger-soft: #fdecec;
+  /* chart line + grid: validated with dataviz validate_palette.js against --surface */
+  --chart-line: #2f54eb;
+  --chart-grid: #eceef2;
 
   --radius-sm: 6px;
   --radius: 10px;
@@ -51,6 +54,8 @@
     --warning-soft: #2a2010;
     --danger: #f87171;
     --danger-soft: #2c1517;
+    --chart-line: #6d86f7;
+    --chart-grid: #222a35;
 
     --shadow-sm: 0 1px 2px rgb(0 0 0 / 30%);
     --shadow: 0 1px 3px rgb(0 0 0 / 35%), 0 6px 16px rgb(0 0 0 / 25%);
@@ -128,6 +133,24 @@ svg {
 }
 .appbar-spacer {
   flex: 1;
+}
+
+/* ----- Navigation ----- */
+.nav {
+  display: flex;
+  gap: 4px;
+}
+.nav [aria-current="page"] {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 
 /* ----- Cards ----- */

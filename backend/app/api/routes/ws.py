@@ -6,14 +6,13 @@ import asyncio
 import json
 import time
 
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
-
 from app.core.config import STT_VOCAB
 from app.interview.session import Session, progress
 from app.interview.turn import handle_user_input, start_session
 from app.interview.units import units_by_id
-from app.services import stt, tts
+from app.services import history, stt, tts
 from app.utils.ws import Conn
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 router = APIRouter()
 
@@ -41,11 +40,15 @@ async def _on_text(conn: Conn, session: Session | None, data: dict) -> Session |
     if kind == "start" and data.get("unit") in units_by_id:
         return await start_session(conn, units_by_id[data["unit"]])
     if kind == "text" and session and data.get("text", "").strip():
-        await handle_user_input(conn, session, data["text"].strip(), [], time.monotonic(), None)
+        await handle_user_input(
+            conn, session, data["text"].strip(), [], time.monotonic(), None
+        )
     elif kind == "undo" and session:
         if session.prev is not None:
+            history.delete_turn(session.last_turn_id)
             session.restore(session.prev)
-            session.prev = None
+            session.prev, session.last_turn_id = None, None
+            history.set_completed(session.history_id, session.done)
             await conn.json({"type": "undone", "used": sorted(session.used)})
             await conn.json(progress(session))
         await conn.json({"type": "turn_done", "can_undo": False})
@@ -69,9 +72,15 @@ async def _on_audio(conn: Conn, session: Session, data: bytes) -> None:
         return
     stt.finish_recording(path, result["text"])
     t_stt = time.monotonic()
-    print(f"STT logprob={result['avg_logprob']} no_speech={result['no_speech']}: {result['text']}")
+    print(
+        f"STT logprob={result['avg_logprob']} no_speech={result['no_speech']}: {result['text']}"
+    )
     if not result["text"]:
-        await conn.json({"type": "error", "msg": "Không nghe rõ, hãy nói lại gần micro hơn."})
+        await conn.json(
+            {"type": "error", "msg": "Không nghe rõ, hãy nói lại gần micro hơn."}
+        )
         await conn.json({"type": "turn_done", "can_undo": False})
         return
-    await handle_user_input(conn, session, result["text"], result["words"], t0, t_stt, result)
+    await handle_user_input(
+        conn, session, result["text"], result["words"], t0, t_stt, result
+    )

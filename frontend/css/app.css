@@ -483,3 +483,7 @@
     max-width: 100%;
   }
 }
+
+.summary-link {
+  margin-top: 14px;
+}

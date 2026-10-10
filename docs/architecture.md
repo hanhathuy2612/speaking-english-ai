@@ -12,7 +12,8 @@ Trình duyệt (frontend/js/app.js)        Server (backend/app)
                                             run_turn: gọi LLM có stream
                                               ├─ SAY: tách từng câu -> TTS -> gửi ngay
                                               ├─ khi thấy NOTE: next_step() chọn câu hỏi tiếp -> TTS (cache)
-                                              └─ hết stream: NOTE (qua safe_note), progress, metrics, turn_done
+                                              └─ hết stream: NOTE (qua safe_note), progress, metrics,
+                                                 ghi 1 dòng vào lịch sử (services/history.py), turn_done
   phát MP3 theo hàng đợi <──json + bytes──
 ```
 
@@ -51,5 +52,6 @@ Server gửi:
 ## HTTP
 
 - `GET /`: `frontend/index.html`. `GET /bench`: `frontend/bench.html`. `/static/...`: file trong `frontend/` (css, js).
+- `GET /history`: `frontend/history.html`. `/api/history/...`: xem [session-history.md](features/session-history.md).
 - `GET /api/units`: danh sách bài (`api/routes/units.py`).
 - `GET /bench`, `GET /api/bench`, `POST /api/bench/{i}`: xem [stt-benchmark.md](features/stt-benchmark.md).

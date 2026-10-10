@@ -22,6 +22,7 @@ Server tự nạp `.env` bằng python-dotenv khi khởi động. Biến môi tr
 | `STT_MIN_LOGPROB` | `-1.0` | `-1.0` | Ngưỡng "nghe chưa rõ", chưa hiệu chỉnh |
 | `STT_MAX_NO_SPEECH` | `0.6` | `0.6` | |
 | `SAVE_AUDIO_DIR` | trống | `recordings` | Giữ file ghi âm mỗi lượt (tương đối với thư mục gốc) |
+| `HISTORY_DB` | `data/history.db` | `data/history.db` | File SQLite lưu lịch sử luyện tập (tương đối với thư mục gốc, hoặc đường dẫn tuyệt đối). Để trống thì tắt |
 | `TTS_VOICE` / `TTS_RATE` | `en-US-JennyNeural` / `-10%` | giống mặc định | |
 
 `MAX_RETRIES = 2` được viết cứng trong code, không đọc từ `.env`.

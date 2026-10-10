@@ -12,6 +12,9 @@ venv/
 .env.*
 !.env.example
 
+# Lịch sử luyện tập (SQLite) của người dùng: dữ liệu cá nhân
+/data/
+
 # Giọng nói thật của người dùng: dữ liệu cá nhân, file lớn
 recordings/
 *.webm

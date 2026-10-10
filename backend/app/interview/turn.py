@@ -10,7 +10,7 @@ import time
 
 from app.interview.prompts import build_messages, safe_note
 from app.interview.session import Session, next_step, progress, summary
-from app.services import llm, stt, tts
+from app.services import history, llm, stt, tts
 from app.utils.parsing import ready_sentences, speech_metrics, split_sections, used_phrase_indices
 from app.utils.ws import Conn
 
@@ -35,6 +35,13 @@ async def start_session(conn: Conn, unit: dict) -> Session:
     return session
 
 
+def _history_id(s: Session) -> int | None:
+    """Create the history row on the first answer, so opening a unit never leaves empty sessions."""
+    if s.history_id is None:
+        s.history_id = history.start_session(s.unit)
+    return s.history_id
+
+
 async def handle_user_input(
     conn: Conn,
     s: Session,
@@ -50,8 +57,26 @@ async def handle_user_input(
         return
     speech = speech_metrics(words)
     conf = stt_result["avg_logprob"] if stt_result else None
+    used_now = used_phrase_indices(text, s.unit["phrases"])
+    record = {
+        "question": s.asked,
+        "answer": text,
+        "source": "voice" if stt_result else "text",
+        "words": speech["words"] or None,
+        "wpm": speech["wpm"],
+        "wpm_speaking": speech["wpm_speaking"],
+        "long_pauses": speech["long_pauses"] if words else None,
+        "avg_logprob": conf,
+        "no_speech": stt_result["no_speech"] if stt_result else None,
+        "used_phrases": used_now,
+    }
     if stt_result and stt.is_unclear(stt_result):
         # Low STT confidence: do not let the LLM guess, ask the learner to repeat.
+        # Still recorded (unclear=1): these rows are the data for calibrating the threshold.
+        history.add_turn(
+            _history_id(s),
+            {**record, "unclear": 1, "used_phrases": [], "stt_ms": round(((t_stt or t0) - t0) * 1000)},
+        )
         await conn.json(
             {"type": "transcript", "text": text, "speech": speech, "used": sorted(s.used),
              "unclear": True, "conf": conf}
@@ -60,7 +85,7 @@ async def handle_user_input(
         await conn.json({"type": "turn_done", "can_undo": False})
         return
     s.prev = s.snapshot()
-    s.used |= set(used_phrase_indices(text, s.unit["phrases"]))
+    s.used |= set(used_now)
     if words:
         s.speech.append(speech)
     await conn.json(
@@ -68,10 +93,12 @@ async def handle_user_input(
          "unclear": False, "conf": conf}
     )
     await conn.json({"type": "status", "msg": "thinking"})
-    await run_turn(conn, s, text, t0, t_stt)
+    await run_turn(conn, s, text, t0, t_stt, record)
 
 
-async def run_turn(conn: Conn, s: Session, user_text: str, t0: float, t_stt: float | None) -> None:
+async def run_turn(
+    conn: Conn, s: Session, user_text: str, t0: float, t_stt: float | None, record: dict
+) -> None:
     q_index = s.q  # next_step may advance; the NOTE still belongs to this question
     messages = build_messages(s, user_text)
     s.history.append({"q": s.asked, "a": user_text})
@@ -132,15 +159,25 @@ async def run_turn(conn: Conn, s: Session, user_text: str, t0: float, t_stt: flo
     await conn.json(progress(s))
     now = time.monotonic()
     ms = lambda a, b: round((a - b) * 1000) if a and b else 0  # noqa: E731
-    await conn.json(
+    metrics = {
+        "type": "metrics",
+        "stt_ms": ms(t_stt, t0),
+        "llm_first_ms": ms(t_first, t_stt or t0),
+        "first_audio_ms": ms(first_audio.get("t"), t0),
+        "total_ms": ms(now, t0),
+    }
+    await conn.json(metrics)
+    s.last_turn_id = history.add_turn(
+        _history_id(s),
         {
-            "type": "metrics",
-            "stt_ms": ms(t_stt, t0),
-            "llm_first_ms": ms(t_first, t_stt or t0),
-            "first_audio_ms": ms(first_audio.get("t"), t0),
-            "total_ms": ms(now, t0),
-        }
+            **record,
+            "note": note,
+            "retry": int(retry),
+            "stt_ms": metrics["stt_ms"] or None,
+            "first_audio_ms": metrics["first_audio_ms"] or None,
+        },
     )
     if s.done:
+        history.set_completed(s.history_id, True)
         await conn.json(summary(s))
     await conn.json({"type": "turn_done", "can_undo": True})

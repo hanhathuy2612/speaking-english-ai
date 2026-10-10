@@ -236,6 +236,11 @@ function renderSummary(m) {
   };
   row("Đã dùng", m.phrases_used, "success");
   row("Chưa dùng", m.phrases_missed, "");
+  const link = document.createElement("a");
+  link.className = "btn btn-sm summary-link";
+  link.href = "/history";
+  link.textContent = "Xem tiến bộ qua các buổi";
+  box.appendChild(link);
   $("#chat").appendChild(box);
   scrollChat();
 }

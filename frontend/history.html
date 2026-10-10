@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Tiến bộ luyện nói</title>
+    <link rel="stylesheet" href="/static/css/base.css" />
+    <link rel="stylesheet" href="/static/css/history.css" />
+  </head>
+  <body>
+    <header class="appbar">
+      <a class="brand" href="/">
+        <span class="brand-mark" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        </span>
+        <span class="brand-name">Phòng tập phỏng vấn</span>
+      </a>
+      <div class="appbar-spacer"></div>
+      <nav class="nav">
+        <a class="btn btn-ghost btn-sm" href="/">Phòng tập</a>
+        <a class="btn btn-ghost btn-sm" href="/history" aria-current="page">Tiến bộ</a>
+        <a class="btn btn-ghost btn-sm" href="/bench">Đo nhận dạng</a>
+      </nav>
+    </header>
+
+    <main class="page">
+      <div class="page-head">
+        <h1>Tiến bộ luyện nói</h1>
+        <p class="lead">
+          Tính trên các lượt trả lời bằng giọng nói, máy nghe rõ. Tốc độ chỉ tính câu từ 10 từ trở lên.
+        </p>
+      </div>
+
+      <p id="message" class="card empty" hidden></p>
+
+      <div id="content" hidden>
+        <section class="tiles" id="tiles" aria-label="Tóm tắt"></section>
+
+        <section class="charts">
+          <figure class="card chart-card">
+            <figcaption>
+              <h2>Tốc độ khi nói</h2>
+              <p>Từ/phút, trung bình mỗi buổi. Cao hơn là trôi chảy hơn.</p>
+            </figcaption>
+            <div class="chart" id="chartWpm"></div>
+          </figure>
+          <figure class="card chart-card">
+            <figcaption>
+              <h2>Ngắt dài trên 100 từ</h2>
+              <p>Số lần dừng quá 0,7 giây. Thấp hơn là tốt hơn.</p>
+            </figcaption>
+            <div class="chart" id="chartPauses"></div>
+          </figure>
+        </section>
+
+        <section class="card table-card">
+          <h2>Các buổi tập</h2>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">Thời gian</th>
+                  <th scope="col">Bài</th>
+                  <th scope="col" class="num">Lượt nói</th>
+                  <th scope="col" class="num">Từ/phút khi nói</th>
+                  <th scope="col" class="num">Ngắt / 100 từ</th>
+                  <th scope="col" class="num">Mẫu câu</th>
+                  <th scope="col">Trạng thái</th>
+                  <th scope="col"><span class="sr-only">Xóa</span></th>
+                </tr>
+              </thead>
+              <tbody id="rows"></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <div id="tooltip" class="tooltip" role="tooltip" hidden></div>
+    <script src="/static/js/history.js"></script>
+  </body>
+</html>
