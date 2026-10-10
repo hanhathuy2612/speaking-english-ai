@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Cấu hình máy cá nhân (commit .env.example thay thế)
+.env
+.env.*
+!.env.example
+
+# Giọng nói thật của người dùng: dữ liệu cá nhân, file lớn
+recordings/
+*.webm
+*.wav
+*.mp3
+
+# Model tải về nếu để trong dự án (mặc định nằm trong ~/.cache/huggingface)
+models/
+
+# Claude Code: cấu hình riêng từng máy
+.claude/settings.local.json
+
+# Editor, hệ điều hành
+.vscode/
+.idea/
+*.swp
+Thumbs.db
+Desktop.ini
+.DS_Store

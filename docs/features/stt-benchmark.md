@@ -1,0 +1,46 @@
+# Đo độ chính xác STT
+
+Mục đích: chọn cấu hình STT dựa trên số đo giọng thật của người dùng, không đoán.
+Nguyên tắc: so mọi cấu hình trên **cùng một bộ file ghi âm**, vì mỗi lần đọc lại là một lần đọc khác.
+
+## Mã nguồn
+
+| Phần | Vị trí |
+|---|---|
+| Trang đọc theo câu mẫu | `bench.html`, route `/bench` trong `server.py` |
+| Danh sách câu | `bench_sentences.json` (18 câu, theo nghề của người dùng và các mẫu câu) |
+| API lưu file | `bench_list()`, `bench_save()`; lưu vào `recordings/bench/NN.webm` + `NN.ref.txt` |
+| Chạy so sánh | `stt_bench.py` |
+| Tính WER | `word_errors()`, `wer()` trong `parsing.py` |
+
+## Cách dùng
+
+1. Mở `http://localhost:8000/bench`, giữ nút hoặc phím Space để đọc từng câu. Đáp án được lưu sẵn.
+2. Chạy:
+
+```
+python stt_bench.py recordings/bench --config large-v3-turbo,cuda,float16,3 --config distil-large-v3,cuda,float16,3 --prompt "Hi, I'm Huy. Java developer, microservices, payment system." --show
+```
+
+Mỗi `--config` có dạng `model,device,compute,beam`. Ghi âm trong ứng dụng chính (`recordings/*.webm`) cũng dùng được, khi có thêm `<tên>.ref.txt` bên cạnh.
+
+## Kết quả (2026-10-10, 18 câu, 187 từ)
+
+| Cấu hình | WER | giây/câu |
+|---|---|---|
+| large-v3-turbo, cuda, float16, beam 3 | 7,0% | 0,36 |
+| large-v3-turbo, cuda, float16, beam 1 | 7,5% | 0,37 |
+| distil-large-v3, cuda, float16, beam 3 | 10,7% | 0,34 |
+| small.en, cpu, int8, beam 1, có gợi ý | 9,6% | 2,5 |
+| small.en, cpu, int8, beam 1, không gợi ý | 11,2% | 2,4 |
+| large-v3-turbo, cpu, int8, beam 3 | 7,0% | 10,2 |
+
+## Lưu ý khi đọc WER
+
+- `word_errors()` **chưa chuẩn hóa số**: "10,000" so với "ten thousand" bị tính 2 lỗi. Đây là việc nên sửa.
+- Với turbo, phần lớn lỗi còn lại là phát âm thật của người dùng (xem [speech-recognition.md](speech-recognition.md)).
+- Mẫu nhỏ: chênh 1% chỉ khoảng 2 từ.
+
+## Hướng phát triển
+
+Chế độ "nói theo mẫu": đọc xong một câu là hiện ngay các từ máy nghe lệch so với câu mẫu. Với turbo, chỗ lệch gần như chính là lỗi phát âm.

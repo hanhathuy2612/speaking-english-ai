@@ -1,0 +1,29 @@
+# Giao diện (`index.html`)
+
+Một file HTML, JS thuần, không build, không framework. Màu khai báo bằng biến CSS trên `:root`, có chế độ tối qua `prefers-color-scheme`.
+
+## Bố cục
+
+- **Cột trái (`aside`):** chọn bài, mục tiêu, tiến độ (`#progress`), mẫu câu kèm dấu ✓, bảng độ trễ (`#timing`), độ tin cậy nhận dạng (`#conf`), nhãn cấu hình STT (`#sttLabel`).
+- **Cột chính (`main`):** khung chat (`#chat`), tổng kết (`#summary`), NOTE (`#coach` kèm nút "Nghe câu này"), nút "Giữ để nói" (`#talk`), nút "Máy nghe sai, nói lại" (`#undo`), ô gõ chữ (`#typed`), trạng thái (`#status`).
+
+## Hàm chính
+
+| Hàm | Việc |
+|---|---|
+| `init()`, `loadUnits()`, `startUnit()` | Kết nối WebSocket, tải danh sách bài, bắt đầu bài |
+| `onMessage()` | Xử lý mọi tin từ server (xem giao thức trong [architecture.md](../architecture.md)) |
+| `renderUnit()`, `markUsed()` | Vẽ mục tiêu, danh sách mẫu câu, dấu ✓ |
+| `addLine()` | Thêm một dòng chat kèm chỉ số nói |
+| `renderCoach()`, `renderSummary()` | NOTE và tổng kết |
+| `enqueue()`, `playNext()`, `appendAi()`, `stopPlayback()` | Hàng đợi phát MP3 (xem [tts-audio.md](tts-audio.md)) |
+| `startRec()`, `stopRec()` | Ghi âm giữ để nói bằng MediaRecorder (webm/opus). File dưới 3000 byte bị bỏ. |
+
+## Trạng thái `st`
+
+`turn` (đếm lượt), `lines` (dòng AI theo lượt), `lastMe` (dòng người học gần nhất, dùng cho hoàn tác), `queue`/`playing`/`audio` (phát âm thanh), `pending` (metadata câu đang chờ khung MP3).
+
+## Quy ước
+
+- Mọi chữ hiện cho người dùng bằng tiếng Việt, trừ lời AI và câu mẫu.
+- Không dùng `innerHTML` cho dữ liệu từ server. Chỉ dùng `textContent`.

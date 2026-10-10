@@ -1,0 +1,125 @@
+[
+  {
+    "id": "tell-me-about-yourself",
+    "title": "Tell me about yourself",
+    "scenario": "A job interview for a professional role.",
+    "goal": "Trả lời theo 3 ý: bạn là ai hiện nay, bạn đã làm được gì, vì sao bạn muốn vị trí này.",
+    "greeting": "Hi, thanks for coming in today.",
+    "closing": "Thank you, that's all my questions for today. It was nice talking to you.",
+    "vocab": "software developer, Java, backend, microservices, payment system, chat application, booking system, achievement, responsible for.",
+    "questions": [
+      { "ask": "To start, could you tell me a little about yourself?", "phrases": [0], "simple": "Let's keep it simple. What is your job, and how long have you done it?" },
+      { "ask": "What are you mainly responsible for in your current role?", "phrases": [1], "simple": "What do you do in your job? What are your main tasks?" },
+      { "ask": "What is one achievement you're proud of?", "phrases": [2], "simple": "Tell me about one thing you did at work that went well." },
+      { "ask": "What do you enjoy most about your work?", "phrases": [3], "simple": "What do you like about your job?" },
+      { "ask": "What kind of role are you looking for next?", "phrases": [4], "simple": "What kind of job do you want next?" },
+      { "ask": "And why are you interested in this position?", "phrases": [5], "simple": "Why do you want this job?" }
+    ],
+    "phrases": [
+      {
+        "say": "I've been working as a ... for ... years.",
+        "match": [
+          "i've been working as",
+          "i have been working as"
+        ]
+      },
+      {
+        "say": "I'm responsible for ...",
+        "match": [
+          "i'm responsible for",
+          "i am responsible for"
+        ]
+      },
+      {
+        "say": "One of my main achievements was ...",
+        "match": [
+          "one of my main achievements",
+          "one of my biggest achievements"
+        ]
+      },
+      {
+        "say": "What I enjoy most about my work is ...",
+        "match": [
+          "what i enjoy most"
+        ]
+      },
+      {
+        "say": "I'm looking for a role where I can ...",
+        "match": [
+          "i'm looking for a role",
+          "i am looking for a role",
+          "i'm looking for an opportunity"
+        ]
+      },
+      {
+        "say": "That's why I'm interested in this position.",
+        "match": [
+          "that's why i'm interested",
+          "that's why i am interested",
+          "that is why i am interested"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "solved-a-problem",
+    "title": "A problem you solved (STAR)",
+    "scenario": "A behavioural job interview about a difficult problem the candidate solved at work.",
+    "goal": "Trả lời theo STAR: Situation (bối cảnh), Task (nhiệm vụ), Action (hành động), Result (kết quả).",
+    "greeting": "Let's talk about problem solving.",
+    "closing": "Thank you, that was a clear example. That's all from me.",
+    "vocab": "bug, production issue, deadline, performance, database, deployment, customer, as a result, reduced, improved.",
+    "questions": [
+      { "ask": "Can you tell me about a difficult problem you solved at work? What was the situation?", "phrases": [0], "simple": "Think of one problem at work. What happened?" },
+      { "ask": "What exactly was your task?", "phrases": [1], "simple": "What did you need to do?" },
+      { "ask": "What did you do to solve it?", "phrases": [2], "simple": "What steps did you take?" },
+      { "ask": "What was the result?", "phrases": [3, 4], "simple": "What happened in the end?" },
+      { "ask": "Looking back, what did you learn from it?", "phrases": [5], "simple": "What did you learn?" }
+    ],
+    "phrases": [
+      {
+        "say": "At that time, we were facing ...",
+        "match": [
+          "we were facing",
+          "i was facing"
+        ]
+      },
+      {
+        "say": "My task was to ...",
+        "match": [
+          "my task was",
+          "my role was"
+        ]
+      },
+      {
+        "say": "So I decided to ...",
+        "match": [
+          "i decided to"
+        ]
+      },
+      {
+        "say": "As a result, ...",
+        "match": [
+          "as a result"
+        ]
+      },
+      {
+        "say": "It reduced / improved ... by ...",
+        "match": [
+          "it reduced",
+          "it improved",
+          "it increased",
+          "which reduced",
+          "which improved"
+        ]
+      },
+      {
+        "say": "Looking back, I learned that ...",
+        "match": [
+          "looking back",
+          "i learned that"
+        ]
+      }
+    ]
+  }
+]

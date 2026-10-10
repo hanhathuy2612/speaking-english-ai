@@ -1,0 +1,669 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Phòng tập phỏng vấn</title>
+    <style>
+      :root {
+        --paper: #f2f4f6;
+        --panel: #ffffff;
+        --ink: #12202b;
+        --muted: #5b6b78;
+        --rule: #d5dbe0;
+        --blue: #1d3fbb;
+        --blue-ink: #ffffff;
+        --ok: #1c8a57;
+        --rec: #d9480f;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --paper: #0f161c;
+          --panel: #151e26;
+          --ink: #e6ecf1;
+          --muted: #8d9ba7;
+          --rule: #26323c;
+          --blue: #7c9bff;
+          --blue-ink: #0b1220;
+          --ok: #4cc38a;
+          --rec: #ff8a5b;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font:
+          15px/1.5 system-ui,
+          -apple-system,
+          "Segoe UI",
+          sans-serif;
+      }
+      .serif {
+        font-family:
+          "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+      }
+      .wrap {
+        max-width: 1080px;
+        margin: 0 auto;
+        padding: 24px 20px 40px;
+        display: grid;
+        grid-template-columns: 300px 1fr;
+        gap: 32px;
+      }
+      @media (max-width: 820px) {
+        .wrap {
+          grid-template-columns: 1fr;
+          gap: 20px;
+        }
+      }
+
+      aside h1 {
+        font-size: 20px;
+        margin: 0 0 12px;
+        font-weight: 650;
+      }
+      select {
+        width: 100%;
+        padding: 9px 10px;
+        border: 1px solid var(--rule);
+        border-radius: 6px;
+        background: var(--panel);
+        color: var(--ink);
+        font: inherit;
+      }
+      .goal {
+        color: var(--muted);
+        margin: 12px 0 20px;
+      }
+      h2 {
+        font-size: 14px;
+        font-weight: 650;
+        margin: 0 0 8px;
+      }
+      ul.phrases {
+        list-style: none;
+        margin: 0 0 24px;
+        padding: 0;
+      }
+      ul.phrases li {
+        display: grid;
+        grid-template-columns: 22px 1fr;
+        gap: 8px;
+        padding: 8px 0;
+        border-top: 1px solid var(--rule);
+        font-size: 15px;
+        color: var(--muted);
+      }
+      ul.phrases li:last-child {
+        border-bottom: 1px solid var(--rule);
+      }
+      ul.phrases .mark {
+        width: 18px;
+        height: 18px;
+        border: 1.5px solid var(--rule);
+        border-radius: 50%;
+        margin-top: 3px;
+        display: grid;
+        place-items: center;
+        font-size: 12px;
+        color: transparent;
+      }
+      ul.phrases li.used {
+        color: var(--ink);
+      }
+      ul.phrases li.used .mark {
+        background: var(--ok);
+        border-color: var(--ok);
+        color: #fff;
+      }
+      .timing {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 4px 12px;
+        font-variant-numeric: tabular-nums;
+        color: var(--muted);
+        margin: 0;
+      }
+      .timing dd {
+        margin: 0;
+        color: var(--ink);
+        text-align: right;
+      }
+
+      main {
+        min-width: 0;
+      }
+      #chat {
+        min-height: 300px;
+        max-height: 52vh;
+        overflow: auto;
+        padding: 4px 4px 4px 0;
+      }
+      .line {
+        margin: 0 0 22px;
+      }
+      .who {
+        font-size: 13px;
+        color: var(--muted);
+        margin-bottom: 2px;
+      }
+      .line.ai .text {
+        font-size: 20px;
+        line-height: 1.45;
+      }
+      .line.me {
+        margin-left: 28px;
+        padding-left: 14px;
+        border-left: 3px solid var(--blue);
+      }
+      .line.me .text {
+        font-size: 18px;
+        line-height: 1.45;
+      }
+      .speech {
+        margin-top: 4px;
+        font-size: 13px;
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .line.me.unclear {
+        border-left-color: var(--rec);
+        opacity: 0.75;
+      }
+      .line.me.unclear .speech {
+        color: var(--rec);
+      }
+      .progress {
+        font-weight: 600;
+        margin: 0 0 20px;
+      }
+      #summary {
+        margin: 8px 0 0;
+        padding: 14px 16px;
+        border: 1px solid var(--ok);
+        border-radius: 10px;
+        background: var(--panel);
+        display: none;
+      }
+      #summary.show {
+        display: block;
+      }
+      #summary h2 {
+        margin-bottom: 6px;
+      }
+      #summary p {
+        margin: 4px 0;
+      }
+      #coach {
+        margin: 8px 0 0;
+        padding: 14px 16px;
+        border: 1px solid var(--rule);
+        border-radius: 10px;
+        background: var(--panel);
+        display: none;
+      }
+      #coach.show {
+        display: block;
+      }
+      #coach .flag {
+        color: var(--rec);
+        font-weight: 600;
+        margin-bottom: 4px;
+      }
+      #coach .sentence {
+        font-size: 19px;
+        line-height: 1.45;
+        margin: 2px 0 10px;
+      }
+      button {
+        font: inherit;
+        cursor: pointer;
+      }
+      button.quiet {
+        border: 1px solid var(--rule);
+        background: transparent;
+        color: var(--ink);
+        border-radius: 6px;
+        padding: 5px 12px;
+      }
+
+      .controls {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        margin-top: 18px;
+        flex-wrap: wrap;
+      }
+      #talk {
+        border: 0;
+        border-radius: 999px;
+        padding: 14px 26px;
+        background: var(--blue);
+        color: var(--blue-ink);
+        font-weight: 650;
+        font-size: 16px;
+        touch-action: none;
+        user-select: none;
+      }
+      #talk.rec {
+        background: var(--rec);
+        color: #fff;
+      }
+      #typed {
+        flex: 1;
+        min-width: 200px;
+        padding: 10px 12px;
+        border: 1px solid var(--rule);
+        border-radius: 6px;
+        background: var(--panel);
+        color: var(--ink);
+        font: inherit;
+      }
+      #status {
+        width: 100%;
+        color: var(--muted);
+        min-height: 1.4em;
+      }
+      :focus-visible {
+        outline: 2px solid var(--blue);
+        outline-offset: 2px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <aside>
+        <h1>Phòng tập phỏng vấn</h1>
+        <select id="unit" aria-label="Chọn bài"></select>
+        <p class="goal" id="goal"></p>
+        <p class="progress" id="progress"></p>
+        <h2>Mẫu câu hôm nay</h2>
+        <ul class="phrases" id="phrases"></ul>
+        <h2>Độ trễ lượt vừa rồi</h2>
+        <dl class="timing" id="timing">
+          <dt>Nhận dạng giọng nói</dt>
+          <dd data-k="stt_ms">-</dd>
+          <dt>Token đầu của AI</dt>
+          <dd data-k="llm_first_ms">-</dd>
+          <dt>Âm thanh đầu tiên</dt>
+          <dd data-k="first_audio_ms">-</dd>
+          <dt>Cả lượt</dt>
+          <dd data-k="total_ms">-</dd>
+          <dt>Độ tin cậy nhận dạng</dt>
+          <dd id="conf">-</dd>
+        </dl>
+        <p class="goal" id="sttLabel"></p>
+      </aside>
+
+      <main>
+        <div id="chat" class="serif" aria-live="polite"></div>
+        <div id="summary"></div>
+        <div id="coach">
+          <div class="flag" id="coachFlag"></div>
+          <div class="who" id="coachLabel"></div>
+          <div class="sentence serif" id="coachText"></div>
+          <button class="quiet" id="coachPlay">Nghe câu này</button>
+        </div>
+        <div class="controls">
+          <button id="talk">Giữ để nói</button>
+          <button class="quiet" id="undo" hidden>Máy nghe sai, nói lại</button>
+          <input
+            id="typed"
+            placeholder="Hoặc gõ câu trả lời rồi nhấn Enter"
+            autocomplete="off"
+          />
+          <div id="status"></div>
+        </div>
+      </main>
+    </div>
+
+    <script>
+      const $ = (s) => document.querySelector(s);
+      const st = {
+        ws: null,
+        holding: false,
+        rec: null,
+        chunks: [],
+        pending: null,
+        queue: [],
+        playing: false,
+        audio: null,
+        turn: 0,
+        lines: {},
+        coachText: "",
+        lastMe: null,
+      };
+
+      const setStatus = (t) => {
+        $("#status").textContent = t || "";
+      };
+
+      /* ---------- WebSocket ---------- */
+      function init() {
+        const proto = location.protocol === "https:" ? "wss" : "ws";
+        st.ws = new WebSocket(`${proto}://${location.host}/ws`);
+        st.ws.onopen = loadUnits;
+        st.ws.onclose = () =>
+          setStatus("Mất kết nối với máy chủ. Tải lại trang để thử lại.");
+        st.ws.onmessage = onMessage;
+      }
+
+      async function loadUnits() {
+        const list = await (await fetch("/api/units")).json();
+        const sel = $("#unit");
+        sel.innerHTML = "";
+        list.forEach((u) => sel.add(new Option(u.title, u.id)));
+        sel.onchange = startUnit;
+        startUnit();
+      }
+
+      function startUnit() {
+        stopPlayback();
+        setStatus("Đang chuẩn bị bài…");
+        st.ws.send(JSON.stringify({ type: "start", unit: $("#unit").value }));
+      }
+
+      function onMessage(e) {
+        if (typeof e.data !== "string") {
+          // khung nhị phân = MP3 của câu vừa báo
+          enqueue(st.pending, e.data);
+          st.pending = null;
+          return;
+        }
+        const m = JSON.parse(e.data);
+        switch (m.type) {
+          case "started":
+            renderUnit(m.unit);
+            $("#sttLabel").textContent = "Nhận dạng giọng nói: " + m.unit.stt;
+            break;
+          case "status":
+            setStatus(
+              m.msg === "transcribing"
+                ? "Đang nhận dạng giọng nói…"
+                : "AI đang trả lời…",
+            );
+            break;
+          case "transcript":
+            st.turn += 1;
+            $("#undo").hidden = true;
+            $("#conf").textContent = m.conf == null ? "-" : m.conf.toFixed(2);
+            if (m.unclear) {
+              const d = addLine("me unclear", "Bạn (máy nghe chưa rõ)", m.text, m.speech);
+              const note = d.querySelector(".speech") || document.createElement("div");
+              note.className = "speech";
+              note.textContent = "Máy nghe chưa rõ, bạn nói lại nhé. AI chưa trả lời câu này.";
+              d.appendChild(note);
+              setStatus("Máy nghe chưa rõ, bạn nói lại nhé.");
+              break;
+            }
+            st.lastMe = { el: addLine("me", "Bạn", m.text, m.speech), turn: st.turn };
+            markUsed(m.used);
+            $("#coach").classList.remove("show");
+            break;
+          case "undone":
+            stopPlayback();
+            if (st.lastMe) {
+              st.lastMe.el.remove();
+              st.lines[st.lastMe.turn]?.remove();
+              delete st.lines[st.lastMe.turn];
+              st.lastMe = null;
+            }
+            markUsed(m.used);
+            $("#coach").classList.remove("show");
+            $("#summary").classList.remove("show");
+            setStatus("Đã bỏ lượt vừa rồi. Giữ nút để trả lời lại.");
+            break;
+          case "progress":
+            $("#progress").textContent = m.done
+              ? `Đã xong ${m.n}/${m.n} câu hỏi`
+              : `Câu hỏi ${m.q}/${m.n}`;
+            break;
+          case "summary":
+            renderSummary(m);
+            break;
+          case "sentence":
+            st.pending = { text: m.text, role: m.role, turn: st.turn };
+            break;
+          case "note":
+            renderCoach(m);
+            break;
+          case "metrics":
+            for (const k of [
+              "stt_ms",
+              "llm_first_ms",
+              "first_audio_ms",
+              "total_ms",
+            ]) {
+              $(`[data-k="${k}"]`).textContent = m[k]
+                ? `${(m[k] / 1000).toFixed(1)} giây`
+                : "-";
+            }
+            break;
+          case "turn_done":
+            $("#undo").hidden = !m.can_undo;
+            if (!$("#status").textContent.startsWith("Máy nghe chưa rõ"))
+              setStatus("Sẵn sàng. Giữ nút để nói.");
+            break;
+          case "error":
+            setStatus("Lỗi: " + m.msg);
+            break;
+        }
+      }
+
+      /* ---------- Giao diện ---------- */
+      function renderUnit(u) {
+        $("#chat").innerHTML = "";
+        $("#coach").classList.remove("show");
+        $("#summary").classList.remove("show");
+        $("#undo").hidden = true;
+        st.turn = 0;
+        st.lines = {};
+        st.lastMe = null;
+        $("#goal").textContent = u.goal;
+        const ul = $("#phrases");
+        ul.innerHTML = "";
+        u.phrases.forEach((p) => {
+          const li = document.createElement("li");
+          li.innerHTML =
+            '<span class="mark">✓</span><span class="serif"></span>';
+          li.lastChild.textContent = p.say;
+          ul.appendChild(li);
+        });
+      }
+
+      function markUsed(used) {
+        document
+          .querySelectorAll("#phrases li")
+          .forEach((li, i) => li.classList.toggle("used", used.includes(i)));
+      }
+
+      function addLine(kind, who, text, speech) {
+        const div = document.createElement("div");
+        div.className = `line ${kind}`;
+        div.innerHTML = '<div class="who"></div><div class="text"></div>';
+        div.querySelector(".who").textContent = who;
+        div.querySelector(".text").textContent = text;
+        if (speech && speech.words) {
+          const s = document.createElement("div");
+          s.className = "speech";
+          let t =
+            speech.wpm == null
+              ? `${speech.words} từ (câu ngắn, chưa tính tốc độ), ${speech.long_pauses} lần ngắt dài`
+              : `${speech.words} từ · khi nói ${speech.wpm_speaking} từ/phút · tính cả ngắt ${speech.wpm} từ/phút · ${speech.long_pauses} lần ngắt dài`;
+          if (speech.low_conf.length)
+            t += `. Máy nghe chưa chắc: ${speech.low_conf.join(", ")}`;
+          s.textContent = t;
+          div.appendChild(s);
+        }
+        $("#chat").appendChild(div);
+        $("#chat").scrollTop = $("#chat").scrollHeight;
+        return div;
+      }
+
+      function renderCoach(m) {
+        if (!m.text) return;
+        st.coachText = m.text;
+        $("#coachFlag").textContent = m.retry
+          ? "Chưa đủ ý. Hãy trả lời lại câu hỏi."
+          : "";
+        $("#coachLabel").textContent = m.retry
+          ? "Câu mẫu để bạn nói theo"
+          : "Cách nói tự nhiên hơn, thử nói lại";
+        $("#coachText").textContent = m.text;
+        $("#coach").classList.add("show");
+      }
+
+      function renderSummary(m) {
+        const box = $("#summary");
+        box.innerHTML = "<h2>Tổng kết phiên</h2>";
+        const add = (t) => {
+          const p = document.createElement("p");
+          p.textContent = t;
+          box.appendChild(p);
+        };
+        add(`Đã trả lời đủ ${m.questions} câu hỏi trong ${m.turns} lượt.`);
+        add(`Mẫu câu đã dùng (${m.phrases_used.length}): ${m.phrases_used.join(" | ") || "chưa có"}`);
+        if (m.phrases_missed.length)
+          add(`Chưa dùng: ${m.phrases_missed.join(" | ")}`);
+        if (m.wpm != null)
+          add(`Tốc độ trung bình: khi nói ${m.wpm_speaking} từ/phút, tính cả ngắt ${m.wpm} từ/phút.`);
+        if (m.spoken_turns)
+          add(`Ngắt dài: ${m.long_pauses} lần trong ${m.spoken_turns} lượt nói.`);
+        box.classList.add("show");
+      }
+
+      $("#undo").onclick = () => {
+        $("#undo").hidden = true;
+        st.ws.send(JSON.stringify({ type: "undo" }));
+      };
+
+      $("#coachPlay").onclick = () => {
+        if (st.coachText)
+          st.ws.send(JSON.stringify({ type: "say_it", text: st.coachText }));
+      };
+
+      /* ---------- Phát âm thanh theo hàng đợi ---------- */
+      function enqueue(meta, data) {
+        const url = URL.createObjectURL(
+          new Blob([data], { type: "audio/mpeg" }),
+        );
+        st.queue.push({ meta, url });
+        if (!st.playing) playNext();
+      }
+
+      function playNext() {
+        const item = st.queue.shift();
+        if (!item) {
+          st.playing = false;
+          return;
+        }
+        st.playing = true;
+        if (item.meta.role === "ai") appendAi(item.meta.turn, item.meta.text);
+        const a = new Audio(item.url);
+        st.audio = a;
+        const done = () => {
+          URL.revokeObjectURL(item.url);
+          playNext();
+        };
+        a.onended = done;
+        a.onerror = done;
+        a.play().catch(done);
+      }
+
+      function appendAi(turn, text) {
+        let line = st.lines[turn];
+        if (!line) {
+          line = addLine("ai", "Người phỏng vấn", "");
+          st.lines[turn] = line;
+        }
+        const el = line.querySelector(".text");
+        el.textContent = el.textContent ? `${el.textContent} ${text}` : text;
+        $("#chat").scrollTop = $("#chat").scrollHeight;
+      }
+
+      function stopPlayback() {
+        st.queue.forEach((i) => URL.revokeObjectURL(i.url));
+        st.queue = [];
+        if (st.audio) {
+          st.audio.pause();
+          st.audio = null;
+        }
+        st.playing = false;
+      }
+
+      /* ---------- Ghi âm: giữ để nói ---------- */
+      async function startRec() {
+        if (st.holding) return;
+        st.holding = true;
+        stopPlayback();
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            audio: true,
+          });
+          if (!st.holding) {
+            stream.getTracks().forEach((t) => t.stop());
+            return;
+          }
+          const mime = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+            ? "audio/webm;codecs=opus"
+            : "";
+          const rec = new MediaRecorder(
+            stream,
+            mime ? { mimeType: mime } : undefined,
+          );
+          st.chunks = [];
+          rec.ondataavailable = (e) => st.chunks.push(e.data);
+          rec.onstop = () => {
+            stream.getTracks().forEach((t) => t.stop());
+            const blob = new Blob(st.chunks, { type: rec.mimeType });
+            if (blob.size < 3000) {
+              setStatus("Ghi âm quá ngắn. Hãy giữ nút lâu hơn.");
+              return;
+            }
+            setStatus("Đang gửi…");
+            st.ws.send(blob);
+          };
+          rec.start();
+          st.rec = rec;
+          $("#talk").classList.add("rec");
+          $("#talk").textContent = "Đang ghi âm. Thả ra để gửi";
+        } catch (err) {
+          st.holding = false;
+          setStatus("Không mở được micro: " + err.message);
+        }
+      }
+
+      function stopRec() {
+        st.holding = false;
+        if (!st.rec) return;
+        st.rec.stop();
+        st.rec = null;
+        $("#talk").classList.remove("rec");
+        $("#talk").textContent = "Giữ để nói";
+      }
+
+      const talk = $("#talk");
+      talk.addEventListener("pointerdown", (e) => {
+        e.preventDefault();
+        startRec();
+      });
+      ["pointerup", "pointerleave", "pointercancel"].forEach((ev) =>
+        talk.addEventListener(ev, stopRec),
+      );
+
+      $("#typed").addEventListener("keydown", (e) => {
+        if (e.key !== "Enter" || !e.target.value.trim()) return;
+        stopPlayback();
+        st.ws.send(JSON.stringify({ type: "text", text: e.target.value }));
+        e.target.value = "";
+      });
+
+      init();
+    </script>
+  </body>
+</html>
