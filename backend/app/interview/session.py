@@ -25,6 +25,8 @@ class Session:
     prev: dict | None = None  # state before the last turn, for the undo button
     history_id: int | None = None  # sessions row in the history DB (None when history is off)
     last_turn_id: int | None = None  # turns row of the last answered turn, deleted on undo
+    shadow_target: str | None = None  # NOTE sentence the next recording is compared against
+    last_speech: dict | None = None  # speech metrics of the last spoken answer, shown next to shadowing
 
     def snapshot(self) -> dict:
         return {k: copy.deepcopy(getattr(self, k)) for k in STATE_FIELDS}

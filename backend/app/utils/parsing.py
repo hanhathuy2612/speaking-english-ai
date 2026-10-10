@@ -4,7 +4,6 @@
 - ready_sentences: complete SAY sentences that can go to TTS right away
 - speech_metrics: objective metrics from Whisper word timestamps
 - used_phrase_indices: which target phrases the learner used
-- wer: word error rate, for comparing STT configs
 """
 
 from __future__ import annotations
@@ -102,20 +101,3 @@ def speech_metrics(words: list[dict]) -> dict:
         "long_pauses": len(long_gaps),
         "low_conf": low_conf[:6],
     }
-
-
-def word_errors(ref: str, hyp: str) -> tuple[int, int]:
-    """(substitutions + insertions + deletions, reference word count), word-level Levenshtein."""
-    r, h = norm(ref).split(), norm(hyp).split()
-    prev = list(range(len(h) + 1))
-    for i, rw in enumerate(r, 1):
-        cur = [i] + [0] * len(h)
-        for j, hw in enumerate(h, 1):
-            cur[j] = min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (rw != hw))
-        prev = cur
-    return prev[-1], len(r)
-
-
-def wer(ref: str, hyp: str) -> float:
-    errors, n = word_errors(ref, hyp)
-    return errors / max(n, 1)

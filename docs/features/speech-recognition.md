@@ -18,6 +18,7 @@ Khoảng 0,36 giây mỗi câu, 7,0% từ sai trên bộ 18 câu của người 
 - `transcribe()` trả về `text`, `words` (từ, mốc bắt đầu/kết thúc, xác suất), `avg_logprob` và `no_speech` (trung bình có trọng số theo độ dài từng đoạn).
 - `initial_prompt` là `STT_VOCAB` (thông tin riêng của người dùng, ví dụ tên "Huy") ghép với `vocab` của bài. Nó giúp nghe đúng tên riêng và từ nghề.
 - `vad_filter=True`, `condition_on_previous_text=False`, `language="en"`.
+- Lượt **nói lại** (shadowing) nhận dạng **không có** `initial_prompt`, để gợi ý không che mất lỗi phát âm (xem [shadowing.md](shadowing.md)).
 - **Nghe không chắc:** khi `avg_logprob < STT_MIN_LOGPROB` (-1.0) hoặc `no_speech > STT_MAX_NO_SPEECH` (0.6), app không gọi LLM, hiện "Máy nghe chưa rõ, bạn nói lại nhé". Ngưỡng này chưa được hiệu chỉnh: server in `STT logprob=... no_speech=...` mỗi lượt để lấy số liệu.
 - `load()` chạy thử 1 giây im lặng ngay khi nạp, để lỗi thiếu DLL CUDA lộ ra lúc khởi động chứ không phải ở lượt nói đầu tiên. Khi GPU lỗi, server dùng CPU int8 và nhãn STT trên giao diện ghi "(GPU lỗi)".
 - `SAVE_AUDIO_DIR` (đang là `recordings`): giữ file `.webm` và `.hyp.txt` (chữ máy nghe được) của mỗi lượt.

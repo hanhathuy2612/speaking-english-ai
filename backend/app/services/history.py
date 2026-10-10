@@ -45,6 +45,19 @@ CREATE TABLE IF NOT EXISTS turns (
     first_audio_ms INTEGER
 );
 CREATE INDEX IF NOT EXISTS turns_session ON turns(session_id);
+CREATE TABLE IF NOT EXISTS shadows (
+    id INTEGER PRIMARY KEY,
+    session_id INTEGER NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+    created_at TEXT NOT NULL,
+    target TEXT NOT NULL,
+    heard TEXT NOT NULL,
+    correct INTEGER NOT NULL,          -- reference tokens heard correctly
+    total INTEGER NOT NULL,            -- reference tokens
+    words INTEGER,
+    wpm_speaking INTEGER,
+    long_pauses INTEGER,
+    avg_logprob REAL
+);
 """
 
 
@@ -93,6 +106,20 @@ def add_turn(session_id: int | None, turn: dict) -> int | None:
         cur = conn.execute(
             f"INSERT INTO turns ({', '.join(cols)}) VALUES ({', '.join('?' * len(cols))})",
             (session_id, _now(), *row.values()),
+        )
+        return cur.lastrowid
+
+
+def add_shadow(session_id: int | None, attempt: dict) -> int | None:
+    """One shadowing attempt (reading a NOTE aloud). Kept apart from turns so it never skews
+    the interview metrics."""
+    if session_id is None:
+        return None
+    cols = ["session_id", "created_at", *attempt]
+    with closing(_connect()) as conn, conn:
+        cur = conn.execute(
+            f"INSERT INTO shadows ({', '.join(cols)}) VALUES ({', '.join('?' * len(cols))})",
+            (session_id, _now(), *attempt.values()),
         )
         return cur.lastrowid
 

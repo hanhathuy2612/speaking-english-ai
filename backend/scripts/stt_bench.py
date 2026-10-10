@@ -25,7 +25,7 @@ add_cuda_dlls()  # before importing faster_whisper
 
 from faster_whisper import WhisperModel  # noqa: E402
 
-from app.utils.parsing import word_errors  # noqa: E402
+from app.utils.compare import word_errors  # noqa: E402
 
 
 def main() -> None:

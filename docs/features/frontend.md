@@ -34,7 +34,7 @@ Server phục vụ `/` và `/bench`; file tĩnh nằm dưới `/static/` (xem `b
 - **Cột trái (`.sidebar`):** thẻ mục tiêu (`#goal`), thẻ mẫu câu (`#phrases`, bộ đếm `#phraseCount`), mục thu gọn "Chỉ số kỹ thuật" (`#timing`, `#conf`).
 - **Giữa (`.stage`):**
   - Hội thoại (`#chat`): mỗi lượt là một `.msg.ai` hoặc `.msg.me`, gồm avatar, `.who`, `.bubble`, `.meta` (các chip chỉ số nói). Lượt "nghe chưa rõ" có thêm class `.unclear`. Khi hết phiên, thẻ tổng kết `.summary` được thêm vào cuối hội thoại.
-  - Thanh dưới (`.dock`): thẻ NOTE (`#coach`, ẩn bằng thuộc tính `hidden`) và khung trả lời (`.composer`), gồm nút micro `#talk`, ô gõ chữ `#typed`, nút hoàn tác `#undo`, trạng thái `#status`.
+  - Thanh dưới (`.dock`): thẻ NOTE (`#coach`, ẩn bằng thuộc tính `hidden`; có nút nói lại `#shadowStart`/`#shadowCancel`, vùng kết quả `#shadowResult`, class `.shadowing` khi đang chờ đọc và `.has-result` khi đã có kết quả) và khung trả lời (`.composer`), gồm nút micro `#talk`, ô gõ chữ `#typed`, nút hoàn tác `#undo`, trạng thái `#status`.
 - **Màn hình hẹp (từ 960px trở xuống):** một cột, trang cuộn bình thường, thanh dưới dính đáy màn hình, cột trái xuống sau hội thoại. Từ 560px trở xuống: ẩn tên ứng dụng, nút hoàn tác xuống dòng dưới ô gõ chữ.
 
 ## Hàm chính trong `js/app.js`
@@ -47,6 +47,7 @@ Server phục vụ `/` và `/bench`; file tĩnh nằm dưới `/static/` (xem `b
 | `renderUnit()`, `markUsed()`, `renderProgress()` | Mục tiêu, danh sách mẫu câu kèm bộ đếm, thanh tiến độ |
 | `addMessage()`, `speechChips()`, `chip()` | Một tin nhắn trong hội thoại và các chip chỉ số nói |
 | `renderCoach()`, `renderSummary()` | Thẻ NOTE và thẻ tổng kết |
+| `beginShadow()`, `endShadow()`, `renderShadow()` | Chế độ nói lại câu NOTE và kết quả tô từng từ (xem [shadowing.md](shadowing.md)) |
 | `enqueue()`, `playNext()`, `appendAi()`, `stopPlayback()` | Hàng đợi phát MP3 (xem [tts-audio.md](tts-audio.md)) |
 | `startRec()`, `stopRec()` | Ghi âm giữ để nói bằng MediaRecorder (webm/opus). File dưới 3000 byte bị bỏ. |
 
@@ -54,7 +55,7 @@ Giữ nút micro **hoặc phím Space** để nói. Space không có tác dụng
 
 ## Trạng thái `st` trong `js/app.js`
 
-`turn` (đếm lượt), `lines` (tin nhắn AI theo lượt), `lastMe` (tin nhắn gần nhất của người học, dùng cho hoàn tác), `queue`/`playing`/`audio` (phát âm thanh), `pending` (metadata câu đang chờ khung MP3).
+`shadow` (câu NOTE đang chờ đọc lại), `turn` (đếm lượt), `lines` (tin nhắn AI theo lượt), `lastMe` (tin nhắn gần nhất của người học, dùng cho hoàn tác), `queue`/`playing`/`audio` (phát âm thanh), `pending` (metadata câu đang chờ khung MP3).
 
 ## Quy ước
 

@@ -16,8 +16,8 @@ backend/
     core/                # config.py (đọc .env, đường dẫn), cuda.py (DLL CUDA trên Windows)
     api/routes/          # ws.py (WebSocket /ws), units.py, bench.py, history.py (/api/...)
     services/            # stt.py (Whisper), tts.py (edge-tts + cache), llm.py (LM Studio), history.py (SQLite)
-    interview/           # session.py (trạng thái, next_step), prompts.py, turn.py (một lượt), units.py
-    utils/               # parsing.py (hàm thuần), ws.py (Conn)
+    interview/           # session.py (trạng thái, next_step), prompts.py, turn.py (một lượt), shadow.py (nói lại), units.py
+    utils/               # parsing.py, compare.py (hàm thuần), ws.py (Conn)
     data/                # units.json (bài tập), bench_sentences.json
   scripts/               # replay.py (so prompt), stt_bench.py (đo STT)
   tests/                 # pytest
@@ -55,6 +55,7 @@ python -m scripts.stt_bench --config large-v3-turbo,cuda,float16,3 --show
 | Nhận dạng giọng nói, GPU, chặn khi nghe không chắc | [docs/features/speech-recognition.md](docs/features/speech-recognition.md) | `services/stt.py`, `core/cuda.py` |
 | Giọng đọc, cache, phát âm thanh | [docs/features/tts-audio.md](docs/features/tts-audio.md) | `services/tts.py`, `frontend/js/app.js` |
 | Chỉ số nói, mẫu câu đã dùng | [docs/features/speech-metrics.md](docs/features/speech-metrics.md) | `utils/parsing.py`, `interview/session.py` (`summary`) |
+| Nói lại câu mẫu (shadowing): so từng từ, chuẩn hóa số và viết tắt | [docs/features/shadowing.md](docs/features/shadowing.md) | `interview/shadow.py`, `utils/compare.py`, `frontend/js/app.js` (`renderShadow`) |
 | Lịch sử luyện tập, trang Tiến bộ, biểu đồ xu hướng | [docs/features/session-history.md](docs/features/session-history.md) | `services/history.py`, `api/routes/history.py`, `frontend/history.html` |
 | Đo độ chính xác STT, trang đọc theo câu mẫu | [docs/features/stt-benchmark.md](docs/features/stt-benchmark.md) | `scripts/stt_bench.py`, `api/routes/bench.py`, `frontend/bench.html` |
 | Giao diện | [docs/features/frontend.md](docs/features/frontend.md) | `frontend/` |
@@ -91,7 +92,7 @@ Theo [Conventional Commits 1.0.0](https://www.conventionalcommits.org/en/v1.0.0/
 ```
 
 - **type:** `feat` (tính năng mới), `fix` (sửa lỗi), `refactor` (đổi cấu trúc, không đổi hành vi), `perf`, `test`, `docs`, `style` (định dạng, không đổi logic), `build` (dependency, requirements), `chore` (việc vặt, cấu hình), `revert`.
-- **scope** (không bắt buộc): `backend`, `frontend`, `stt`, `tts`, `llm`, `interview`, `bench`, `config`, `docs`.
+- **scope** (không bắt buộc): `backend`, `frontend`, `stt`, `tts`, `llm`, `interview`, `shadowing`, `history`, `bench`, `config`, `docs`.
 - **subject:** câu mệnh lệnh, chữ thường ở đầu, không dấu chấm cuối, tối đa 72 ký tự. Ví dụ: `fix(stt): fall back to cpu when cuda dlls are missing`.
 - **body:** xuống dòng ở khoảng 72 ký tự. Nêu lý do và cách đã kiểm chứng (test, replay, stt_bench).
 - **Thay đổi phá vỡ tương thích** (đổi lệnh chạy, đổi biến `.env`, đổi giao thức WebSocket): thêm `!` sau type (`refactor!: ...`) và footer `BREAKING CHANGE: <mô tả + cách chuyển đổi>`.

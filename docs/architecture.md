@@ -31,6 +31,7 @@ Trình duyệt gửi:
 | khung nhị phân (webm) | Câu trả lời bằng giọng nói. |
 | `{"type":"text","text":...}` | Câu trả lời gõ chữ (bỏ qua STT, không có chỉ số nói). |
 | `{"type":"undo"}` | "Máy nghe sai": khôi phục `Session.prev`. |
+| `{"type":"shadow","text":...}` | Gửi ngay trước khung âm thanh: bản ghi kế tiếp là lượt nói lại câu NOTE này (xem [shadowing.md](features/shadowing.md)). |
 | `{"type":"say_it","text":...}` | Đọc to NOTE (role `model`, không ghi vào chat). |
 
 Server gửi:
@@ -45,6 +46,7 @@ Server gửi:
 | `progress` | `q`/`n`, `done`. |
 | `metrics` | Độ trễ: `stt_ms`, `llm_first_ms`, `first_audio_ms`, `total_ms`. |
 | `summary` | Tổng kết khi hết câu hỏi. |
+| `shadow_result` | Kết quả nói lại: `target`, `heard`, `compare` (từng từ), `speech`, `original`. |
 | `undone` | Đã hoàn tác, kèm `used` mới. |
 | `turn_done` | Kết thúc lượt. `can_undo` cho biết có hiện nút "Máy nghe sai" không. |
 | `error` | Thông báo lỗi tiếng Việt. |

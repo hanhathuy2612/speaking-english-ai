@@ -12,6 +12,7 @@ const st = {
   lines: {},
   coachText: "",
   lastMe: null,
+  shadow: null, // NOTE text while waiting for a shadowing recording
 };
 
 // state: ready | busy | recording | warn | error (drives the colored dot)
@@ -71,6 +72,7 @@ function onMessage(e) {
         setStatus("Máy nghe chưa rõ, bạn nói lại nhé.", "warn");
         break;
       }
+      endShadow();
       st.lastMe = { el: addMessage("me", "Bạn", m.text, m.speech), turn: st.turn };
       markUsed(m.used);
       $("#coach").hidden = true;
@@ -84,6 +86,7 @@ function onMessage(e) {
         st.lastMe = null;
       }
       markUsed(m.used);
+      endShadow();
       $("#coach").hidden = true;
       $("#chat .summary")?.remove();
       setStatus("Đã bỏ lượt vừa rồi. Hãy trả lời lại.", "ready");
@@ -99,6 +102,9 @@ function onMessage(e) {
       break;
     case "note":
       renderCoach(m);
+      break;
+    case "shadow_result":
+      renderShadow(m);
       break;
     case "metrics":
       for (const k of ["stt_ms", "llm_first_ms", "first_audio_ms", "total_ms"]) {
@@ -196,8 +202,96 @@ function renderCoach(m) {
   $("#coachFlag").hidden = !m.retry;
   $("#coachLabel").textContent = m.retry ? "Câu mẫu để bạn nói theo" : "Cách nói tự nhiên hơn, thử nói lại";
   $("#coachText").textContent = m.text;
+  $("#shadowResult").hidden = true;
+  $("#coach").classList.remove("has-result");
+  $("#shadowStartLabel").textContent = "Nói lại câu này";
+  endShadow();
   $("#coach").hidden = false;
 }
+
+/* ---------- Shadowing: read the NOTE aloud and compare word by word ---------- */
+function beginShadow() {
+  if (!st.coachText) return;
+  st.shadow = st.coachText;
+  $("#coach").classList.add("shadowing");
+  $("#shadowStart").disabled = true;
+  $("#shadowStartLabel").textContent = "Đang chờ bạn đọc…";
+  $("#shadowCancel").hidden = false;
+  setStatus("Giữ nút micro hoặc phím Space rồi đọc câu mẫu", "ready");
+}
+
+function endShadow() {
+  st.shadow = null;
+  $("#coach").classList.remove("shadowing");
+  $("#shadowStart").disabled = false;
+  $("#shadowCancel").hidden = true;
+}
+
+function renderShadow(m) {
+  endShadow();
+  $("#shadowStartLabel").textContent = "Thử lại";
+  const box = $("#shadowResult");
+  box.innerHTML = "";
+
+  const line = document.createElement("p");
+  line.className = "shadow-line";
+  for (const item of m.compare.items) {
+    const tok = document.createElement("span");
+    if (item.kind === "extra") {
+      tok.className = "tok extra";
+      tok.textContent = `+ ${item.text}`;
+      tok.title = "Bạn nói thêm";
+    } else {
+      tok.className = `tok ${item.status}`;
+      const text = document.createElement("span");
+      text.className = "tok-text";
+      text.textContent = item.text;
+      tok.appendChild(text);
+      if (item.status === "wrong") {
+        const heard = document.createElement("span");
+        heard.className = "tok-heard";
+        heard.textContent = item.heard;
+        tok.appendChild(heard);
+        tok.title = `Máy nghe thành: ${item.heard}`;
+      } else if (item.status === "miss") tok.title = "Máy không nghe thấy từ này";
+    }
+    line.appendChild(tok);
+  }
+  box.appendChild(line);
+
+  const heard = document.createElement("p");
+  heard.className = "shadow-heard";
+  heard.textContent = `Máy nghe được: ${m.heard}`;
+  box.appendChild(heard);
+
+  const meta = document.createElement("div");
+  meta.className = "meta";
+  const { correct, total, accuracy } = m.compare;
+  const pct = Math.round(accuracy * 100);
+  meta.append(chip(correct === total ? `Đúng hết ${total}/${total} từ` : `Đúng ${correct}/${total} từ (${pct}%)`, pct >= 90 ? "success" : "warning"));
+  const o = m.original;
+  if (m.speech.wpm_speaking != null) {
+    const faster = o?.wpm_speaking != null && m.speech.wpm_speaking > o.wpm_speaking;
+    meta.append(chip(`Khi nói ${m.speech.wpm_speaking} từ/phút${o?.wpm_speaking != null ? ` · lần đầu ${o.wpm_speaking}` : ""}`, faster ? "success" : ""));
+  } else meta.append(chip("Câu ngắn, chưa tính tốc độ"));
+  const fewer = o && m.speech.long_pauses < o.long_pauses;
+  meta.append(chip(`${m.speech.long_pauses} lần ngắt dài${o ? ` · lần đầu ${o.long_pauses}` : ""}`, fewer ? "success" : ""));
+  box.appendChild(meta);
+
+  const legend = document.createElement("p");
+  legend.className = "shadow-legend";
+  legend.textContent = "Gạch chân cam: máy nghe thành từ khác (chữ nhỏ bên dưới). Gạch ngang: máy không nghe thấy. Dấu +: bạn nói thêm.";
+  box.appendChild(legend);
+  box.hidden = false;
+  $("#coach").classList.add("has-result");
+}
+
+$("#shadowStart").onclick = beginShadow;
+$("#shadowCancel").onclick = () => {
+  endShadow();
+  $("#shadowStartLabel").textContent = $("#shadowResult").hidden ? "Nói lại câu này" : "Thử lại";
+  setStatus("Sẵn sàng, mời bạn trả lời", "ready");
+};
 
 // Appended to the end of the conversation as the closing card of the session.
 function renderSummary(m) {
@@ -324,6 +418,8 @@ async function startRec() {
         return;
       }
       setStatus("Đang gửi…", "busy");
+      // A shadowing attempt is announced right before its audio, so the server compares it with the NOTE.
+      if (st.shadow) st.ws.send(JSON.stringify({ type: "shadow", text: st.shadow }));
       st.ws.send(blob);
     };
     rec.start();
@@ -369,6 +465,7 @@ document.addEventListener("keyup", (e) => {
 $("#typed").addEventListener("keydown", (e) => {
   if (e.key !== "Enter" || !e.target.value.trim()) return;
   stopPlayback();
+  endShadow(); // a typed message is always an interview answer
   st.ws.send(JSON.stringify({ type: "text", text: e.target.value }));
   e.target.value = "";
 });

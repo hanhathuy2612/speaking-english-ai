@@ -88,6 +88,7 @@ async def handle_user_input(
     s.used |= set(used_now)
     if words:
         s.speech.append(speech)
+    s.last_speech = speech if words else None
     await conn.json(
         {"type": "transcript", "text": text, "speech": speech, "used": sorted(s.used),
          "unclear": False, "conf": conf}

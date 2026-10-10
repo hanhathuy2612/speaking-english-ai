@@ -80,3 +80,19 @@ def test_disabled_when_history_db_is_empty(tmp_path, monkeypatch):
     assert history.add_turn(None, voice(10, 90, 90, 0)) is None
     assert history.list_sessions() == []
     assert list(tmp_path.iterdir()) == []
+
+
+def test_shadow_attempts_are_stored_apart_and_deleted_with_the_session(db):
+    import sqlite3
+
+    sid = history.start_session(UNIT)
+    history.add_turn(sid, voice(20, 100, 120, 1))
+    history.add_shadow(sid, {"target": "I'm responsible for ...", "heard": "I responsible for",
+                             "correct": 3, "total": 4, "words": 3})
+    [s] = history.list_sessions()
+    assert s["turns"] == 1  # shadowing never counts as an interview turn
+    count = lambda: sqlite3.connect(db).execute("SELECT COUNT(*) FROM shadows").fetchone()[0]  # noqa: E731
+    assert count() == 1
+    history.delete_session(sid)
+    assert count() == 0
+    assert history.add_shadow(None, {"target": "x", "heard": "x", "correct": 1, "total": 1}) is None

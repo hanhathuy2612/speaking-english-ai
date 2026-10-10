@@ -6,7 +6,6 @@ from app.utils.parsing import (
     speech_metrics,
     split_sections,
     used_phrase_indices,
-    wer,
 )
 
 RAW = (
@@ -100,8 +99,3 @@ def test_is_question():
     assert is_question("What did you build?")
     assert not is_question("NEXT")
     assert not is_question("That sounds great.")
-
-
-def test_wer():
-    assert wer("I've been working as a developer", "I've been working as a developer") == 0
-    assert wer("I've been working as a developer", "I've been booking a shop") == 3 / 6  # working->booking, "as" dropped, developer->shop

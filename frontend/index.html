@@ -78,10 +78,18 @@
                 <span id="coachFlag" class="chip chip-warning" hidden></span>
               </div>
               <p class="coach-text" id="coachText"></p>
-              <button class="btn btn-sm" id="coachPlay">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
-                Nghe câu này
-              </button>
+              <div id="shadowResult" class="shadow-result" aria-live="polite" hidden></div>
+              <div class="coach-actions">
+                <button class="btn btn-sm" id="coachPlay">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+                  Nghe câu này
+                </button>
+                <button class="btn btn-sm btn-primary" id="shadowStart">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5"/></svg>
+                  <span id="shadowStartLabel">Nói lại câu này</span>
+                </button>
+                <button class="btn btn-sm btn-ghost" id="shadowCancel" hidden>Hủy</button>
+              </div>
             </section>
 
             <div class="composer card">
