@@ -1,4 +1,8 @@
 const $ = (s) => document.querySelector(s);
+const setStatus = (text, state = "") => {
+  $("#status").textContent = text;
+  $("#status").dataset.state = state;
+};
 let items = [],
   idx = 0,
   rec = null,
@@ -19,18 +23,26 @@ function render() {
     const li = document.createElement("li");
     li.textContent = it.text;
     li.className = (it.done ? "done " : "") + (i === idx ? "active" : "");
+    li.tabIndex = 0;
+    li.setAttribute("role", "button");
     li.onclick = () => {
       idx = i;
       render();
+    };
+    li.onkeydown = (e) => {
+      if (e.key === "Enter") li.onclick();
     };
     ol.appendChild(li);
   });
   const n = items.filter((x) => x.done).length;
   $("#current").textContent = items[idx]?.text || "";
-  $("#status").textContent =
-    n === items.length
-      ? `Xong ${n}/${items.length} câu. Bạn có thể quay lại báo cho Claude.`
-      : `Đã thu ${n}/${items.length} câu`;
+  $("#position").textContent = `Câu ${idx + 1}/${items.length}`;
+  $("#count").textContent = `Đã thu ${n}/${items.length}`;
+  $("#count").classList.toggle("chip-success", n === items.length);
+  setStatus(
+    n === items.length ? "Đã thu đủ. Có thể chạy scripts/stt_bench để đo." : "Sẵn sàng",
+    "ready",
+  );
 }
 
 async function start() {
@@ -49,7 +61,7 @@ async function start() {
     r.onstop = async () => {
       const blob = new Blob(chunks, { type: r.mimeType });
       if (blob.size < 3000) {
-        $("#status").textContent = "Thu quá ngắn, giữ nút lâu hơn.";
+        setStatus("Thu quá ngắn, giữ nút lâu hơn.", "warn");
         return;
       }
       await fetch(`/api/bench/${i}`, { method: "POST", body: blob });
@@ -61,10 +73,11 @@ async function start() {
     r.start();
     rec = r;
     $("#talk").classList.add("rec");
-    $("#talk").textContent = "Đang thu. Thả ra để lưu";
+    $("#talkLabel").textContent = "Đang thu… thả ra để lưu";
+    setStatus("Đang ghi âm", "recording");
   } catch (err) {
     holding = false;
-    $("#status").textContent = "Không mở được micro: " + err.message;
+    setStatus("Không mở được micro: " + err.message, "error");
   }
 }
 
@@ -74,7 +87,7 @@ function stop() {
   rec.stop();
   rec = null;
   $("#talk").classList.remove("rec");
-  $("#talk").textContent = "Giữ để đọc";
+  $("#talkLabel").textContent = "Giữ nút hoặc phím Space để đọc";
 }
 
 const talk = $("#talk");

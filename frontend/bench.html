@@ -8,20 +8,48 @@
     <link rel="stylesheet" href="/static/css/bench.css" />
   </head>
   <body>
-    <div class="wrap">
-      <h1>Đọc theo câu mẫu</h1>
-      <p class="muted">
-        Đọc tự nhiên như khi nói chuyện, không cần chậm hay cố phát âm chuẩn. Giữ nút
-        (hoặc giữ phím Space) để thu, thả ra để lưu và sang câu tiếp. Bấm vào câu bất
-        kỳ để thu lại.
-      </p>
-      <div id="current"></div>
-      <div class="controls">
-        <button id="talk">Giữ để đọc</button>
-        <span id="status"></span>
+    <header class="appbar">
+      <a class="brand" href="/">
+        <span class="brand-mark" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        </span>
+        <span class="brand-name">Phòng tập phỏng vấn</span>
+      </a>
+      <div class="appbar-spacer"></div>
+      <a class="btn btn-ghost btn-sm" href="/">Về phòng tập</a>
+    </header>
+
+    <main class="bench">
+      <div class="bench-head">
+        <h1>Đọc theo câu mẫu</h1>
+        <p class="lead">
+          Đọc tự nhiên như khi nói chuyện, không cần chậm hay cố phát âm chuẩn. Kết quả dùng để đo độ
+          chính xác nhận dạng giọng nói.
+        </p>
       </div>
-      <ol id="list"></ol>
-    </div>
+
+      <section class="card reader">
+        <div class="reader-top">
+          <span class="eyebrow" id="position"></span>
+          <span class="chip" id="count"></span>
+        </div>
+        <p id="current" class="current"></p>
+        <div class="reader-actions">
+          <button id="talk" class="mic" aria-label="Giữ để đọc">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5"/></svg>
+          </button>
+          <div>
+            <p class="talk-label" id="talkLabel">Giữ nút hoặc phím Space để đọc</p>
+            <div id="status" class="status" role="status"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card list-card">
+        <p class="eyebrow">Tất cả câu (bấm để thu lại)</p>
+        <ol id="list" class="list"></ol>
+      </section>
+    </main>
     <script src="/static/js/bench.js"></script>
   </body>
 </html>

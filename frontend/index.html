@@ -8,50 +8,99 @@
     <link rel="stylesheet" href="/static/css/app.css" />
   </head>
   <body>
-    <div class="wrap">
-      <aside>
-        <h1>Phòng tập phỏng vấn</h1>
-        <select id="unit" aria-label="Chọn bài"></select>
-        <p class="goal" id="goal"></p>
-        <p class="progress" id="progress"></p>
-        <h2>Mẫu câu hôm nay</h2>
-        <ul class="phrases" id="phrases"></ul>
-        <h2>Độ trễ lượt vừa rồi</h2>
-        <dl class="timing" id="timing">
-          <dt>Nhận dạng giọng nói</dt>
-          <dd data-k="stt_ms">-</dd>
-          <dt>Token đầu của AI</dt>
-          <dd data-k="llm_first_ms">-</dd>
-          <dt>Âm thanh đầu tiên</dt>
-          <dd data-k="first_audio_ms">-</dd>
-          <dt>Cả lượt</dt>
-          <dd data-k="total_ms">-</dd>
-          <dt>Độ tin cậy nhận dạng</dt>
-          <dd id="conf">-</dd>
-        </dl>
-        <p class="goal" id="sttLabel"></p>
-      </aside>
+    <div class="app">
+      <header class="appbar">
+        <a class="brand" href="/">
+          <span class="brand-mark" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          </span>
+          <span class="brand-name">Phòng tập phỏng vấn</span>
+        </a>
+        <select id="unit" class="select" aria-label="Chọn bài tập"></select>
+        <div class="progress" aria-live="polite">
+          <span id="progress" class="progress-text"></span>
+          <div class="progress-bar" aria-hidden="true"><span id="progressFill"></span></div>
+        </div>
+        <div class="appbar-spacer"></div>
+        <span class="chip stt-chip" id="sttLabel" title="Cấu hình nhận dạng giọng nói đang chạy"></span>
+        <a class="btn btn-ghost btn-sm" href="/bench">Đo nhận dạng</a>
+      </header>
 
-      <main>
-        <div id="chat" class="serif" aria-live="polite"></div>
-        <div id="summary"></div>
-        <div id="coach">
-          <div class="flag" id="coachFlag"></div>
-          <div class="who" id="coachLabel"></div>
-          <div class="sentence serif" id="coachText"></div>
-          <button class="quiet" id="coachPlay">Nghe câu này</button>
-        </div>
-        <div class="controls">
-          <button id="talk">Giữ để nói</button>
-          <button class="quiet" id="undo" hidden>Máy nghe sai, nói lại</button>
-          <input
-            id="typed"
-            placeholder="Hoặc gõ câu trả lời rồi nhấn Enter"
-            autocomplete="off"
-          />
-          <div id="status"></div>
-        </div>
-      </main>
+      <div class="layout">
+        <aside class="sidebar">
+          <section class="card panel">
+            <p class="eyebrow">Mục tiêu</p>
+            <p class="goal" id="goal"></p>
+          </section>
+
+          <section class="card panel">
+            <div class="panel-head">
+              <p class="eyebrow">Mẫu câu cần dùng</p>
+              <span class="chip" id="phraseCount">0/0</span>
+            </div>
+            <ul class="phrases" id="phrases"></ul>
+          </section>
+
+          <details class="card panel tech">
+            <summary>
+              <span class="eyebrow">Chỉ số kỹ thuật</span>
+              <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+            </summary>
+            <dl class="timing" id="timing">
+              <dt>Nhận dạng giọng nói</dt>
+              <dd data-k="stt_ms">-</dd>
+              <dt>Chữ đầu tiên của AI</dt>
+              <dd data-k="llm_first_ms">-</dd>
+              <dt>Âm thanh đầu tiên</dt>
+              <dd data-k="first_audio_ms">-</dd>
+              <dt>Cả lượt</dt>
+              <dd data-k="total_ms">-</dd>
+              <dt>Độ tin cậy nhận dạng</dt>
+              <dd id="conf">-</dd>
+            </dl>
+          </details>
+        </aside>
+
+        <main class="stage">
+          <div id="chat" class="chat" aria-live="polite"></div>
+
+          <div class="dock">
+            <section id="coach" class="card coach" hidden>
+              <div class="coach-head">
+                <span class="coach-icon" aria-hidden="true">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V16h8v-1.3A7 7 0 0 0 12 2z"/></svg>
+                </span>
+                <span id="coachLabel" class="coach-label"></span>
+                <span id="coachFlag" class="chip chip-warning" hidden></span>
+              </div>
+              <p class="coach-text" id="coachText"></p>
+              <button class="btn btn-sm" id="coachPlay">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+                Nghe câu này
+              </button>
+            </section>
+
+            <div class="composer card">
+              <button id="talk" class="mic" aria-label="Giữ để nói">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5"/></svg>
+              </button>
+              <div class="composer-main">
+                <div class="composer-row">
+                  <input id="typed" class="input" placeholder="Hoặc gõ câu trả lời rồi nhấn Enter" autocomplete="off" aria-label="Gõ câu trả lời" />
+                  <button id="undo" class="btn btn-ghost btn-sm" hidden>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>
+                    Máy nghe sai, nói lại
+                  </button>
+                </div>
+                <div class="composer-foot">
+                  <div id="status" class="status" role="status"></div>
+                  <span class="hint" id="talkHint">Giữ nút micro hoặc phím Space để nói</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
     </div>
 
     <script src="/static/js/app.js"></script>

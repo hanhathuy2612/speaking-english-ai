@@ -14,8 +14,11 @@ const st = {
   lastMe: null,
 };
 
-const setStatus = (t) => {
-  $("#status").textContent = t || "";
+// state: ready | busy | recording | warn | error (drives the colored dot)
+const setStatus = (text, state = "") => {
+  const el = $("#status");
+  el.textContent = text || "";
+  el.dataset.state = state;
 };
 
 /* ---------- WebSocket ---------- */
@@ -23,8 +26,7 @@ function init() {
   const proto = location.protocol === "https:" ? "wss" : "ws";
   st.ws = new WebSocket(`${proto}://${location.host}/ws`);
   st.ws.onopen = loadUnits;
-  st.ws.onclose = () =>
-    setStatus("Mất kết nối với máy chủ. Tải lại trang để thử lại.");
+  st.ws.onclose = () => setStatus("Mất kết nối với máy chủ. Tải lại trang để thử lại.", "error");
   st.ws.onmessage = onMessage;
 }
 
@@ -39,7 +41,7 @@ async function loadUnits() {
 
 function startUnit() {
   stopPlayback();
-  setStatus("Đang chuẩn bị bài…");
+  setStatus("Đang chuẩn bị bài…", "busy");
   st.ws.send(JSON.stringify({ type: "start", unit: $("#unit").value }));
 }
 
@@ -54,31 +56,24 @@ function onMessage(e) {
   switch (m.type) {
     case "started":
       renderUnit(m.unit);
-      $("#sttLabel").textContent = "Nhận dạng giọng nói: " + m.unit.stt;
+      $("#sttLabel").textContent = m.unit.stt;
       break;
     case "status":
-      setStatus(
-        m.msg === "transcribing"
-          ? "Đang nhận dạng giọng nói…"
-          : "AI đang trả lời…",
-      );
+      setStatus(m.msg === "transcribing" ? "Đang nhận dạng giọng nói…" : "AI đang trả lời…", "busy");
       break;
     case "transcript":
       st.turn += 1;
       $("#undo").hidden = true;
       $("#conf").textContent = m.conf == null ? "-" : m.conf.toFixed(2);
       if (m.unclear) {
-        const d = addLine("me unclear", "Bạn (máy nghe chưa rõ)", m.text, m.speech);
-        const note = d.querySelector(".speech") || document.createElement("div");
-        note.className = "speech";
-        note.textContent = "Máy nghe chưa rõ, bạn nói lại nhé. AI chưa trả lời câu này.";
-        d.appendChild(note);
-        setStatus("Máy nghe chưa rõ, bạn nói lại nhé.");
+        const el = addMessage("me", "Bạn", m.text, m.speech, { unclear: true });
+        el.querySelector(".meta").prepend(chip("Máy nghe chưa rõ, AI chưa trả lời", "warning"));
+        setStatus("Máy nghe chưa rõ, bạn nói lại nhé.", "warn");
         break;
       }
-      st.lastMe = { el: addLine("me", "Bạn", m.text, m.speech), turn: st.turn };
+      st.lastMe = { el: addMessage("me", "Bạn", m.text, m.speech), turn: st.turn };
       markUsed(m.used);
-      $("#coach").classList.remove("show");
+      $("#coach").hidden = true;
       break;
     case "undone":
       stopPlayback();
@@ -89,14 +84,12 @@ function onMessage(e) {
         st.lastMe = null;
       }
       markUsed(m.used);
-      $("#coach").classList.remove("show");
-      $("#summary").classList.remove("show");
-      setStatus("Đã bỏ lượt vừa rồi. Giữ nút để trả lời lại.");
+      $("#coach").hidden = true;
+      $("#chat .summary")?.remove();
+      setStatus("Đã bỏ lượt vừa rồi. Hãy trả lời lại.", "ready");
       break;
     case "progress":
-      $("#progress").textContent = m.done
-        ? `Đã xong ${m.n}/${m.n} câu hỏi`
-        : `Câu hỏi ${m.q}/${m.n}`;
+      renderProgress(m);
       break;
     case "summary":
       renderSummary(m);
@@ -108,24 +101,16 @@ function onMessage(e) {
       renderCoach(m);
       break;
     case "metrics":
-      for (const k of [
-        "stt_ms",
-        "llm_first_ms",
-        "first_audio_ms",
-        "total_ms",
-      ]) {
-        $(`[data-k="${k}"]`).textContent = m[k]
-          ? `${(m[k] / 1000).toFixed(1)} giây`
-          : "-";
+      for (const k of ["stt_ms", "llm_first_ms", "first_audio_ms", "total_ms"]) {
+        $(`[data-k="${k}"]`).textContent = m[k] ? `${(m[k] / 1000).toFixed(1)} giây` : "-";
       }
       break;
     case "turn_done":
       $("#undo").hidden = !m.can_undo;
-      if (!$("#status").textContent.startsWith("Máy nghe chưa rõ"))
-        setStatus("Sẵn sàng. Giữ nút để nói.");
+      if ($("#status").dataset.state !== "warn") setStatus("Sẵn sàng, mời bạn trả lời", "ready");
       break;
     case "error":
-      setStatus("Lỗi: " + m.msg);
+      setStatus("Lỗi: " + m.msg, "error");
       break;
   }
 }
@@ -133,8 +118,7 @@ function onMessage(e) {
 /* ---------- Rendering ---------- */
 function renderUnit(u) {
   $("#chat").innerHTML = "";
-  $("#coach").classList.remove("show");
-  $("#summary").classList.remove("show");
+  $("#coach").hidden = true;
   $("#undo").hidden = true;
   st.turn = 0;
   st.lines = {};
@@ -145,71 +129,115 @@ function renderUnit(u) {
   u.phrases.forEach((p) => {
     const li = document.createElement("li");
     li.innerHTML =
-      '<span class="mark">✓</span><span class="serif"></span>';
+      '<span class="mark" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span><span></span>';
     li.lastChild.textContent = p.say;
     ul.appendChild(li);
   });
+  markUsed([]);
+}
+
+function renderProgress(m) {
+  const done = m.done ? m.n : m.q - 1;
+  $("#progress").textContent = m.done ? `Hoàn thành ${m.n}/${m.n}` : `Câu hỏi ${m.q}/${m.n}`;
+  $("#progressFill").style.width = `${(done / m.n) * 100}%`;
+  $(".progress").classList.toggle("done", m.done);
 }
 
 function markUsed(used) {
-  document
-    .querySelectorAll("#phrases li")
-    .forEach((li, i) => li.classList.toggle("used", used.includes(i)));
+  const items = document.querySelectorAll("#phrases li");
+  items.forEach((li, i) => li.classList.toggle("used", used.includes(i)));
+  $("#phraseCount").textContent = `${used.length}/${items.length}`;
+  $("#phraseCount").classList.toggle("chip-success", items.length > 0 && used.length === items.length);
 }
 
-function addLine(kind, who, text, speech) {
-  const div = document.createElement("div");
-  div.className = `line ${kind}`;
-  div.innerHTML = '<div class="who"></div><div class="text"></div>';
-  div.querySelector(".who").textContent = who;
-  div.querySelector(".text").textContent = text;
-  if (speech && speech.words) {
-    const s = document.createElement("div");
-    s.className = "speech";
-    let t =
-      speech.wpm == null
-        ? `${speech.words} từ (câu ngắn, chưa tính tốc độ), ${speech.long_pauses} lần ngắt dài`
-        : `${speech.words} từ · khi nói ${speech.wpm_speaking} từ/phút · tính cả ngắt ${speech.wpm} từ/phút · ${speech.long_pauses} lần ngắt dài`;
-    if (speech.low_conf.length)
-      t += `. Máy nghe chưa chắc: ${speech.low_conf.join(", ")}`;
-    s.textContent = t;
-    div.appendChild(s);
+function chip(text, tone = "") {
+  const el = document.createElement("span");
+  el.className = tone ? `chip chip-${tone}` : "chip";
+  el.textContent = text;
+  return el;
+}
+
+function speechChips(speech) {
+  if (!speech || !speech.words) return [];
+  const out = [chip(`${speech.words} từ`)];
+  if (speech.wpm == null) out.push(chip("Câu ngắn, chưa tính tốc độ"));
+  else {
+    out.push(chip(`Khi nói ${speech.wpm_speaking} từ/phút`));
+    out.push(chip(`Tính cả ngắt ${speech.wpm} từ/phút`));
   }
-  $("#chat").appendChild(div);
+  out.push(chip(`${speech.long_pauses} lần ngắt dài`, speech.long_pauses > 2 ? "warning" : ""));
+  if (speech.low_conf.length) out.push(chip(`Máy nghe chưa chắc: ${speech.low_conf.join(", ")}`, "warning"));
+  return out;
+}
+
+// kind: "ai" | "me"
+function addMessage(kind, who, text, speech, opts = {}) {
+  const el = document.createElement("div");
+  el.className = `msg ${kind}${opts.unclear ? " unclear" : ""}`;
+  el.innerHTML =
+    '<div class="avatar" aria-hidden="true"></div><div class="msg-body"><div class="who"></div><div class="bubble"></div><div class="meta"></div></div>';
+  el.querySelector(".avatar").textContent = kind === "ai" ? "AI" : "Bạn";
+  el.querySelector(".who").textContent = who;
+  el.querySelector(".bubble").textContent = text;
+  el.querySelector(".meta").append(...speechChips(speech));
+  $("#chat").appendChild(el);
+  scrollChat();
+  return el;
+}
+
+function scrollChat() {
   $("#chat").scrollTop = $("#chat").scrollHeight;
-  return div;
 }
 
 function renderCoach(m) {
   if (!m.text) return;
   st.coachText = m.text;
-  $("#coachFlag").textContent = m.retry
-    ? "Chưa đủ ý. Hãy trả lời lại câu hỏi."
-    : "";
-  $("#coachLabel").textContent = m.retry
-    ? "Câu mẫu để bạn nói theo"
-    : "Cách nói tự nhiên hơn, thử nói lại";
+  $("#coachFlag").textContent = "Chưa đủ ý, hãy trả lời lại";
+  $("#coachFlag").hidden = !m.retry;
+  $("#coachLabel").textContent = m.retry ? "Câu mẫu để bạn nói theo" : "Cách nói tự nhiên hơn, thử nói lại";
   $("#coachText").textContent = m.text;
-  $("#coach").classList.add("show");
+  $("#coach").hidden = false;
 }
 
+// Appended to the end of the conversation as the closing card of the session.
 function renderSummary(m) {
-  const box = $("#summary");
-  box.innerHTML = "<h2>Tổng kết phiên</h2>";
-  const add = (t) => {
-    const p = document.createElement("p");
-    p.textContent = t;
-    box.appendChild(p);
+  $("#chat .summary")?.remove();
+  const box = document.createElement("section");
+  box.className = "card summary";
+  const h = document.createElement("h2");
+  h.innerHTML =
+    '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--success)" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span>Tổng kết phiên</span>';
+  box.appendChild(h);
+
+  const stats = document.createElement("div");
+  stats.className = "stats";
+  const stat = (value, label) => {
+    const d = document.createElement("div");
+    d.className = "stat";
+    d.innerHTML = '<div class="stat-value"></div><div class="stat-label"></div>';
+    d.firstChild.textContent = value;
+    d.lastChild.textContent = label;
+    stats.appendChild(d);
   };
-  add(`Đã trả lời đủ ${m.questions} câu hỏi trong ${m.turns} lượt.`);
-  add(`Mẫu câu đã dùng (${m.phrases_used.length}): ${m.phrases_used.join(" | ") || "chưa có"}`);
-  if (m.phrases_missed.length)
-    add(`Chưa dùng: ${m.phrases_missed.join(" | ")}`);
-  if (m.wpm != null)
-    add(`Tốc độ trung bình: khi nói ${m.wpm_speaking} từ/phút, tính cả ngắt ${m.wpm} từ/phút.`);
-  if (m.spoken_turns)
-    add(`Ngắt dài: ${m.long_pauses} lần trong ${m.spoken_turns} lượt nói.`);
-  box.classList.add("show");
+  stat(`${m.questions}`, `câu hỏi, trong ${m.turns} lượt`);
+  stat(`${m.phrases_used.length}/${m.phrases_used.length + m.phrases_missed.length}`, "mẫu câu đã dùng");
+  if (m.wpm != null) stat(`${m.wpm_speaking}`, "từ/phút khi nói");
+  if (m.spoken_turns) stat(`${m.long_pauses}`, `lần ngắt dài / ${m.spoken_turns} lượt nói`);
+  box.appendChild(stats);
+
+  const row = (label, items, tone) => {
+    if (!items.length) return;
+    const r = document.createElement("div");
+    r.className = "summary-row";
+    r.innerHTML = '<p class="eyebrow"></p><div class="chips"></div>';
+    r.firstChild.textContent = label;
+    r.lastChild.append(...items.map((t) => chip(t, tone)));
+    box.appendChild(r);
+  };
+  row("Đã dùng", m.phrases_used, "success");
+  row("Chưa dùng", m.phrases_missed, "");
+  $("#chat").appendChild(box);
+  scrollChat();
 }
 
 $("#undo").onclick = () => {
@@ -218,15 +246,12 @@ $("#undo").onclick = () => {
 };
 
 $("#coachPlay").onclick = () => {
-  if (st.coachText)
-    st.ws.send(JSON.stringify({ type: "say_it", text: st.coachText }));
+  if (st.coachText) st.ws.send(JSON.stringify({ type: "say_it", text: st.coachText }));
 };
 
 /* ---------- Queued audio playback ---------- */
 function enqueue(meta, data) {
-  const url = URL.createObjectURL(
-    new Blob([data], { type: "audio/mpeg" }),
-  );
+  const url = URL.createObjectURL(new Blob([data], { type: "audio/mpeg" }));
   st.queue.push({ meta, url });
   if (!st.playing) playNext();
 }
@@ -253,12 +278,12 @@ function playNext() {
 function appendAi(turn, text) {
   let line = st.lines[turn];
   if (!line) {
-    line = addLine("ai", "Người phỏng vấn", "");
+    line = addMessage("ai", "Người phỏng vấn", "");
     st.lines[turn] = line;
   }
-  const el = line.querySelector(".text");
+  const el = line.querySelector(".bubble");
   el.textContent = el.textContent ? `${el.textContent} ${text}` : text;
-  $("#chat").scrollTop = $("#chat").scrollHeight;
+  scrollChat();
 }
 
 function stopPlayback() {
@@ -277,39 +302,33 @@ async function startRec() {
   st.holding = true;
   stopPlayback();
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({
-      audio: true,
-    });
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     if (!st.holding) {
       stream.getTracks().forEach((t) => t.stop());
       return;
     }
-    const mime = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
-      ? "audio/webm;codecs=opus"
-      : "";
-    const rec = new MediaRecorder(
-      stream,
-      mime ? { mimeType: mime } : undefined,
-    );
+    const mime = MediaRecorder.isTypeSupported("audio/webm;codecs=opus") ? "audio/webm;codecs=opus" : "";
+    const rec = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
     st.chunks = [];
     rec.ondataavailable = (e) => st.chunks.push(e.data);
     rec.onstop = () => {
       stream.getTracks().forEach((t) => t.stop());
       const blob = new Blob(st.chunks, { type: rec.mimeType });
       if (blob.size < 3000) {
-        setStatus("Ghi âm quá ngắn. Hãy giữ nút lâu hơn.");
+        setStatus("Ghi âm quá ngắn. Hãy giữ nút lâu hơn.", "warn");
         return;
       }
-      setStatus("Đang gửi…");
+      setStatus("Đang gửi…", "busy");
       st.ws.send(blob);
     };
     rec.start();
     st.rec = rec;
     $("#talk").classList.add("rec");
-    $("#talk").textContent = "Đang ghi âm. Thả ra để gửi";
+    $("#talk").setAttribute("aria-label", "Đang ghi âm, thả ra để gửi");
+    setStatus("Đang ghi âm… thả ra để gửi", "recording");
   } catch (err) {
     st.holding = false;
-    setStatus("Không mở được micro: " + err.message);
+    setStatus("Không mở được micro: " + err.message, "error");
   }
 }
 
@@ -319,7 +338,7 @@ function stopRec() {
   st.rec.stop();
   st.rec = null;
   $("#talk").classList.remove("rec");
-  $("#talk").textContent = "Giữ để nói";
+  $("#talk").setAttribute("aria-label", "Giữ để nói");
 }
 
 const talk = $("#talk");
@@ -327,9 +346,20 @@ talk.addEventListener("pointerdown", (e) => {
   e.preventDefault();
   startRec();
 });
-["pointerup", "pointerleave", "pointercancel"].forEach((ev) =>
-  talk.addEventListener(ev, stopRec),
-);
+["pointerup", "pointerleave", "pointercancel"].forEach((ev) => talk.addEventListener(ev, stopRec));
+
+// Hold Space to talk, unless the user is typing or using a form control.
+const isTyping = () => ["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName);
+document.addEventListener("keydown", (e) => {
+  if (e.code !== "Space" || e.repeat || isTyping()) return;
+  e.preventDefault();
+  startRec();
+});
+document.addEventListener("keyup", (e) => {
+  if (e.code !== "Space" || isTyping()) return;
+  e.preventDefault();
+  stopRec();
+});
 
 $("#typed").addEventListener("keydown", (e) => {
   if (e.key !== "Enter" || !e.target.value.trim()) return;
