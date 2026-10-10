@@ -6,14 +6,14 @@
 
 | Phần | Vị trí |
 |---|---|
-| Dữ liệu bài | `units.json` |
-| Trạng thái phiên | `Session`, `STATE_FIELDS` trong `server.py` |
-| Chọn câu tiếp theo | `next_step()` |
-| Bắt đầu bài, lời chào | `start_session()` |
-| Hoàn tác | nhánh `undo` trong `ws_endpoint`, `Session.snapshot()` / `restore()` |
-| Tiến độ, tổng kết | `progress()`, `summary()` |
+| Dữ liệu bài | `backend/app/data/units.json`, nạp bởi `interview/units.py` |
+| Trạng thái phiên | `Session`, `STATE_FIELDS` trong `interview/session.py` |
+| Chọn câu tiếp theo | `next_step()` trong `interview/session.py` |
+| Bắt đầu bài, lời chào | `start_session()` trong `interview/turn.py` |
+| Hoàn tác | nhánh `undo` trong `_on_text()` (`api/routes/ws.py`), `Session.snapshot()` / `restore()` |
+| Tiến độ, tổng kết | `progress()`, `summary()` trong `interview/session.py` |
 
-## `units.json`
+## `data/units.json`
 
 ```json
 {
@@ -47,4 +47,4 @@
 
 - Thêm trường mới vào `Session` thì phải thêm vào `STATE_FIELDS`, nếu không hoàn tác sẽ không khôi phục trường đó.
 - Thêm câu hỏi thì phải có đủ `ask`, `phrases`, `simple`.
-- Kiểm chứng bằng `replay.py` (xem [llm-prompt.md](llm-prompt.md)).
+- Kiểm chứng bằng `scripts/replay.py` (xem [llm-prompt.md](llm-prompt.md)).

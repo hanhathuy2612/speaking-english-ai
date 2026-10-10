@@ -1,10 +1,10 @@
-"""Các hàm thuần (không cần model/mạng) để dễ test.
+"""Pure functions (no model or network), easy to test.
 
-- split_sections: tách đầu ra của LLM theo nhãn RETRY / SAY / ASK / NOTE (kể cả khi mới stream được một nửa)
-- ready_sentences: lấy các câu SAY đã hoàn chỉnh để đẩy sang TTS ngay
-- speech_metrics: chỉ số khách quan từ mốc thời gian từng từ của Whisper
-- used_phrase_indices: người học đã dùng mẫu câu mục tiêu nào
-- wer: tỉ lệ từ sai, dùng để so cấu hình STT
+- split_sections: split LLM output by the RETRY / SAY / ASK / NOTE labels (works mid-stream)
+- ready_sentences: complete SAY sentences that can go to TTS right away
+- speech_metrics: objective metrics from Whisper word timestamps
+- used_phrase_indices: which target phrases the learner used
+- wer: word error rate, for comparing STT configs
 """
 
 from __future__ import annotations
@@ -14,18 +14,18 @@ import re
 _LABEL = re.compile(r"(?im)^[ \t*#]*(RETRY|SAY|ASK|NOTE)[ \t*]*:[ \t*]*")
 _SENT_END = re.compile(r"(?<=[.!?…])\s+")
 
-# Từ chức năng: Whisper thường cho xác suất thấp dù nghe đúng, nên không đưa vào "nghe chưa chắc".
+# Function words: Whisper gives them low probability even when correct, so they are excluded from low_conf.
 FUNCTION_WORDS = set(
     """a an the and or but so to of in on at for with from by as is am are was were be been
     i i'm i've me my you your we our it it's that this there they he she his her them
     do did does have has had will would can could um uh like just also very""".split()
 )
-SHORT_ANSWER_WORDS = 10  # dưới mức này tốc độ nói quá nhiễu, không tính
+SHORT_ANSWER_WORDS = 10  # below this, speaking rate is too noisy to report
 LONG_PAUSE_S = 0.7
 
 
 def split_sections(raw: str) -> dict[str, str]:
-    """{'RETRY': 'no', 'SAY': '...', 'ASK': '...', 'NOTE': '...'} - chỉ gồm các nhãn đã xuất hiện."""
+    """{'RETRY': 'no', 'SAY': '...', 'ASK': '...', 'NOTE': '...'} - only labels seen so far."""
     matches = list(_LABEL.finditer(raw))
     out: dict[str, str] = {}
     for i, m in enumerate(matches):
@@ -35,10 +35,10 @@ def split_sections(raw: str) -> dict[str, str]:
 
 
 def ready_sentences(say: str, say_done: bool, emitted: int) -> tuple[list[str], int]:
-    """Các câu hoàn chỉnh mới xuất hiện kể từ vị trí `emitted`.
+    """New complete sentences since position `emitted`.
 
-    Một câu chỉ coi là xong khi đã thấy khoảng trắng sau dấu chấm câu,
-    hoặc khi SAY kết thúc (say_done=True) thì lấy nốt phần đuôi.
+    A sentence counts as complete once whitespace follows its punctuation,
+    or when SAY has ended (say_done=True), which flushes the tail.
     """
     rest = say[emitted:]
     sentences: list[str] = []
@@ -77,10 +77,10 @@ def used_phrase_indices(text: str, phrases: list[dict]) -> list[int]:
 
 
 def speech_metrics(words: list[dict]) -> dict:
-    """words: [{'w','s','e','p'}] (từ, bắt đầu, kết thúc, xác suất nhận dạng).
+    """words: [{'w','s','e','p'}] (word, start, end, recognition probability).
 
-    wpm: tính cả thời gian ngắt. wpm_speaking: bỏ các lần ngắt dài.
-    Câu ngắn (dưới SHORT_ANSWER_WORDS từ) không tính tốc độ (None).
+    wpm: includes pauses. wpm_speaking: excludes long pauses.
+    Short answers (under SHORT_ANSWER_WORDS words) get no rate (None).
     """
     if not words:
         return {"words": 0, "wpm": None, "wpm_speaking": None, "long_pauses": 0, "low_conf": []}
@@ -105,7 +105,7 @@ def speech_metrics(words: list[dict]) -> dict:
 
 
 def word_errors(ref: str, hyp: str) -> tuple[int, int]:
-    """(số lỗi thay/thêm/bớt, số từ tham chiếu) theo khoảng cách Levenshtein mức từ."""
+    """(substitutions + insertions + deletions, reference word count), word-level Levenshtein."""
     r, h = norm(ref).split(), norm(hyp).split()
     prev = list(range(len(h) + 1))
     for i, rw in enumerate(r, 1):

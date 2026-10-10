@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Đọc theo câu mẫu</title>
+    <link rel="stylesheet" href="/static/css/base.css" />
+    <link rel="stylesheet" href="/static/css/bench.css" />
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>Đọc theo câu mẫu</h1>
+      <p class="muted">
+        Đọc tự nhiên như khi nói chuyện, không cần chậm hay cố phát âm chuẩn. Giữ nút
+        (hoặc giữ phím Space) để thu, thả ra để lưu và sang câu tiếp. Bấm vào câu bất
+        kỳ để thu lại.
+      </p>
+      <div id="current"></div>
+      <div class="controls">
+        <button id="talk">Giữ để đọc</button>
+        <span id="status"></span>
+      </div>
+      <ol id="list"></ol>
+    </div>
+    <script src="/static/js/bench.js"></script>
+  </body>
+</html>

@@ -6,11 +6,11 @@ Không chấm điểm bằng LLM. Mọi chỉ số đều lấy khách quan từ
 
 | Phần | Vị trí |
 |---|---|
-| Chỉ số mỗi lượt | `speech_metrics()` trong `parsing.py` |
-| Mẫu câu đã dùng | `used_phrase_indices()`, `norm()` trong `parsing.py` |
-| Tổng kết phiên | `summary()` trong `server.py`, `renderSummary()` trong `index.html` |
-| Hiển thị | `addLine()` và `markUsed()` trong `index.html` |
-| Test | `test_parsing.py` |
+| Chỉ số mỗi lượt | `speech_metrics()` trong `backend/app/utils/parsing.py` |
+| Mẫu câu đã dùng | `used_phrase_indices()`, `norm()` trong `backend/app/utils/parsing.py` |
+| Tổng kết phiên | `summary()` trong `backend/app/interview/session.py`, `renderSummary()` trong `frontend/js/app.js` |
+| Hiển thị | `addLine()` và `markUsed()` trong `frontend/js/app.js` |
+| Test | `backend/tests/test_parsing.py` |
 
 ## `speech_metrics(words)`
 
@@ -28,7 +28,7 @@ Không chấm điểm bằng LLM. Mọi chỉ số đều lấy khách quan từ
 
 ## Mẫu câu đã dùng
 
-- So từng `match` của `units.json` với câu nhận dạng sau khi `norm()`. Khớp thì đánh dấu ✓ ở cột trái.
+- So từng `match` của `data/units.json` với câu nhận dạng sau khi `norm()`. Khớp thì đánh dấu ✓ ở cột trái.
 - Chỉ so trên chữ máy nghe được. Nếu máy nghe sai ("I've been booking a shop" thay vì "I've been working as"), mẫu câu sẽ không được tính.
 - Lượt "nghe chưa rõ" không được tính.
 

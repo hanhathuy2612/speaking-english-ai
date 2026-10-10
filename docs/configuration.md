@@ -3,7 +3,7 @@
 `.env` không được commit (đã có trong `.gitignore`). Máy mới thì chép `.env.example` thành `.env` rồi sửa `STT_VOCAB`.
 Thêm hoặc đổi biến nào thì cập nhật cả `.env.example`.
 
-Server tự nạp `.env` bằng python-dotenv khi khởi động. Biến môi trường đặt sẵn sẽ được ưu tiên hơn. Mọi biến có giá trị mặc định trong `server.py`. Đổi `.env` thì phải khởi động lại server.
+Server tự nạp `.env` bằng python-dotenv khi khởi động. Biến môi trường đặt sẵn sẽ được ưu tiên hơn. Mọi biến có giá trị mặc định trong `backend/app/core/config.py`. Đổi `.env` thì phải khởi động lại server.
 
 | Biến | Mặc định trong code | `.env` hiện tại | Ghi chú |
 |---|---|---|---|
@@ -21,7 +21,7 @@ Server tự nạp `.env` bằng python-dotenv khi khởi động. Biến môi tr
 | `STT_VOCAB` | trống | `Hi, I'm Huy.` | Thông tin riêng giúp Whisper nghe đúng tên |
 | `STT_MIN_LOGPROB` | `-1.0` | `-1.0` | Ngưỡng "nghe chưa rõ", chưa hiệu chỉnh |
 | `STT_MAX_NO_SPEECH` | `0.6` | `0.6` | |
-| `SAVE_AUDIO_DIR` | trống | `recordings` | Giữ file ghi âm mỗi lượt |
+| `SAVE_AUDIO_DIR` | trống | `recordings` | Giữ file ghi âm mỗi lượt (tương đối với thư mục gốc) |
 | `TTS_VOICE` / `TTS_RATE` | `en-US-JennyNeural` / `-10%` | giống mặc định | |
 
 `MAX_RETRIES = 2` được viết cứng trong code, không đọc từ `.env`.

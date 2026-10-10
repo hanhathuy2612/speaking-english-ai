@@ -1,19 +1,14 @@
-"""So sánh cấu hình STT trên CÙNG một bộ file ghi âm (không đọc lại mỗi lần).
+"""Compare STT configs on the SAME set of recordings (never re-record per config).
 
-Chuẩn bị:
-  1. Đặt SAVE_AUDIO_DIR=recordings trong .env, chạy app, nói 15-20 câu.
-     Mỗi câu thành recordings/<thời gian>.webm và <thời gian>.hyp.txt (chữ máy nghe được).
-  2. Với mỗi câu, tạo <thời gian>.ref.txt chứa câu bạn THỰC SỰ đã nói
-     (copy file .hyp.txt rồi sửa lại cho đúng là nhanh nhất).
+Quick setup: open http://localhost:8000/bench and read the 18 sentences.
+Each one becomes recordings/bench/NN.webm + NN.ref.txt (reference text included).
+Recordings from the main app (recordings/*.webm) also work once a <name>.ref.txt sits next to them.
 
-Chạy (mỗi --config là model,device,compute,beam):
-  python stt_bench.py recordings ^
-    --config small.en,cpu,int8,1 ^
-    --config distil-large-v3,cuda,float16,3 ^
-    --config large-v3-turbo,cuda,float16,3 ^
-    --prompt "Hi, I'm Huy. Java developer, microservices, payment system."
+Run from backend/ (each --config is model,device,compute,beam):
+  python -m scripts.stt_bench --config large-v3-turbo,cuda,float16,3 --config distil-large-v3,cuda,float16,3 --show
+  python -m scripts.stt_bench ../recordings --config ...   # another folder (default: recordings/bench)
 
-Kết quả: WER (tỉ lệ từ sai, thấp hơn là tốt hơn) và thời gian trung bình mỗi câu.
+Output: WER (word error rate, lower is better) and average seconds per clip.
 """
 
 from __future__ import annotations
@@ -23,21 +18,22 @@ import os
 import time
 from pathlib import Path
 
-import cuda_dlls
+from app.core.config import BENCH_DIR
+from app.core.cuda import add_cuda_dlls
 
-cuda_dlls.add()  # trước khi nạp faster_whisper
+add_cuda_dlls()  # before importing faster_whisper
 
 from faster_whisper import WhisperModel  # noqa: E402
 
-from parsing import word_errors  # noqa: E402
+from app.utils.parsing import word_errors  # noqa: E402
 
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("folder")
+    ap.add_argument("folder", nargs="?", default=str(BENCH_DIR), help="default: recordings/bench")
     ap.add_argument("--config", action="append", required=True)
-    ap.add_argument("--prompt", default="", help="initial_prompt (từ vựng); để trống để tắt")
-    ap.add_argument("--show", action="store_true", help="in từng câu máy nghe được")
+    ap.add_argument("--prompt", default="", help="initial_prompt (vocabulary); empty to disable")
+    ap.add_argument("--show", action="store_true", help="print each hypothesis")
     args = ap.parse_args()
 
     pairs = []
@@ -46,8 +42,8 @@ def main() -> None:
         if audio.exists():
             pairs.append((audio, ref.read_text(encoding="utf-8").strip()))
     if not pairs:
-        raise SystemExit(f"Không thấy cặp .webm + .ref.txt nào trong {args.folder}")
-    print(f"{len(pairs)} câu, {sum(len(r.split()) for _, r in pairs)} từ tham chiếu\n")
+        raise SystemExit(f"No .webm + .ref.txt pairs found in {args.folder}")
+    print(f"{len(pairs)} clips, {sum(len(r.split()) for _, r in pairs)} reference words\n")
 
     rows = []
     for cfg in args.config:
@@ -56,7 +52,7 @@ def main() -> None:
             model = WhisperModel(name, device=device, compute_type=compute,
                                  cpu_threads=int(os.getenv("STT_THREADS", "8")))
         except Exception as e:  # noqa: BLE001
-            print(f"{cfg}: không nạp được ({e})")
+            print(f"{cfg}: failed to load ({e})")
             continue
         errors = total = 0
         elapsed = 0.0
@@ -74,12 +70,12 @@ def main() -> None:
                 if args.show:
                     print(f"  [{cfg}] {e}/{n}  {hyp}")
         except Exception as e:  # noqa: BLE001
-            print(f"{cfg}: lỗi khi chạy ({e})")
+            print(f"{cfg}: failed while running ({e})")
             continue
         rows.append((cfg, errors / max(total, 1), elapsed / len(pairs)))
         del model
 
-    print(f"\n{'cấu hình':42} {'WER':>7} {'giây/câu':>9}")
+    print(f"\n{'config':42} {'WER':>7} {'sec/clip':>9}")
     for cfg, w, sec in sorted(rows, key=lambda r: r[1]):
         print(f"{cfg:42} {w:7.1%} {sec:9.2f}")
 

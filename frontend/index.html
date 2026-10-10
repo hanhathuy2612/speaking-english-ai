@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Phòng tập phỏng vấn</title>
+    <link rel="stylesheet" href="/static/css/base.css" />
+    <link rel="stylesheet" href="/static/css/app.css" />
+  </head>
+  <body>
+    <div class="wrap">
+      <aside>
+        <h1>Phòng tập phỏng vấn</h1>
+        <select id="unit" aria-label="Chọn bài"></select>
+        <p class="goal" id="goal"></p>
+        <p class="progress" id="progress"></p>
+        <h2>Mẫu câu hôm nay</h2>
+        <ul class="phrases" id="phrases"></ul>
+        <h2>Độ trễ lượt vừa rồi</h2>
+        <dl class="timing" id="timing">
+          <dt>Nhận dạng giọng nói</dt>
+          <dd data-k="stt_ms">-</dd>
+          <dt>Token đầu của AI</dt>
+          <dd data-k="llm_first_ms">-</dd>
+          <dt>Âm thanh đầu tiên</dt>
+          <dd data-k="first_audio_ms">-</dd>
+          <dt>Cả lượt</dt>
+          <dd data-k="total_ms">-</dd>
+          <dt>Độ tin cậy nhận dạng</dt>
+          <dd id="conf">-</dd>
+        </dl>
+        <p class="goal" id="sttLabel"></p>
+      </aside>
+
+      <main>
+        <div id="chat" class="serif" aria-live="polite"></div>
+        <div id="summary"></div>
+        <div id="coach">
+          <div class="flag" id="coachFlag"></div>
+          <div class="who" id="coachLabel"></div>
+          <div class="sentence serif" id="coachText"></div>
+          <button class="quiet" id="coachPlay">Nghe câu này</button>
+        </div>
+        <div class="controls">
+          <button id="talk">Giữ để nói</button>
+          <button class="quiet" id="undo" hidden>Máy nghe sai, nói lại</button>
+          <input
+            id="typed"
+            placeholder="Hoặc gõ câu trả lời rồi nhấn Enter"
+            autocomplete="off"
+          />
+          <div id="status"></div>
+        </div>
+      </main>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+  </body>
+</html>

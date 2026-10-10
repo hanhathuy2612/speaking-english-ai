@@ -1,6 +1,6 @@
-"""Chạy: python test_parsing.py  (không cần cài thư viện nào)."""
+"""Pure-logic tests, no model or network needed. Run from backend/: python -m pytest"""
 
-from parsing import (
+from app.utils.parsing import (
     is_question,
     ready_sentences,
     speech_metrics,
@@ -18,7 +18,7 @@ RAW = (
 
 
 def stream_chars(raw: str) -> list[str]:
-    """Mô phỏng stream từng ký tự giống server.run_turn."""
+    """Simulate a character-by-character stream like run_turn."""
     got, emitted = [], 0
     for i in range(1, len(raw) + 1):
         secs = split_sections(raw[:i])
@@ -73,12 +73,12 @@ def test_metrics_short_answer_has_no_speed():
     ]
     m = speech_metrics(words)
     assert m["words"] == 3 and m["long_pauses"] == 1 and m["wpm"] is None
-    assert m["low_conf"] == ["booking"]  # "the" là từ chức năng nên bị lọc
+    assert m["low_conf"] == ["booking"]  # "the" is a function word, so it is filtered out
     assert speech_metrics([])["words"] == 0
 
 
 def test_metrics_speaking_rate_excludes_long_pauses():
-    # 12 từ, mỗi từ 0.4s sát nhau, có 1 lần ngắt 2s ở giữa
+    # 12 words of 0.4s each, back to back, with one 2s pause in the middle
     words, t = [], 0.0
     for i in range(12):
         if i == 6:
@@ -104,11 +104,4 @@ def test_is_question():
 
 def test_wer():
     assert wer("I've been working as a developer", "I've been working as a developer") == 0
-    assert wer("I've been working as a developer", "I've been booking a shop") == 3 / 6  # working->booking, bỏ "as", developer->shop
-
-
-if __name__ == "__main__":
-    for name, fn in list(globals().items()):
-        if name.startswith("test_"):
-            fn()
-            print("ok", name)
+    assert wer("I've been working as a developer", "I've been booking a shop") == 3 / 6  # working->booking, "as" dropped, developer->shop

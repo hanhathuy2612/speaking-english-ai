@@ -7,19 +7,19 @@ Nguyên tắc: so mọi cấu hình trên **cùng một bộ file ghi âm**, vì
 
 | Phần | Vị trí |
 |---|---|
-| Trang đọc theo câu mẫu | `bench.html`, route `/bench` trong `server.py` |
-| Danh sách câu | `bench_sentences.json` (18 câu, theo nghề của người dùng và các mẫu câu) |
-| API lưu file | `bench_list()`, `bench_save()`; lưu vào `recordings/bench/NN.webm` + `NN.ref.txt` |
-| Chạy so sánh | `stt_bench.py` |
-| Tính WER | `word_errors()`, `wer()` trong `parsing.py` |
+| Trang đọc theo câu mẫu | `frontend/bench.html`, `frontend/js/bench.js`, route `/bench` trong `backend/app/main.py` |
+| Danh sách câu | `backend/app/data/bench_sentences.json` (18 câu, theo nghề của người dùng và các mẫu câu) |
+| API lưu file | `bench_list()`, `bench_save()` trong `backend/app/api/routes/bench.py`; lưu vào `recordings/bench/NN.webm` + `NN.ref.txt` |
+| Chạy so sánh | `backend/scripts/stt_bench.py` |
+| Tính WER | `word_errors()`, `wer()` trong `backend/app/utils/parsing.py` |
 
 ## Cách dùng
 
 1. Mở `http://localhost:8000/bench`, giữ nút hoặc phím Space để đọc từng câu. Đáp án được lưu sẵn.
-2. Chạy:
+2. Chạy từ thư mục `backend/` (thư mục mặc định là `recordings/bench`):
 
 ```
-python stt_bench.py recordings/bench --config large-v3-turbo,cuda,float16,3 --config distil-large-v3,cuda,float16,3 --prompt "Hi, I'm Huy. Java developer, microservices, payment system." --show
+python -m scripts.stt_bench --config large-v3-turbo,cuda,float16,3 --config distil-large-v3,cuda,float16,3 --prompt "Hi, I'm Huy. Java developer, microservices, payment system." --show
 ```
 
 Mỗi `--config` có dạng `model,device,compute,beam`. Ghi âm trong ứng dụng chính (`recordings/*.webm`) cũng dùng được, khi có thêm `<tên>.ref.txt` bên cạnh.

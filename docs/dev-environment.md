@@ -6,9 +6,9 @@ Windows 11, Python 3.11, venv tại `.venv`. GPU RTX 3060 12 GB. LM Studio chạ
 
 | Việc | Lệnh |
 |---|---|
-| Test logic thuần (không cần model) | `python test_parsing.py` |
-| Kiểm chứng prompt | `python replay.py answers.txt --runs 3 --url ws://localhost:8001/ws` |
-| Đo STT | `python stt_bench.py recordings/bench --config ...` (xem [stt-benchmark.md](features/stt-benchmark.md)) |
+| Test logic thuần (không cần model) | `python -m pytest` |
+| Kiểm chứng prompt | `python -m scripts.replay answers.txt --runs 3 --url ws://localhost:8001/ws` |
+| Đo STT | `python -m scripts.stt_bench --config ...` (xem [stt-benchmark.md](features/stt-benchmark.md)) |
 | Thử giao diện | Mở `http://localhost:8001` trên trình duyệt. Ô gõ chữ cho phép thử mà không cần micro. |
 
 ## Quy tắc khi chạy thử
@@ -16,7 +16,7 @@ Windows 11, Python 3.11, venv tại `.venv`. GPU RTX 3060 12 GB. LM Studio chạ
 - **Cổng 8000 là server của người dùng.** Không dừng hay khởi động lại server này. Thử nghiệm trên server riêng ở cổng 8001:
 
 ```
-uvicorn server:app --port 8001
+uvicorn app.main:app --port 8001
 ```
 
 - Chỉ dừng đúng tiến trình đang giữ cổng 8001. **Không bao giờ tắt `python.exe` theo tên** vì có thể tắt cả tiến trình của người dùng:
@@ -30,7 +30,7 @@ powershell -NoProfile -Command "Get-NetTCPConnection -LocalPort 8001 -State List
 
 ## Lỗi thường gặp
 
-- **In tiếng Việt lỗi `UnicodeEncodeError: 'charmap'`** khi chuyển output ra file: đặt `PYTHONIOENCODING=utf-8`. `server.py` đã tự `reconfigure` stdout, nhưng các script khác thì chưa.
+- **In tiếng Việt lỗi `UnicodeEncodeError: 'charmap'`** khi chuyển output ra file: đặt `PYTHONIOENCODING=utf-8`. `app/main.py` đã tự `reconfigure` stdout, nhưng các script khác thì chưa.
 - **Python 3.11** không cho dùng lại cùng loại dấu nháy bên trong f-string lồng nhau.
 - **CRLF:** một số file có thể dùng xuống dòng CRLF, nên thay chuỗi nhiều dòng bằng script dễ không khớp. Dùng công cụ Edit.
-- **`cublas64_12.dll` not found:** thiếu gói CUDA trong venv (xem [speech-recognition.md](features/speech-recognition.md)), hoặc quên gọi `cuda_dlls.add()` trước khi import faster_whisper.
+- **`cublas64_12.dll` not found:** thiếu gói CUDA trong venv (xem [speech-recognition.md](features/speech-recognition.md)), hoặc quên gọi `add_cuda_dlls()` (`core/cuda.py`) trước khi import faster_whisper.

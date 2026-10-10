@@ -3,11 +3,11 @@
 ## Một lượt nói
 
 ```
-Trình duyệt (index.html)                Server (server.py)
-  giữ nút -> MediaRecorder (webm) ──bytes──> save_recording -> transcribe (Whisper, GPU)
+Trình duyệt (frontend/js/app.js)        Server (backend/app)
+  giữ nút -> MediaRecorder (webm) ──bytes──> api/routes/ws.py: stt.save_recording -> stt.transcribe (GPU)
                                               │ nghe không chắc? -> "transcript" unclear, dừng
                                               v
-                                            handle_user_input: lưu snapshot, đếm mẫu câu
+                                            interview/turn.py handle_user_input: lưu snapshot, đếm mẫu câu
                                               v
                                             run_turn: gọi LLM có stream
                                               ├─ SAY: tách từng câu -> TTS -> gửi ngay
@@ -16,9 +16,9 @@ Trình duyệt (index.html)                Server (server.py)
   phát MP3 theo hàng đợi <──json + bytes──
 ```
 
-- Cả lượt chạy tuần tự trong vòng lặp `ws_endpoint`, nên không có hai lượt chạy chồng nhau.
+- Cả lượt chạy tuần tự trong vòng lặp `ws_endpoint` (`api/routes/ws.py`), nên không có hai lượt chạy chồng nhau.
 - TTS chạy song song với LLM: `tts_worker` lấy câu từ hàng đợi theo đúng thứ tự.
-- `Conn.audio()` khóa WebSocket để tin JSON `sentence` và khung nhị phân MP3 của nó luôn đi liền nhau.
+- `Conn.audio()` (`utils/ws.py`) khóa WebSocket để tin JSON `sentence` và khung nhị phân MP3 của nó luôn đi liền nhau.
 
 ## Giao thức WebSocket `/ws`
 
@@ -50,5 +50,6 @@ Server gửi:
 
 ## HTTP
 
-- `GET /`: `index.html`. `GET /api/units`: danh sách bài.
+- `GET /`: `frontend/index.html`. `GET /bench`: `frontend/bench.html`. `/static/...`: file trong `frontend/` (css, js).
+- `GET /api/units`: danh sách bài (`api/routes/units.py`).
 - `GET /bench`, `GET /api/bench`, `POST /api/bench/{i}`: xem [stt-benchmark.md](features/stt-benchmark.md).

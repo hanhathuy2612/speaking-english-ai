@@ -1,0 +1,38 @@
+/* Color tokens, dark mode and reset: shared by every page */
+:root {
+  --paper: #f2f4f6;
+  --panel: #ffffff;
+  --ink: #12202b;
+  --muted: #5b6b78;
+  --rule: #d5dbe0;
+  --blue: #1d3fbb;
+  --blue-ink: #ffffff;
+  --ok: #1c8a57;
+  --rec: #d9480f;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #0f161c;
+    --panel: #151e26;
+    --ink: #e6ecf1;
+    --muted: #8d9ba7;
+    --rule: #26323c;
+    --blue: #7c9bff;
+    --blue-ink: #0b1220;
+    --ok: #4cc38a;
+    --rec: #ff8a5b;
+  }
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font:
+    15px/1.5 system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
+}

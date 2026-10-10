@@ -4,14 +4,14 @@ LLM: Qwen2.5-7B-Instruct qua LM Studio, `temperature` 0.35, `max_tokens` 160, c�
 
 ## Mã nguồn
 
-| Phần | Vị trí trong `server.py` |
+| Phần | Vị trí (trong `backend/app/`) |
 |---|---|
-| System prompt | `SYSTEM_TEMPLATE`, `build_system()` |
-| Ví dụ mẫu | `FEW_SHOT` (3 cặp user/assistant) |
-| Tin nhắn mỗi lượt | `build_user_message()` |
-| Gọi LLM | `stream_reply()` |
-| Xử lý stream | `run_turn()`, cùng `split_sections()` / `ready_sentences()` trong `parsing.py` |
-| Chặn NOTE xấu | `safe_note()`, `EXAMPLE_WORDS` |
+| System prompt | `SYSTEM_TEMPLATE`, `build_messages()` trong `interview/prompts.py` |
+| Ví dụ mẫu | `FEW_SHOT` (3 cặp user/assistant) trong `interview/prompts.py` |
+| Tin nhắn mỗi lượt | `build_user_message()` trong `interview/prompts.py` |
+| Gọi LLM | `stream_reply()` trong `services/llm.py` |
+| Xử lý stream | `run_turn()` trong `interview/turn.py`, cùng `split_sections()` / `ready_sentences()` trong `utils/parsing.py` |
+| Chặn NOTE xấu | `safe_note()`, `EXAMPLE_WORDS` trong `interview/prompts.py` |
 
 ## Định dạng đầu ra (4 dòng)
 
@@ -53,10 +53,10 @@ Latest answer: ...                 (luôn để cuối)
 
 - Ví dụ few-shot cố ý lấy từ nghề **logistics**, khác nghề của người dùng (Java developer). Đổi nghề trong ví dụ thì phải cập nhật `EXAMPLE_WORDS`.
 - Với model 7B, thêm ví dụ hiệu quả hơn thêm luật.
-- Bắt buộc kiểm chứng bằng `replay.py` trên server thử (cổng 8001), chạy ít nhất 3 lần:
+- Bắt buộc kiểm chứng bằng `scripts/replay.py` trên server thử (cổng 8001), chạy ít nhất 3 lần, từ thư mục `backend/`:
 
 ```
-python replay.py answers.txt --runs 3 --url ws://localhost:8001/ws
+python -m scripts.replay answers.txt --runs 3 --url ws://localhost:8001/ws
 ```
 
   Dò: AI có nói ở ngôi thứ nhất không, có lặp câu hỏi không, có đi hết câu hỏi không, NOTE có bịa không.
