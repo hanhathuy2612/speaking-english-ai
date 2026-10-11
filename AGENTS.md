@@ -26,13 +26,13 @@ backend/
   pyproject.toml, requirements*.txt
 frontend/                # React + TypeScript + Vite; build vào frontend/dist (backend phục vụ)
   src/
-    main.tsx             # React Router: / , /history , /bench
+    main.tsx             # React Router: / , /roadmap , /history , /bench
     api/types.ts         # kiểu dữ liệu API + giao thức WebSocket
     components/          # AppBar, Icons, ui (Chip, StatusLine)
     hooks/               # useHoldToTalk (ghi âm), useAudioQueue (phát MP3)
-    features/            # practice/ (useInterview + các component), history/, bench/
+    features/            # practice/ (useInterview + các component), roadmap/, history/, bench/
     lib/                 # hàm thuần + test Vitest
-    styles/              # base.css (token, component chung), practice.css, history.css, bench.css
+    styles/              # base.css (token, component chung), practice.css, roadmap.css, history.css, bench.css
 docs/                    # tài liệu theo tính năng (bảng bên dưới)
 recordings/              # giọng nói thật của người dùng, không commit
 data/                    # history.db: lịch sử luyện tập của người dùng, không commit
@@ -74,6 +74,7 @@ npm test           # Vitest
 | Giọng đọc, cache, phát âm thanh | [docs/features/tts-audio.md](docs/features/tts-audio.md) | `services/tts.py`, `frontend/src/hooks/useAudioQueue.ts` |
 | Chỉ số nói, mẫu câu đã dùng | [docs/features/speech-metrics.md](docs/features/speech-metrics.md) | `utils/parsing.py`, `interview/session.py` (`summary`) |
 | Nói lại câu mẫu (shadowing): so từng từ, chuẩn hóa số và viết tắt | [docs/features/shadowing.md](docs/features/shadowing.md) | `interview/shadow.py`, `utils/compare.py`, `frontend/src/features/practice/CoachCard.tsx` |
+| Lộ trình: chủ đề, 12 bài luyện, bài tiếp theo, thêm bài mới | [docs/features/roadmap.md](docs/features/roadmap.md) | `data/units.json`, `interview/units.py`, `api/routes/units.py`, `frontend/src/features/roadmap/` |
 | Lịch sử luyện tập, trang Tiến bộ, biểu đồ xu hướng | [docs/features/session-history.md](docs/features/session-history.md) | `services/history.py`, `api/routes/history.py`, `frontend/src/features/history/` |
 | Đo độ chính xác STT, trang đọc theo câu mẫu | [docs/features/stt-benchmark.md](docs/features/stt-benchmark.md) | `scripts/stt_bench.py`, `api/routes/bench.py`, `frontend/src/features/bench/` |
 | Giao diện React: cấu trúc, luồng dữ liệu, hệ thiết kế | [docs/features/frontend.md](docs/features/frontend.md) | `frontend/src/` |

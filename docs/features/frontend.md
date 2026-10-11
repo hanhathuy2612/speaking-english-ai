@@ -12,14 +12,15 @@ React 19 + TypeScript + Vite, định tuyến bằng React Router 7. Không có 
 | `npm run typecheck` | Chỉ kiểm tra kiểu |
 | `npm test` | Vitest (hàm thuần trong `src/lib/`) |
 
-Backend phục vụ bản build: `/`, `/history`, `/bench` đều trả `dist/index.html`, React Router chọn trang; JS/CSS nằm dưới `/assets`. Chưa build thì các trang này trả hướng dẫn build (HTTP 503). Xem `backend/app/main.py`.
+Backend phục vụ bản build: `/`, `/roadmap`, `/history`, `/bench` đều trả `dist/index.html`, React Router chọn trang; JS/CSS nằm dưới `/assets`. Chưa build thì các trang này trả hướng dẫn build (HTTP 503). Xem `backend/app/main.py`.
 
 ## Cấu trúc `src/`
 
 ```
-main.tsx                    # gắn React Router: / , /history , /bench
+main.tsx                    # gắn React Router: / , /roadmap , /history , /bench
 api/types.ts                # kiểu dữ liệu của API và giao thức WebSocket
 lib/format.ts               # hàm thuần: fmtDate, fmtNum, niceMax, latestWithDelta (+ format.test.ts)
+lib/roadmap.ts              # hàm thuần: allUnits, pickUnit, unitState (+ roadmap.test.ts)
 components/                 # dùng chung: AppBar (thanh trên + điều hướng), Icons, ui (Chip, StatusLine)
 hooks/
   useHoldToTalk.ts          # ghi âm giữ để nói (MediaRecorder webm/opus) + giữ phím Space
@@ -29,13 +30,15 @@ features/
     useInterview.ts         # WebSocket + reducer trạng thái + hành động (gửi chữ, ghi âm, hoàn tác, nói lại)
     PracticePage.tsx        # bố cục trang, nối hook ghi âm với useInterview
     Sidebar.tsx, Chat.tsx, CoachCard.tsx (thẻ NOTE + kết quả nói lại)
+  roadmap/                  # RoadmapPage.tsx (xem roadmap.md)
   history/                  # HistoryPage.tsx, LineChart.tsx (biểu đồ SVG)
   bench/                    # BenchPage.tsx
-styles/                     # base.css (token, component chung), practice.css, history.css, bench.css
+styles/                     # base.css (token, component chung), practice.css, roadmap.css, history.css, bench.css
 ```
 
 ## Luồng dữ liệu phòng tập (`useInterview.ts`)
 
+- Bài mở đầu: `?unit=` trên URL, nếu không có thì bài tiếp theo của lộ trình (`pickUnit`, xem roadmap.md).
 - Một WebSocket cho mỗi lần mở trang. Tin JSON từ server đi vào reducer (`onServer`), trạng thái là `InterviewState`.
 - Tin `sentence` không vào reducer: nó được ghép với khung nhị phân MP3 ngay sau đó và đẩy vào `useAudioQueue`. Khi câu **bắt đầu phát**, hook gửi action `aiSentence` để thêm chữ vào tin nhắn AI của lượt đó (chữ đi theo giọng).
 - `turnRef` đếm lượt **đồng bộ theo từng tin nhắn**, vì khung âm thanh của một lượt có thể tới trước khi React render lại. Tin `started` đặt lại bộ đếm.

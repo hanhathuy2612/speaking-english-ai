@@ -1,0 +1,139 @@
+/* Roadmap page (/roadmap): topics in order, each with a grid of unit cards. */
+.roadmap {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 28px 20px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+.roadmap h1 {
+  font-size: 22px;
+  font-weight: 650;
+}
+.roadmap-lead {
+  margin-top: 6px;
+  max-width: 68ch;
+  color: var(--text-2);
+}
+.roadmap-progress {
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 14px;
+  color: var(--text-2);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.roadmap-bar {
+  flex: 0 1 280px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.roadmap-bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--success);
+}
+
+/* ----- Topic ----- */
+.topic {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.topic-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.topic-step {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-size: 13px;
+  font-weight: 650;
+}
+.topic-step.done {
+  background: var(--success-soft);
+  color: var(--success);
+}
+.topic-text {
+  flex: 1;
+  min-width: 0;
+}
+.topic-text h2 {
+  font-size: 16px;
+  font-weight: 650;
+  line-height: 28px;
+}
+.topic-text p {
+  color: var(--text-2);
+  font-size: 13.5px;
+}
+
+/* ----- Unit cards ----- */
+.unit-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 40px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 12px;
+}
+.unit-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+}
+.unit-card.next {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 1px var(--primary);
+}
+.unit-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+.unit-head h3 {
+  font-size: 14.5px;
+  font-weight: 650;
+}
+.unit-goal {
+  flex: 1;
+  color: var(--text-2);
+  font-size: 13.5px;
+}
+.unit-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 4px;
+}
+.unit-meta {
+  color: var(--text-3);
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 560px) {
+  .roadmap {
+    padding: 20px 16px 40px;
+  }
+  .unit-grid {
+    padding-left: 0;
+    grid-template-columns: 1fr;
+  }
+}

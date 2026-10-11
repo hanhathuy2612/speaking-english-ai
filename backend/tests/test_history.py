@@ -107,3 +107,14 @@ def test_shadow_accuracy_pools_attempts(db):
     history.add_shadow(sid, {"target": "t", "heard": "h", "correct": 3, "total": 10})
     [s] = history.list_sessions()
     assert s["shadow_attempts"] == 2 and s["shadow_accuracy"] == 60
+
+
+def test_unit_stats_counts_answered_sessions(db):
+    a = history.start_session(UNIT)
+    history.add_turn(a, voice(20, 100, 120, 1))
+    history.set_completed(a, True)
+    b = history.start_session(UNIT)
+    history.add_turn(b, voice(20, 100, 120, 1))
+    history.start_session(UNIT)  # no answers: not counted
+    st = history.unit_stats()["u1"]
+    assert st["sessions"] == 2 and st["completed"] == 1 and st["last_at"]

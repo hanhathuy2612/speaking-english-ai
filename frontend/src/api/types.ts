@@ -10,7 +10,18 @@ export type Speech = {
 
 export type UnclearReason = "not_english" | "low_confidence";
 
-export type UnitSummary = { id: string; title: string };
+/** One unit on the roadmap, with practice status from the history store. */
+export type UnitStatus = {
+  id: string;
+  title: string;
+  goal: string;
+  questions: number;
+  sessions: number; // sessions with at least one answer
+  completed: number; // sessions that reached the last question
+  last_at: string | null;
+};
+
+export type Topic = { id: string; title: string; description: string; units: UnitStatus[] };
 
 export type UnitInfo = {
   id: string;

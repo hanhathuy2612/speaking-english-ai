@@ -1,4 +1,5 @@
 import { type KeyboardEvent, useEffect } from "react";
+import { useSearchParams } from "react-router";
 import { AppBar } from "../../components/AppBar";
 import { MicIcon, UndoIcon } from "../../components/Icons";
 import { StatusLine } from "../../components/ui";
@@ -10,7 +11,8 @@ import { Sidebar } from "./Sidebar";
 import { useInterview } from "./useInterview";
 
 export function PracticePage() {
-  const { state, actions } = useInterview();
+  const [params, setParams] = useSearchParams();
+  const { state, actions } = useInterview(params.get("unit"));
   const { unit, progress, coach, shadow } = state;
 
   useEffect(() => {
@@ -44,12 +46,20 @@ export function PracticePage() {
           className="select"
           aria-label="Chọn bài tập"
           value={state.unitId}
-          onChange={(e) => actions.startUnit(e.target.value)}
+          onChange={(e) => {
+            actions.startUnit(e.target.value);
+            setParams({ unit: e.target.value }, { replace: true }); // reload keeps the same unit
+          }}
         >
-          {state.units.map((u) => (
-            <option key={u.id} value={u.id}>
-              {u.title}
-            </option>
+          {state.topics.map((t) => (
+            <optgroup key={t.id} label={t.title}>
+              {t.units.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.completed ? "✓ " : ""}
+                  {u.title}
+                </option>
+              ))}
+            </optgroup>
           ))}
         </select>
         <div className={`progress${progress?.done ? " done" : ""}`} aria-live="polite">

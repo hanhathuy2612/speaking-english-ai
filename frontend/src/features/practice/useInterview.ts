@@ -8,10 +8,11 @@ import type {
   Speech,
   UnitInfo,
   UnclearReason,
-  UnitSummary,
+  Topic,
 } from "../../api/types";
 import type { Status } from "../../components/ui";
 import { useAudioQueue } from "../../hooks/useAudioQueue";
+import { pickUnit } from "../../lib/roadmap";
 
 export type ChatItem =
   | { id: number; kind: "ai"; turn: number; text: string }
@@ -19,7 +20,7 @@ export type ChatItem =
   | { id: number; kind: "summary"; summary: SessionSummary };
 
 export type InterviewState = {
-  units: UnitSummary[];
+  topics: Topic[];
   unitId: string;
   unit: UnitInfo | null;
   items: ChatItem[];
@@ -36,7 +37,7 @@ export type InterviewState = {
 };
 
 const initial: InterviewState = {
-  units: [],
+  topics: [],
   unitId: "",
   unit: null,
   items: [],
@@ -53,7 +54,7 @@ const initial: InterviewState = {
 };
 
 type Action =
-  | { type: "units"; units: UnitSummary[] }
+  | { type: "topics"; topics: Topic[] }
   | { type: "select"; unitId: string }
   | { type: "server"; msg: ServerMessage }
   | { type: "aiSentence"; turn: number; text: string }
@@ -65,8 +66,8 @@ const noShadow = { waiting: false, result: null };
 
 function reducer(s: InterviewState, a: Action): InterviewState {
   switch (a.type) {
-    case "units":
-      return { ...s, units: a.units };
+    case "topics":
+      return { ...s, topics: a.topics };
     case "select":
       return { ...s, unitId: a.unitId };
     case "status":
@@ -181,7 +182,7 @@ function onServer(s: InterviewState, m: ServerMessage): InterviewState {
 type AudioMeta = { text: string; role: "ai" | "model"; turn: number };
 
 /** WebSocket session with the interview backend: protocol state, audio playback and actions. */
-export function useInterview() {
+export function useInterview(requestedUnit: string | null) {
   const [state, dispatch] = useReducer(reducer, initial);
   const ws = useRef<WebSocket | null>(null);
   const pending = useRef<AudioMeta | null>(null);
@@ -205,12 +206,13 @@ export function useInterview() {
     ws.current = sock;
     let closedByUs = false;
     sock.onopen = async () => {
-      const units: UnitSummary[] = await (await fetch("/api/units")).json();
-      dispatch({ type: "units", units });
-      if (units[0]) {
-        dispatch({ type: "select", unitId: units[0].id });
+      const { topics }: { topics: Topic[] } = await (await fetch("/api/units")).json();
+      dispatch({ type: "topics", topics });
+      const first = pickUnit(topics, requestedUnit);
+      if (first) {
+        dispatch({ type: "select", unitId: first });
         dispatch({ type: "status", status: { text: "Đang chuẩn bị bài…", state: "busy" } });
-        sock.send(JSON.stringify({ type: "start", unit: units[0].id }));
+        sock.send(JSON.stringify({ type: "start", unit: first }));
       }
     };
     sock.onclose = () => {
@@ -237,7 +239,7 @@ export function useInterview() {
       closedByUs = true;
       sock.close();
     };
-  }, [audio.enqueue]);
+  }, [audio.enqueue]); // requestedUnit is only read when the socket opens; switching units uses startUnit
 
   const startUnit = useCallback(
     (unitId: string) => {

@@ -224,3 +224,14 @@ def session_turns(session_id: int) -> list[dict]:
             "SELECT * FROM turns WHERE session_id = ? ORDER BY id", (session_id,)
         ).fetchall()
     return [{**dict(r), "used_phrases": json.loads(r["used_phrases"])} for r in rows]
+
+
+def unit_stats() -> dict[str, dict]:
+    """Per unit: sessions with at least one answer, completed sessions, latest start time."""
+    stats: dict[str, dict] = {}
+    for s in list_sessions():
+        st = stats.setdefault(s["unit_id"], {"sessions": 0, "completed": 0, "last_at": None})
+        st["sessions"] += 1
+        st["completed"] += s["completed"]
+        st["last_at"] = max(st["last_at"] or "", s["started_at"])
+    return stats

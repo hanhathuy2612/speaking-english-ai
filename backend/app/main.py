@@ -40,7 +40,7 @@ app.include_router(history.router)
 app.include_router(ws.router)
 # The React app (frontend/, built into frontend/dist) is a single page: every page route returns
 # index.html and React Router picks the view. Hashed JS/CSS bundles are served from /assets.
-SPA_ROUTES = ["/", "/history", "/bench"]
+SPA_ROUTES = ["/", "/roadmap", "/history", "/bench"]
 NOT_BUILT = """<!doctype html><meta charset="utf-8"><title>Chưa build giao diện</title>
 <body style="font-family:system-ui;max-width:640px;margin:48px auto;padding:0 16px;line-height:1.6">
 <h1>Chưa build giao diện</h1>

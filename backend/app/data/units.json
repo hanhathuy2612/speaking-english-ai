@@ -1,125 +1,716 @@
-[
-  {
-    "id": "tell-me-about-yourself",
-    "title": "Tell me about yourself",
-    "scenario": "A job interview for a professional role.",
-    "goal": "Trả lời theo 3 ý: bạn là ai hiện nay, bạn đã làm được gì, vì sao bạn muốn vị trí này.",
-    "greeting": "Hi, thanks for coming in today.",
-    "closing": "Thank you, that's all my questions for today. It was nice talking to you.",
-    "vocab": "software developer, Java, backend, microservices, payment system, chat application, booking system, achievement, responsible for.",
-    "questions": [
-      { "ask": "To start, could you tell me a little about yourself?", "phrases": [0], "simple": "Let's keep it simple. What is your job, and how long have you done it?" },
-      { "ask": "What are you mainly responsible for in your current role?", "phrases": [1], "simple": "What do you do in your job? What are your main tasks?" },
-      { "ask": "What is one achievement you're proud of?", "phrases": [2], "simple": "Tell me about one thing you did at work that went well." },
-      { "ask": "What do you enjoy most about your work?", "phrases": [3], "simple": "What do you like about your job?" },
-      { "ask": "What kind of role are you looking for next?", "phrases": [4], "simple": "What kind of job do you want next?" },
-      { "ask": "And why are you interested in this position?", "phrases": [5], "simple": "Why do you want this job?" }
-    ],
-    "phrases": [
-      {
-        "say": "I've been working as a ... for ... years.",
-        "match": [
-          "i've been working as",
-          "i have been working as"
-        ]
-      },
-      {
-        "say": "I'm responsible for ...",
-        "match": [
-          "i'm responsible for",
-          "i am responsible for"
-        ]
-      },
-      {
-        "say": "One of my main achievements was ...",
-        "match": [
-          "one of my main achievements",
-          "one of my biggest achievements"
-        ]
-      },
-      {
-        "say": "What I enjoy most about my work is ...",
-        "match": [
-          "what i enjoy most"
-        ]
-      },
-      {
-        "say": "I'm looking for a role where I can ...",
-        "match": [
-          "i'm looking for a role",
-          "i am looking for a role",
-          "i'm looking for an opportunity"
-        ]
-      },
-      {
-        "say": "That's why I'm interested in this position.",
-        "match": [
-          "that's why i'm interested",
-          "that's why i am interested",
-          "that is why i am interested"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "solved-a-problem",
-    "title": "A problem you solved (STAR)",
-    "scenario": "A behavioural job interview about a difficult problem the candidate solved at work.",
-    "goal": "Trả lời theo STAR: Situation (bối cảnh), Task (nhiệm vụ), Action (hành động), Result (kết quả).",
-    "greeting": "Let's talk about problem solving.",
-    "closing": "Thank you, that was a clear example. That's all from me.",
-    "vocab": "bug, production issue, deadline, performance, database, deployment, customer, as a result, reduced, improved.",
-    "questions": [
-      { "ask": "Can you tell me about a difficult problem you solved at work? What was the situation?", "phrases": [0], "simple": "Think of one problem at work. What happened?" },
-      { "ask": "What exactly was your task?", "phrases": [1], "simple": "What did you need to do?" },
-      { "ask": "What did you do to solve it?", "phrases": [2], "simple": "What steps did you take?" },
-      { "ask": "What was the result?", "phrases": [3, 4], "simple": "What happened in the end?" },
-      { "ask": "Looking back, what did you learn from it?", "phrases": [5], "simple": "What did you learn?" }
-    ],
-    "phrases": [
-      {
-        "say": "At that time, we were facing ...",
-        "match": [
-          "we were facing",
-          "i was facing"
-        ]
-      },
-      {
-        "say": "My task was to ...",
-        "match": [
-          "my task was",
-          "my role was"
-        ]
-      },
-      {
-        "say": "So I decided to ...",
-        "match": [
-          "i decided to"
-        ]
-      },
-      {
-        "say": "As a result, ...",
-        "match": [
-          "as a result"
-        ]
-      },
-      {
-        "say": "It reduced / improved ... by ...",
-        "match": [
-          "it reduced",
-          "it improved",
-          "it increased",
-          "which reduced",
-          "which improved"
-        ]
-      },
-      {
-        "say": "Looking back, I learned that ...",
-        "match": [
-          "looking back",
-          "i learned that"
-        ]
-      }
-    ]
-  }
-]
+{
+  "topics": [
+    {"id": "intro", "title": "Giới thiệu bản thân", "description": "Mở đầu buổi phỏng vấn: bạn là ai, đang làm gì, muốn đi đâu."},
+    {"id": "technical", "title": "Kinh nghiệm kỹ thuật", "description": "Giải thích công nghệ và cách bạn làm việc, kèm ví dụ thật."},
+    {"id": "behavioral", "title": "Tình huống thực tế (STAR)", "description": "Kể chuyện theo Situation, Task, Action, Result."},
+    {"id": "closing", "title": "Cuối buổi phỏng vấn", "description": "Lương, thời gian bắt đầu, và câu hỏi của bạn cho nhà tuyển dụng."}
+  ],
+  "units": [
+    {
+      "id": "tell-me-about-yourself",
+      "topic": "intro",
+      "title": "Tell me about yourself",
+      "scenario": "A job interview for a professional role.",
+      "goal": "Trả lời theo 3 ý: bạn là ai hiện nay, bạn đã làm được gì, vì sao bạn muốn vị trí này.",
+      "greeting": "Hi, thanks for coming in today.",
+      "closing": "Thank you, that's all my questions for today. It was nice talking to you.",
+      "vocab": "software developer, Java, backend, microservices, payment system, chat application, booking system, achievement, responsible for.",
+      "questions": [
+        { "ask": "To start, could you tell me a little about yourself?", "phrases": [0], "simple": "Let's keep it simple. What is your job, and how long have you done it?" },
+        { "ask": "What are you mainly responsible for in your current role?", "phrases": [1], "simple": "What do you do in your job? What are your main tasks?" },
+        { "ask": "What is one achievement you're proud of?", "phrases": [2], "simple": "Tell me about one thing you did at work that went well." },
+        { "ask": "What do you enjoy most about your work?", "phrases": [3], "simple": "What do you like about your job?" },
+        { "ask": "What kind of role are you looking for next?", "phrases": [4], "simple": "What kind of job do you want next?" },
+        { "ask": "And why are you interested in this position?", "phrases": [5], "simple": "Why do you want this job?" }
+      ],
+      "phrases": [
+        {
+          "say": "I've been working as a ... for ... years.",
+          "match": [
+            "i've been working as",
+            "i have been working as"
+          ]
+        },
+        {
+          "say": "I'm responsible for ...",
+          "match": [
+            "i'm responsible for",
+            "i am responsible for"
+          ]
+        },
+        {
+          "say": "One of my main achievements was ...",
+          "match": [
+            "one of my main achievements",
+            "one of my biggest achievements"
+          ]
+        },
+        {
+          "say": "What I enjoy most about my work is ...",
+          "match": [
+            "what i enjoy most"
+          ]
+        },
+        {
+          "say": "I'm looking for a role where I can ...",
+          "match": [
+            "i'm looking for a role",
+            "i am looking for a role",
+            "i'm looking for an opportunity"
+          ]
+        },
+        {
+          "say": "That's why I'm interested in this position.",
+          "match": [
+            "that's why i'm interested",
+            "that's why i am interested",
+            "that is why i am interested"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "current-project",
+      "topic": "intro",
+      "title": "Your current project",
+      "scenario": "A job interview for a backend developer role. The interviewer asks about the candidate's current project.",
+      "goal": "Kể về dự án hiện tại theo thứ tự: sản phẩm làm gì, hệ thống gồm những gì, phần bạn phụ trách, khó khăn, điều bạn tự hào.",
+      "greeting": "Let's talk about the project you're working on now.",
+      "closing": "Thanks, that gives me a good picture of your project.",
+      "vocab": "Spring Boot, microservices, REST API, Kafka, PostgreSQL, Redis, Docker, Kubernetes, AWS, users, sprint, feature.",
+      "questions": [
+        { "ask": "Can you describe the project you're working on right now?", "phrases": [0], "simple": "What does your current project do?" },
+        { "ask": "How is the system designed? What are the main parts?", "phrases": [1], "simple": "What technologies does the project use?" },
+        { "ask": "Which part of the project are you responsible for?", "phrases": [2], "simple": "What do you build in this project?" },
+        { "ask": "What has been the biggest challenge in this project so far?", "phrases": [3], "simple": "What is difficult in this project?" },
+        { "ask": "What are you most proud of in this project?", "phrases": [4], "simple": "Which part of your work in this project do you like most?" }
+      ],
+      "phrases": [
+        {
+          "say": "Right now I'm working on ..., which helps ...",
+          "match": [
+            "i'm working on",
+            "i am working on",
+            "i'm currently working on",
+            "i am currently working on"
+          ]
+        },
+        {
+          "say": "The system is built with ... and consists of ...",
+          "match": [
+            "is built with",
+            "is built on",
+            "consists of"
+          ]
+        },
+        {
+          "say": "I'm in charge of ...",
+          "match": [
+            "i'm in charge of",
+            "i am in charge of"
+          ]
+        },
+        {
+          "say": "The biggest challenge was ...",
+          "match": [
+            "the biggest challenge was",
+            "the biggest challenge is",
+            "the main challenge was",
+            "the main challenge is"
+          ]
+        },
+        {
+          "say": "I'm especially proud of ...",
+          "match": [
+            "i'm especially proud",
+            "i am especially proud",
+            "i'm really proud",
+            "i am really proud",
+            "i'm most proud",
+            "i am most proud"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "career-goals",
+      "topic": "intro",
+      "title": "Career goals and motivation",
+      "scenario": "A job interview. The interviewer asks about the candidate's motivation and career plans.",
+      "goal": "Nói vì sao bạn muốn đổi việc (theo hướng tích cực, không chê công ty cũ), bạn muốn học thêm gì, và kế hoạch vài năm tới.",
+      "greeting": "Now I'd like to understand your career plans.",
+      "closing": "Thank you, it's good to know what you're aiming for.",
+      "vocab": "career, senior developer, tech lead, software architect, cloud, mentor, challenge, growth, opportunity, product company, outsourcing.",
+      "questions": [
+        { "ask": "Why are you looking for a new job at the moment?", "phrases": [0], "simple": "Why do you want to change jobs?" },
+        { "ask": "What skills would you like to develop in your next role?", "phrases": [1], "simple": "What do you want to learn next?" },
+        { "ask": "Where do you see yourself in five years?", "phrases": [2], "simple": "What job do you want in five years?" },
+        { "ask": "What kind of team do you work best in?", "phrases": [3], "simple": "What kind of team do you like to work in?" },
+        { "ask": "Why should we choose you for this position?", "phrases": [4], "simple": "What makes you a good fit for this job?" }
+      ],
+      "phrases": [
+        {
+          "say": "I'm looking for a new challenge where I can ...",
+          "match": [
+            "looking for a new challenge",
+            "i'm looking for a new",
+            "i am looking for a new"
+          ]
+        },
+        {
+          "say": "I'd like to get better at ...",
+          "match": [
+            "i'd like to get better at",
+            "i would like to get better at",
+            "i'd like to improve",
+            "i would like to improve"
+          ]
+        },
+        {
+          "say": "In five years, I see myself as ...",
+          "match": [
+            "i see myself"
+          ]
+        },
+        {
+          "say": "I work best in a team that ...",
+          "match": [
+            "i work best"
+          ]
+        },
+        {
+          "say": "I think I'm a good fit because ...",
+          "match": [
+            "i'm a good fit",
+            "i am a good fit",
+            "a good fit because"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "java-spring",
+      "topic": "technical",
+      "title": "Java and Spring experience",
+      "scenario": "A technical job interview for a Java backend developer. The interviewer asks about the candidate's experience with Java and Spring.",
+      "goal": "Giải thích công nghệ bạn dùng hằng ngày, mỗi ý kèm một ví dụ cụ thể bạn đã dùng nó để làm gì.",
+      "greeting": "Let's move on to your technical experience.",
+      "closing": "Great, thank you for walking me through your stack.",
+      "vocab": "Java, Spring Boot, Spring Security, JPA, Hibernate, REST API, Maven, Gradle, JUnit, dependency injection, annotation, JWT, OAuth2, Java 17, Java 21, virtual threads, records.",
+      "questions": [
+        { "ask": "Which technologies do you use most in your daily work?", "phrases": [0], "simple": "What languages and tools do you use every day?" },
+        { "ask": "What have you built with Spring Boot?", "phrases": [1], "simple": "Tell me about one service you made with Spring Boot." },
+        { "ask": "Can you explain dependency injection in simple words?", "phrases": [2], "simple": "Why does Spring create objects for you?" },
+        { "ask": "How do you handle security in your APIs?", "phrases": [3], "simple": "How do you protect your API?" },
+        { "ask": "Is there a newer Java feature you like using?", "phrases": [4], "simple": "What do you like about new Java versions?" }
+      ],
+      "phrases": [
+        {
+          "say": "In my daily work, I mainly use ...",
+          "match": [
+            "i mainly use",
+            "in my daily work"
+          ]
+        },
+        {
+          "say": "I've used Spring Boot to build ...",
+          "match": [
+            "i've used spring boot",
+            "i have used spring boot",
+            "i used spring boot to"
+          ]
+        },
+        {
+          "say": "Simply put, ... means ...",
+          "match": [
+            "simply put",
+            "in simple words",
+            "in simple terms"
+          ]
+        },
+        {
+          "say": "We secure our APIs with ...",
+          "match": [
+            "we secure",
+            "to secure our"
+          ]
+        },
+        {
+          "say": "One feature I really like is ..., because ...",
+          "match": [
+            "one feature i really like",
+            "one feature i like",
+            "a feature i really like"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "microservices",
+      "topic": "technical",
+      "title": "Designing microservices",
+      "scenario": "A technical job interview for a backend developer. The interviewer asks how the candidate designs and runs microservices.",
+      "goal": "Mô tả kiến trúc theo thứ tự: chia thành những service nào, chúng giao tiếp ra sao, xử lý thế nào khi một service lỗi. Nói cả ưu và nhược điểm.",
+      "greeting": "I'd like to talk about system design.",
+      "closing": "Thank you, that was a clear explanation of your architecture.",
+      "vocab": "microservices, monolith, REST, gRPC, Kafka, RabbitMQ, message queue, API gateway, service discovery, circuit breaker, retry, timeout, eventual consistency, Docker, Kubernetes.",
+      "questions": [
+        { "ask": "Have you worked with microservices? How was the system split into services?", "phrases": [0], "simple": "How many services did your system have, and what did each one do?" },
+        { "ask": "How do the services communicate with each other?", "phrases": [1], "simple": "Do your services call each other directly, or send messages?" },
+        { "ask": "What happens when one service goes down?", "phrases": [2], "simple": "What do you do if one service stops working?" },
+        { "ask": "What are the downsides of microservices compared to a monolith?", "phrases": [3], "simple": "What is hard about microservices?" },
+        { "ask": "If you could redesign that system, what would you change?", "phrases": [4], "simple": "What would you do differently next time?" }
+      ],
+      "phrases": [
+        {
+          "say": "The system was split into ... services, for example ...",
+          "match": [
+            "was split into",
+            "is split into",
+            "we split it into",
+            "we split the system"
+          ]
+        },
+        {
+          "say": "They communicate through ...",
+          "match": [
+            "they communicate through",
+            "they communicate via",
+            "communicate with each other through"
+          ]
+        },
+        {
+          "say": "To handle failures, we use ...",
+          "match": [
+            "to handle failures",
+            "to handle failure",
+            "to handle this we use"
+          ]
+        },
+        {
+          "say": "The main trade-off is ...",
+          "match": [
+            "the main trade-off",
+            "the main trade off",
+            "the main tradeoff",
+            "the main downside"
+          ]
+        },
+        {
+          "say": "If I could do it again, I would ...",
+          "match": [
+            "if i could do it again",
+            "if i did it again",
+            "i would change"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "database-performance",
+      "topic": "technical",
+      "title": "Database and performance",
+      "scenario": "A technical job interview for a backend developer. The interviewer asks about databases and performance problems.",
+      "goal": "Kể cách bạn tìm ra chỗ chậm (đo trước rồi mới sửa), cách bạn sửa, và kết quả bằng con số.",
+      "greeting": "Let's talk about databases and performance.",
+      "closing": "Thanks, it's clear you've dealt with real performance issues.",
+      "vocab": "PostgreSQL, MySQL, MongoDB, index, query, slow query, execution plan, N+1 problem, Redis, cache, connection pool, transaction, latency, response time, monitoring, Grafana.",
+      "questions": [
+        { "ask": "Which databases have you worked with, and how did you choose between them?", "phrases": [0], "simple": "Which databases do you use?" },
+        { "ask": "Tell me about a slow query or a slow API you had to fix. How did you find the cause?", "phrases": [1], "simple": "How do you find out why something is slow?" },
+        { "ask": "What did you do to make it faster?", "phrases": [2], "simple": "How did you fix it?" },
+        { "ask": "When do you decide to add a cache?", "phrases": [3], "simple": "Why and when do you use a cache like Redis?" },
+        { "ask": "How did you check that the fix really worked?", "phrases": [4], "simple": "How did you know it was faster?" }
+      ],
+      "phrases": [
+        {
+          "say": "We chose ... because ...",
+          "match": [
+            "we chose",
+            "we picked",
+            "we decided to use"
+          ]
+        },
+        {
+          "say": "First, I checked ... and found that ...",
+          "match": [
+            "i checked",
+            "and found that",
+            "i found that"
+          ]
+        },
+        {
+          "say": "I fixed it by ...",
+          "match": [
+            "i fixed it by",
+            "we fixed it by",
+            "i solved it by",
+            "we solved it by"
+          ]
+        },
+        {
+          "say": "A cache makes sense when ...",
+          "match": [
+            "makes sense when",
+            "a cache is useful when",
+            "i add a cache when",
+            "we add a cache when"
+          ]
+        },
+        {
+          "say": "We measured ... before and after the change.",
+          "match": [
+            "before and after",
+            "we measured",
+            "i measured"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "testing-quality",
+      "topic": "technical",
+      "title": "Testing and code quality",
+      "scenario": "A technical job interview for a backend developer. The interviewer asks about testing and code quality.",
+      "goal": "Nói rõ bạn test những gì và vì sao, team bạn review code thế nào, và một lần test giúp bắt được bug.",
+      "greeting": "Now let's talk about code quality.",
+      "closing": "Thank you, I like how you think about quality.",
+      "vocab": "unit test, integration test, JUnit, Mockito, Testcontainers, code coverage, code review, pull request, SonarQube, CI pipeline, refactoring, clean code, legacy code.",
+      "questions": [
+        { "ask": "How do you usually test your code?", "phrases": [0], "simple": "What kinds of tests do you write?" },
+        { "ask": "What makes a good unit test, in your opinion?", "phrases": [1], "simple": "How do you know a test is good?" },
+        { "ask": "How does code review work in your team?", "phrases": [2], "simple": "What do you check when you review code?" },
+        { "ask": "Can you tell me about a time a test caught a serious bug?", "phrases": [3], "simple": "Did a test ever find an important bug for you?" },
+        { "ask": "How do you deal with old code that has no tests?", "phrases": [4], "simple": "What do you do with old code without tests?" }
+      ],
+      "phrases": [
+        {
+          "say": "I usually write ... tests for ...",
+          "match": [
+            "i usually write",
+            "we usually write"
+          ]
+        },
+        {
+          "say": "A good test should ...",
+          "match": [
+            "a good test should",
+            "a good unit test should",
+            "good tests should"
+          ]
+        },
+        {
+          "say": "In our team, every pull request ...",
+          "match": [
+            "every pull request",
+            "each pull request",
+            "in our team every"
+          ]
+        },
+        {
+          "say": "Thanks to that test, we caught ... before release.",
+          "match": [
+            "thanks to that test",
+            "before release",
+            "before the release",
+            "before it went to production"
+          ]
+        },
+        {
+          "say": "Before changing it, I first ...",
+          "match": [
+            "before changing it",
+            "before i change",
+            "i first add",
+            "i first write"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "solved-a-problem",
+      "topic": "behavioral",
+      "title": "A problem you solved (STAR)",
+      "scenario": "A behavioural job interview about a difficult problem the candidate solved at work.",
+      "goal": "Trả lời theo STAR: Situation (bối cảnh), Task (nhiệm vụ), Action (hành động), Result (kết quả).",
+      "greeting": "Let's talk about problem solving.",
+      "closing": "Thank you, that was a clear example. That's all from me.",
+      "vocab": "bug, production issue, deadline, performance, database, deployment, customer, as a result, reduced, improved.",
+      "questions": [
+        { "ask": "Can you tell me about a difficult problem you solved at work? What was the situation?", "phrases": [0], "simple": "Think of one problem at work. What happened?" },
+        { "ask": "What exactly was your task?", "phrases": [1], "simple": "What did you need to do?" },
+        { "ask": "What did you do to solve it?", "phrases": [2], "simple": "What steps did you take?" },
+        { "ask": "What was the result?", "phrases": [3, 4], "simple": "What happened in the end?" },
+        { "ask": "Looking back, what did you learn from it?", "phrases": [5], "simple": "What did you learn?" }
+      ],
+      "phrases": [
+        {
+          "say": "At that time, we were facing ...",
+          "match": [
+            "we were facing",
+            "i was facing"
+          ]
+        },
+        {
+          "say": "My task was to ...",
+          "match": [
+            "my task was",
+            "my role was"
+          ]
+        },
+        {
+          "say": "So I decided to ...",
+          "match": [
+            "i decided to"
+          ]
+        },
+        {
+          "say": "As a result, ...",
+          "match": [
+            "as a result"
+          ]
+        },
+        {
+          "say": "It reduced / improved ... by ...",
+          "match": [
+            "it reduced",
+            "it improved",
+            "it increased",
+            "which reduced",
+            "which improved"
+          ]
+        },
+        {
+          "say": "Looking back, I learned that ...",
+          "match": [
+            "looking back",
+            "i learned that"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "disagreement",
+      "topic": "behavioral",
+      "title": "Disagreeing with a teammate (STAR)",
+      "scenario": "A behavioural job interview about a disagreement with a colleague.",
+      "goal": "Trả lời theo STAR. Nhấn mạnh cách bạn lắng nghe, dùng dữ liệu để thuyết phục, và vẫn giữ quan hệ tốt.",
+      "greeting": "Let's talk about teamwork.",
+      "closing": "Thanks, that's a good example of working with others.",
+      "vocab": "teammate, tech lead, product owner, disagreement, opinion, approach, compromise, pros and cons, meeting, decision, proof of concept, benchmark.",
+      "questions": [
+        { "ask": "Tell me about a time you disagreed with a teammate. What was it about?", "phrases": [0], "simple": "Did you ever have a different opinion from a teammate? What happened?" },
+        { "ask": "How did you share your opinion with them?", "phrases": [1], "simple": "What did you say to them?" },
+        { "ask": "How did you reach a decision in the end?", "phrases": [2], "simple": "What did you both decide?" },
+        { "ask": "How was your relationship with that person afterwards?", "phrases": [3], "simple": "Were you still on good terms after that?" },
+        { "ask": "What would you do differently next time?", "phrases": [4], "simple": "What did you learn from it?" }
+      ],
+      "phrases": [
+        {
+          "say": "We had different opinions about ...",
+          "match": [
+            "we had different opinions",
+            "we had a different opinion",
+            "we disagreed about",
+            "we disagreed on"
+          ]
+        },
+        {
+          "say": "I understand your point, but ...",
+          "match": [
+            "i understand your point",
+            "i see your point",
+            "i understood his point",
+            "i understood her point",
+            "i understood their point"
+          ]
+        },
+        {
+          "say": "In the end, we agreed to ...",
+          "match": [
+            "in the end we agreed",
+            "we agreed to",
+            "we both agreed"
+          ]
+        },
+        {
+          "say": "We still work well together.",
+          "match": [
+            "we still work well together",
+            "we still work together well",
+            "still on good terms"
+          ]
+        },
+        {
+          "say": "Next time, I would ... earlier.",
+          "match": [
+            "next time i would",
+            "next time i'd"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tight-deadline",
+      "topic": "behavioral",
+      "title": "Working under a tight deadline (STAR)",
+      "scenario": "A behavioural job interview about working under time pressure.",
+      "goal": "Trả lời theo STAR: bạn ưu tiên việc gì, báo cho ai biết sớm, và kết quả có kịp hạn không.",
+      "greeting": "Let's talk about working under time pressure.",
+      "closing": "Thank you, that shows how you handle pressure.",
+      "vocab": "deadline, release, sprint, scope, priority, stakeholder, manager, client, overtime, hotfix, must-have, nice-to-have, estimate.",
+      "questions": [
+        { "ask": "Tell me about a time you had a very tight deadline. What was the situation?", "phrases": [0], "simple": "Did you ever have too little time for a task? What happened?" },
+        { "ask": "How did you decide what to do first?", "phrases": [1], "simple": "Which tasks did you do first, and why?" },
+        { "ask": "Did you talk to your manager or the client about it?", "phrases": [2], "simple": "Who did you tell about the problem?" },
+        { "ask": "Did you finish on time? What was the result?", "phrases": [3], "simple": "What happened in the end?" },
+        { "ask": "What do you do now to avoid that kind of situation?", "phrases": [4], "simple": "What do you do now to have enough time?" }
+      ],
+      "phrases": [
+        {
+          "say": "We only had ... to finish ...",
+          "match": [
+            "we only had",
+            "i only had"
+          ]
+        },
+        {
+          "say": "I focused on the most important features first.",
+          "match": [
+            "focused on the most important",
+            "i focused on",
+            "we focused on"
+          ]
+        },
+        {
+          "say": "I let my manager know early that ...",
+          "match": [
+            "i let my manager know",
+            "i told my manager",
+            "i informed my manager",
+            "let the client know"
+          ]
+        },
+        {
+          "say": "We managed to release ... on time.",
+          "match": [
+            "we managed to",
+            "i managed to",
+            "on time"
+          ]
+        },
+        {
+          "say": "Now I always ... at the start.",
+          "match": [
+            "now i always",
+            "these days i always"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "a-mistake",
+      "topic": "behavioral",
+      "title": "A mistake you learned from (STAR)",
+      "scenario": "A behavioural job interview about a mistake the candidate made at work.",
+      "goal": "Thừa nhận lỗi thẳng thắn, nói nguyên nhân gốc, bạn đã sửa thế nào, và bạn thay đổi gì sau đó. Không đổ lỗi cho người khác.",
+      "greeting": "Everyone makes mistakes, so let's talk about one.",
+      "closing": "Thank you for being honest, that's a valuable lesson.",
+      "vocab": "mistake, bug, production, rollback, hotfix, root cause, postmortem, checklist, monitoring, alert, responsibility, configuration, migration.",
+      "questions": [
+        { "ask": "Can you tell me about a mistake you made at work?", "phrases": [0], "simple": "Think of one mistake at work. What went wrong?" },
+        { "ask": "What was the impact?", "phrases": [1], "simple": "What problem did it cause?" },
+        { "ask": "How did you fix it, and what was the root cause?", "phrases": [2, 3], "simple": "What did you do after you found it?" },
+        { "ask": "What did you change afterwards so it would not happen again?", "phrases": [4], "simple": "What do you do differently now?" }
+      ],
+      "phrases": [
+        {
+          "say": "I made a mistake when I ...",
+          "match": [
+            "i made a mistake",
+            "my mistake was"
+          ]
+        },
+        {
+          "say": "Because of that, ...",
+          "match": [
+            "because of that",
+            "because of this"
+          ]
+        },
+        {
+          "say": "I took responsibility and ...",
+          "match": [
+            "i took responsibility",
+            "i took ownership"
+          ]
+        },
+        {
+          "say": "The root cause was ...",
+          "match": [
+            "the root cause was",
+            "the root cause is"
+          ]
+        },
+        {
+          "say": "Since then, I always ...",
+          "match": [
+            "since then i",
+            "since then we"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "expectations",
+      "topic": "closing",
+      "title": "Salary, start date and your questions",
+      "scenario": "The final part of a job interview: expectations, availability, and the candidate's questions. If the candidate asks about the company or the job, reply with a short, friendly, general answer.",
+      "goal": "Nói mức lương mong muốn một cách lịch sự, khi nào bạn bắt đầu được, và hỏi lại nhà tuyển dụng một câu hỏi hay.",
+      "greeting": "We're almost done, just a few practical questions.",
+      "closing": "Thank you for your time today. We'll get back to you within a week.",
+      "vocab": "salary, expectation, gross, net, notice period, start date, remote, hybrid, onsite, benefits, probation, team size, onboarding, career path.",
+      "questions": [
+        { "ask": "What are your salary expectations?", "phrases": [0], "simple": "How much salary do you want?" },
+        { "ask": "When would you be able to start?", "phrases": [1], "simple": "When can you start the new job?" },
+        { "ask": "Would you prefer to work remotely, in the office, or hybrid?", "phrases": [2], "simple": "Do you want to work from home or in the office?" },
+        { "ask": "Do you have any questions for us?", "phrases": [3], "simple": "Is there anything you want to ask me about the job?" }
+      ],
+      "phrases": [
+        {
+          "say": "Based on my experience, I'm expecting around ...",
+          "match": [
+            "based on my experience",
+            "i'm expecting",
+            "i am expecting"
+          ]
+        },
+        {
+          "say": "My notice period is ..., so I could start ...",
+          "match": [
+            "my notice period",
+            "i could start",
+            "i can start"
+          ]
+        },
+        {
+          "say": "I'd prefer ..., because ...",
+          "match": [
+            "i'd prefer",
+            "i would prefer",
+            "i prefer"
+          ]
+        },
+        {
+          "say": "Could you tell me more about ...?",
+          "match": [
+            "could you tell me more",
+            "can you tell me more",
+            "i'd like to know more",
+            "i would like to know more"
+          ]
+        }
+      ]
+    }
+  ]
+}

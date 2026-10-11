@@ -15,9 +15,11 @@
 
 ## `data/units.json`
 
+File gồm `topics` (chủ đề, theo thứ tự lộ trình) và `units` (bài, theo thứ tự nên tập). `interview/units.py` kiểm tra dữ liệu khi nạp (`validate()`), `tests/test_units.py` kiểm tra thêm: mỗi mẫu câu có câu hỏi nhắm tới, đọc nguyên mẫu câu thì được tính là đã dùng, không dùng từ của ví dụ mẫu (`EXAMPLE_WORDS`: logistic, deliver, route, coordinator, driver).
+
 ```json
 {
-  "id": "...", "title": "...", "scenario": "...", "goal": "(tiếng Việt, hiện cho người học)",
+  "id": "...", "topic": "(id trong topics)", "title": "...", "scenario": "...", "goal": "(tiếng Việt, hiện cho người học)",
   "greeting": "...", "closing": "...", "vocab": "(gợi ý từ cho Whisper)",
   "questions": [{ "ask": "...", "phrases": [0], "simple": "(bản dễ hơn để hỏi lại)" }],
   "phrases": [{ "say": "I'm responsible for ...", "match": ["i'm responsible for", "i am responsible for"] }]
