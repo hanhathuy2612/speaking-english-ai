@@ -1,6 +1,7 @@
 """Pure-logic tests, no model or network needed. Run from backend/: python -m pytest"""
 
 from app.utils.parsing import (
+    has_cjk,
     hesitation_pauses,
     has_vietnamese,
     is_question,
@@ -108,6 +109,12 @@ def test_has_vietnamese():
     assert has_vietnamese("Em làm Java được 5 năm rồi.")
     assert not has_vietnamese("I've been working as a Java developer for five years.")
     assert not has_vietnamese("We met at a café near the office.")  # loanword accents are fine
+
+
+def test_has_cjk():
+    assert has_cjk("debugging is harder due to logs being分散在多个地方")
+    assert not has_cjk("Debugging is harder because logs are in many places.")
+    assert not has_cjk("Em làm Java được 5 năm rồi.")  # Vietnamese is not CJK
 
 
 def test_hesitation_pauses_ignore_sentence_breaks():

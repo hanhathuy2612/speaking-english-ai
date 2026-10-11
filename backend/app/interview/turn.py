@@ -11,7 +11,7 @@ import time
 from app.interview.prompts import build_messages, safe_note
 from app.interview.session import Session, next_step, progress, summary
 from app.services import history, llm, stt, tts
-from app.utils.parsing import ready_sentences, speech_metrics, split_sections, used_phrase_indices
+from app.utils.parsing import has_cjk, ready_sentences, speech_metrics, split_sections, used_phrase_indices
 from app.utils.ws import Conn
 
 _background: set[asyncio.Task] = set()
@@ -124,7 +124,8 @@ async def run_turn(
 
     async def say(sentences: list[str]) -> None:
         for sentence in sentences:
-            if not sentence.rstrip().endswith("?"):  # questions come from the app, never from SAY
+            # Questions come from the app, never from SAY; a sentence in Chinese is never spoken.
+            if not sentence.rstrip().endswith("?") and not has_cjk(sentence):
                 await queue.put((sentence, False))
 
     worker = asyncio.create_task(tts_worker())
@@ -145,9 +146,12 @@ async def run_turn(
     except Exception as e:  # noqa: BLE001
         await conn.json({"type": "error", "msg": f"LLM: {e}"})
     secs = split_sections(raw)
-    if raw.strip() and "SAY" not in secs:
+    if raw.strip() and not secs:
         await conn.json({"type": "error", "msg": "AI trả sai định dạng, app tự chuyển câu hỏi."})
         print("LLM output did not follow the format:", raw)
+    elif raw.strip() and "SAY" not in secs:
+        # The model sometimes skips SAY (about 1 turn in 30); the turn still works without a reaction.
+        print("LLM output had no SAY:", raw)
     sentences, emitted = ready_sentences(secs.get("SAY", ""), True, emitted)
     await say(sentences)
     if step is None:

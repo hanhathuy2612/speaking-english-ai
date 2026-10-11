@@ -1,6 +1,6 @@
 """Word-by-word comparison used by shadowing and the STT benchmark."""
 
-from app.utils.compare import compare, number_words, tokens, wer
+from app.utils.compare import compare, number_words, tokens, wer, invented_facts
 
 
 def statuses(result):
@@ -49,3 +49,15 @@ def test_contraction_partially_said_is_wrong_not_missing():
 def test_wer_ignores_number_formatting():
     assert wer("about ten thousand users", "about 10,000 users") == 0
     assert wer("I've been working as a developer", "I've been booking a shop") == 3 / 7
+
+
+def test_invented_facts_finds_changed_days_and_numbers():
+    said = "It should be ready by Thursday if the design come tomorrow."
+    assert invented_facts("It should be ready by Thursday if the design comes in on Friday.", said) == ["friday"]
+    assert invented_facts("It should be ready by Thursday if the design arrives tomorrow.", said) == []
+
+
+def test_invented_facts_matches_digits_and_words():
+    assert invented_facts("It cut late requests by 30% in 5 days.", "thirty percent in five days") == []
+    assert invented_facts("We have 12 services.", "we have ten services") == ["twelve"]
+    assert invented_facts("One of my main achievements was this.", "nothing numeric") == []  # "one" is ignored

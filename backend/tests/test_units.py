@@ -56,3 +56,50 @@ def test_conversation_units_name_the_partner():
     for u in units:
         if "role" in u:
             assert u.get("partner"), u["id"]
+
+
+def test_safe_note_rejects_a_note_that_changes_the_learners_facts():
+    from app.interview.prompts import safe_note, target_phrases
+    from app.interview.session import Session
+
+    u = next(u for u in units if u["id"] == "standup")
+    s = Session(unit=u, asked=u["questions"][3]["ask"])
+    s.history = [{"q": "Q?", "a": "It should be ready by Thursday if the design come tomorrow."}]
+    good = "It should be ready by Thursday if the design comes tomorrow."
+    assert safe_note(s, 3, good, retry=False) == good
+    bad = "It should be ready by Thursday if the design comes in on Friday."
+    assert safe_note(s, 3, bad, retry=False) == " ".join(target_phrases(u, 3))
+
+
+def test_follow_up_turns_send_no_target_phrase():
+    from app.interview.prompts import build_user_message, target_phrases
+    from app.interview.session import Session
+
+    u = next(u for u in units if u["id"] == "microservices")
+    s = Session(unit=u, asked=u["questions"][1]["ask"])
+    s.q = 1
+    assert f"Target phrase: {target_phrases(u, 1)[0]}" in build_user_message(s, "a")
+    s.asked = "Why did you pick Kafka?"  # a follow-up written by the LLM
+    assert "Target phrase: none (follow-up question)" in build_user_message(s, "a")
+
+
+def test_safe_note_rejects_chinese():
+    from app.interview.prompts import safe_note, target_phrases
+    from app.interview.session import Session
+
+    u = next(u for u in units if u["id"] == "microservices")
+    s = Session(unit=u, asked=u["questions"][3]["ask"])
+    s.history = [{"q": "Q?", "a": "It is hard to debug because the log is in many place."}]
+    note = "The main trade-off is that debugging can be harder due to logs being分散在多个地方。"
+    assert safe_note(s, 3, note, retry=False) == " ".join(target_phrases(u, 3))
+
+
+def test_safe_note_rejects_second_person_notes():
+    from app.interview.prompts import safe_note, target_phrases
+    from app.interview.session import Session
+
+    u = next(u for u in units if u["id"] == "tell-me-about-yourself")
+    s = Session(unit=u, asked=u["questions"][3]["ask"])
+    s.history = [{"q": "Q?", "a": "I enjoy most when I solve difficult bug in production."}]
+    note = "You enjoy solving difficult bugs in production."
+    assert safe_note(s, 3, note, retry=False) == " ".join(target_phrases(u, 3))

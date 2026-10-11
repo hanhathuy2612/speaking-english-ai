@@ -5,6 +5,7 @@
 - speech_metrics: objective metrics from Whisper word timestamps
 - used_phrase_indices: which target phrases the learner used
 - has_vietnamese: Whisper output that is Vietnamese text
+- has_cjk: LLM output that drifted into Chinese (or Japanese/Korean)
 """
 
 from __future__ import annotations
@@ -69,6 +70,15 @@ def norm(text: str) -> str:
 
 # Letters that only Vietnamese uses (plain accented vowels like é also appear in English loanwords).
 _VIETNAMESE = re.compile(r"[ăâđêôơưạảấầẩẫậắằẳẵặẹẻẽếềểễệỉịọỏốồổỗộớờởỡợụủứừửữựỳỵỷỹ]", re.IGNORECASE)
+
+
+# Qwen sometimes switches to Chinese mid-sentence; such text must never be shown or spoken.
+_CJK = re.compile(r"[　-〿぀-ヿ㐀-䶿一-鿿가-힯＀-￯]")
+
+
+def has_cjk(text: str) -> bool:
+    """True when the LLM output contains Chinese, Japanese or Korean characters."""
+    return bool(_CJK.search(text))
 
 
 def has_vietnamese(text: str) -> bool:

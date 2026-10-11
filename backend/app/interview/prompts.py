@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from app.core.config import MAX_HISTORY
 from app.interview.session import Session, followup_limit
-from app.utils.parsing import norm
+from app.utils.compare import invented_facts
+from app.utils.parsing import has_cjk, norm
 
 # Interview units use DEFAULT_ROLE, which renders exactly the prompt validated with replay.py.
 # Conversation units set "role" in units.json (docs/features/conversation-mode.md).
@@ -110,9 +111,14 @@ def build_user_message(s: Session, answer: str) -> str:
         lines.append("Earlier in the interview:")
         lines += [f"- Q: {h['q']} A: {h['a']}" for h in earlier]
     # Latest answer goes last: the 7B model tends to react to whatever it read most recently.
+    main = s.unit["questions"][s.q]
+    on_follow_up = s.asked not in (main["ask"], main["simple"])
+    # On a follow-up the main question's phrase usually does not fit, and the model then rewrote
+    # an EARLIER answer to use it instead of improving the latest one.
+    target = "none (follow-up question)" if on_follow_up else " / ".join(target_phrases(s.unit, s.q))
     lines += [
         f"Current question: {s.asked}",
-        f"Target phrase: {' / '.join(target_phrases(s.unit, s.q))}",
+        f"Target phrase: {target}",
         f"Follow-up allowed: {'yes' if s.followups < followup_limit(s.unit) else 'no'}",
         f"Latest answer: {answer}",
     ]
@@ -120,11 +126,17 @@ def build_user_message(s: Session, answer: str) -> str:
 
 
 def safe_note(s: Session, q_index: int, note: str, retry: bool) -> str:
-    """Replace a NOTE that leaks few-shot content, or is made up before we know anything about the
-    learner, with the target phrase template."""
-    known = norm(" ".join(h["a"] for h in s.history))
+    """Replace a NOTE that leaks few-shot content, changes the learner's facts (numbers, days,
+    dates), drifts into Chinese, or is made up before we know anything about the learner, with the target phrase template."""
+    said = " ".join(h["a"] for h in s.history)
+    known = norm(said)
     leaked = any(w in norm(note) and w not in known for w in EXAMPLE_WORDS)
+    # The model sometimes "corrects" details ("tomorrow" -> "on Friday"); reading that aloud
+    # would teach a false sentence. Facts from the target phrase itself are allowed.
+    changed = bool(invented_facts(note, f"{said} {' '.join(target_phrases(s.unit, q_index))}"))
     no_facts = retry and len(s.history) <= 1  # only the latest (unclear) answer is known
-    if note and not leaked and not no_facts:
+    # A NOTE is a first-person sentence to say; "You enjoy ..." is the model talking about the learner.
+    second_person = norm(note).startswith("you ")
+    if note and not (leaked or changed or no_facts or second_person or has_cjk(note)):
         return note
     return " ".join(target_phrases(s.unit, q_index))

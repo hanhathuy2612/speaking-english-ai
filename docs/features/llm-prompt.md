@@ -11,7 +11,7 @@ LLM: Qwen2.5-7B-Instruct qua LM Studio, `temperature` 0.35, `max_tokens` 160, c�
 | Tin nhắn mỗi lượt | `build_user_message()` trong `interview/prompts.py` |
 | Gọi LLM | `stream_reply()` trong `services/llm.py` |
 | Xử lý stream | `run_turn()` trong `interview/turn.py`, cùng `split_sections()` / `ready_sentences()` trong `utils/parsing.py` |
-| Chặn NOTE xấu | `safe_note()`, `EXAMPLE_WORDS` trong `interview/prompts.py` |
+| Chặn NOTE xấu | `safe_note()`, `EXAMPLE_WORDS` trong `interview/prompts.py`; `invented_facts()` trong `utils/compare.py`; `has_cjk()` trong `utils/parsing.py` |
 
 ## Định dạng đầu ra (4 dòng)
 
@@ -23,9 +23,9 @@ NOTE: <câu của ứng viên viết lại tự nhiên hơn, ngôi thứ nhất,
 ```
 
 - RETRY đứng đầu để không bị cắt mất khi chạm `max_tokens`.
-- SAY được TTS từng câu ngay khi viết xong. Câu nào trong SAY kết thúc bằng `?` thì bị bỏ, vì câu hỏi do app quyết định.
+- SAY được TTS từng câu ngay khi viết xong. Câu nào trong SAY kết thúc bằng `?` thì bị bỏ, vì câu hỏi do app quyết định. Câu có chữ Hán/Nhật/Hàn (`has_cjk`) cũng bị bỏ, không bao giờ đọc.
 - NOTE chỉ hiện chữ, không đọc (người học bấm "Nghe câu này" nếu muốn).
-- Nếu output không có nhãn SAY, app báo "AI trả sai định dạng" và tự chuyển câu.
+- Output không có nhãn nào: app báo "AI trả sai định dạng" và tự chuyển câu. Chỉ thiếu SAY (khoảng 1/30 lượt): app im lặng chuyển câu, chỉ ghi log `LLM output had no SAY`.
 
 ## Tin nhắn user mỗi lượt
 
@@ -33,7 +33,7 @@ NOTE: <câu của ứng viên viết lại tự nhiên hơn, ngôi thứ nhất,
 Earlier in the interview:          (tối đa MAX_HISTORY cặp hỏi/đáp)
 - Q: ... A: ...
 Current question: ...
-Target phrase: ...
+Target phrase: ...                 ("none (follow-up question)" khi đang ở câu hỏi phụ)
 Follow-up allowed: yes|no
 Latest answer: ...                 (luôn để cuối)
 ```
@@ -49,6 +49,10 @@ Latest answer: ...                 (luôn để cuối)
 | NOTE chép chi tiết từ ví dụ ("logistics coordinator") | Few-shot bị rò | `safe_note()` thay bằng khung mẫu câu nếu NOTE có từ trong `EXAMPLE_WORDS` mà người học chưa nói, hoặc khi RETRY mà chưa biết gì về người học |
 | Câu hỏi phụ trùng câu chính sắp tới ("How did you ensure this wouldn't happen again?" ngay trước câu chính hỏi đúng điều đó) | Bài STAR có sẵn câu chính cho từng bước, model không biết câu nào còn ở sau | Bài STAR đặt `"followups": 0` trong `units.json`. **Đã thử và bỏ:** gửi danh sách "Later questions" kèm luật cấm hỏi trùng; model 7B lại chép nguyên câu trong danh sách làm câu hỏi phụ (cả 6/6 lần chạy) |
 | NOTE bịa thêm chi tiết | Câu nhận dạng sai, vô nghĩa | Luật "ONLY facts the candidate said", dùng "..." khi thiếu. Vẫn còn xảy ra, cần sửa ở phía STT |
+| NOTE đổi chi tiết của người học ("if the design come tomorrow" → "comes in on Friday", 2/2 lần ở `standup`) | Model "sửa" cả nội dung | `safe_note()` dùng `invented_facts()`: NOTE có số, thứ, tháng, today/tomorrow/yesterday mà người học chưa nói (và không có trong mẫu câu) thì thay bằng khung mẫu câu. So sau khi chuẩn hóa như shadowing ("2-0" = "two zero"); bỏ qua "one" và "may" |
+| NOTE chuyển sang tiếng Trung giữa câu (2/3 lần ở `microservices`) | Qwen thỉnh thoảng lẫn ngôn ngữ | NOTE có chữ CJK thì thay bằng khung mẫu câu; câu SAY có chữ CJK thì không đọc |
+| NOTE ở ngôi thứ hai ("You enjoy solving…") | Model nói về người học thay vì viết câu cho người học nói | NOTE bắt đầu bằng "You" thì thay bằng khung mẫu câu |
+| NOTE ở lượt trả lời câu hỏi phụ viết lại câu trả lời **trước đó** | App vẫn gửi mẫu câu của câu chính, model cố nhét mẫu câu đó vào | Ở câu hỏi phụ gửi `Target phrase: none (follow-up question)` |
 
 ## Khi sửa prompt
 

@@ -152,3 +152,26 @@ def word_errors(ref: str, hyp: str) -> tuple[int, int]:
 def wer(ref: str, hyp: str) -> float:
     errors, n = word_errors(ref, hyp)
     return errors / max(n, 1)
+
+
+# Words that carry a checkable fact. "one" is left out: it is usually a pronoun ("the one", "no one").
+FACT_WORDS = (
+    set(ONES[2:] + TENS[2:] + ["zero", "hundred", "thousand", "million", "percent"])
+    | set("monday tuesday wednesday thursday friday saturday sunday".split())
+    | set("january february march april may june july august september october november december".split())
+    | set("today tomorrow yesterday tonight".split())
+)
+
+
+def invented_facts(note: str, said: str) -> list[str]:
+    """Numbers, days, months and relative dates in `note` that never appear in `said`.
+
+    Both sides are normalized like shadowing ("5" == "five", "30%" == "thirty percent").
+    "may" counts only when it is not the modal verb, which cannot be told apart here, so it is ignored.
+    """
+    known = set(tokens(said))
+    out: list[str] = []
+    for t in tokens(note):
+        if t in FACT_WORDS and t != "may" and t not in known and t not in out:
+            out.append(t)
+    return out
