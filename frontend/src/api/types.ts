@@ -21,7 +21,16 @@ export type UnitStatus = {
   last_at: string | null;
 };
 
-export type Topic = { id: string; title: string; description: string; units: UnitStatus[] };
+export type Topic = {
+  id: string;
+  title: string;
+  description: string;
+  locked: boolean; // its stage is not open yet (docs/features/roadmap.md)
+  units: UnitStatus[];
+};
+
+/** GET /api/units: `next_unit` is the first unit not completed in the open stages. */
+export type UnitsResponse = { topics: Topic[]; next_unit: string | null };
 
 export type UnitInfo = {
   id: string;
@@ -34,13 +43,23 @@ export type UnitInfo = {
 };
 
 export type CompareItem =
-  | { kind: "word"; text: string; status: "ok" | "wrong" | "miss"; heard?: string | null }
+  | {
+      kind: "word";
+      text: string;
+      status: "ok" | "wrong" | "miss";
+      heard?: string | null;
+    }
   | { kind: "extra"; text: string };
 
 export type ShadowResult = {
   target: string;
   heard: string;
-  compare: { items: CompareItem[]; correct: number; total: number; accuracy: number };
+  compare: {
+    items: CompareItem[];
+    correct: number;
+    total: number;
+    accuracy: number;
+  };
   speech: Speech;
   original: Speech | null;
 };
@@ -66,7 +85,15 @@ export type Metrics = {
 export type ServerMessage =
   | { type: "started"; unit: UnitInfo }
   | { type: "status"; msg: "transcribing" | "thinking" }
-  | { type: "transcript"; text: string; speech: Speech; used: number[]; unclear: boolean; reason: UnclearReason | null; conf: number | null }
+  | {
+      type: "transcript";
+      text: string;
+      speech: Speech;
+      used: number[];
+      unclear: boolean;
+      reason: UnclearReason | null;
+      conf: number | null;
+    }
   | { type: "sentence"; text: string; role: "ai" | "model" }
   | { type: "note"; text: string; retry: boolean }
   | ({ type: "shadow_result" } & ShadowResult)
@@ -151,6 +178,120 @@ export type CheckRow = {
 export type CheckState = {
   enabled: boolean;
   prompt: CheckPrompt;
-  targets: { seconds: number; wpm_speaking: number; hesitations_per_100: number };
+  targets: {
+    seconds: number;
+    wpm_speaking: number;
+    hesitations_per_100: number;
+  };
   checks: CheckRow[];
+};
+
+// ----- Pronunciation drills (docs/features/pronunciation-drills.md) -----
+
+export type DrillSentence = { id: string; text: string; focus: string[] };
+
+/** Recent focus-word accuracy: last `window` attempts, accuracy in % (null before any attempt). */
+export type FocusAccuracy = { attempts: number; accuracy: number | null };
+
+export type DrillSet = FocusAccuracy & {
+  id: string; // "mine" = sentences you misread before
+  title: string;
+  measured: string; // the mistake measured on your voice that this set targets
+  tip: string;
+  sentences: DrillSentence[];
+};
+
+export type DrillState = {
+  enabled: boolean;
+  window: number;
+  recent: FocusAccuracy;
+  sets: DrillSet[];
+};
+
+export type DrillResult = {
+  target: string;
+  heard: string;
+  items: (CompareItem & { focus?: boolean })[];
+  correct: number;
+  total: number;
+  accuracy: number;
+  focus_correct: number;
+  focus_total: number;
+};
+
+// ----- 4/3/2 fluency exercise (docs/features/fluency-432.md) -----
+
+export type FluencyRound = {
+  round: number;
+  limit_s: number;
+  text: string;
+  words: number;
+  duration_s: number;
+  wpm_speaking: number | null; // null when less than 30 s of English
+  hesitations_per_100: number | null;
+  not_english: boolean;
+};
+
+export type FluencyResult = FluencyRound & { run: string; measurable: boolean };
+
+export type FluencyRun = {
+  run: string;
+  prompt_id: string;
+  prompt: string;
+  created_at: string;
+  rounds: FluencyRound[];
+  complete: boolean;
+};
+
+export type FluencyState = {
+  enabled: boolean;
+  prompt: CheckPrompt;
+  rounds: number[];
+  runs: FluencyRun[];
+};
+
+// ----- Roadmap stages (docs/features/roadmap.md) -----
+
+export type CheckLevel = {
+  seconds: number;
+  wpm_speaking?: number;
+  hesitations_per_100?: number;
+};
+
+export type Requirement =
+  | {
+      kind: "units" | "drill_sets" | "fluency_runs";
+      done: number;
+      total: number;
+      met: boolean;
+    }
+  | ({
+      kind: "drill_accuracy";
+      target: number;
+      window: number;
+      met: boolean;
+    } & FocusAccuracy)
+  | {
+      kind: "check";
+      target: CheckLevel;
+      // the check that met the level, otherwise the latest one
+      latest: {
+        created_at: string;
+        duration_s: number;
+        wpm_speaking: number | null;
+        hesitations_per_100: number | null;
+      } | null;
+      met: boolean;
+    };
+
+export type StageStatus = "passed" | "current" | "locked";
+
+export type Stage = {
+  id: string;
+  title: string;
+  goal: string;
+  practice?: "drills" | "fluency";
+  topics: Topic[];
+  requirements: Requirement[];
+  status: StageStatus;
 };

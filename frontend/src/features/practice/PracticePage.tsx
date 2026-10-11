@@ -52,7 +52,8 @@ export function PracticePage() {
           }}
         >
           {state.topics.map((t) => (
-            <optgroup key={t.id} label={t.title}>
+            // Locked stages stay selectable here (e.g. an interview coming up); the roadmap shows the lock.
+            <optgroup key={t.id} label={t.locked ? `${t.title} (chưa mở)` : t.title}>
               {t.units.map((u) => (
                 <option key={u.id} value={u.id}>
                   {u.completed ? "✓ " : ""}

@@ -75,6 +75,34 @@ CREATE TABLE IF NOT EXISTS checks (
     passed INTEGER NOT NULL,           -- targets met (docs/features/speaking-check.md)
     total INTEGER NOT NULL             -- number of targets
 );
+CREATE TABLE IF NOT EXISTS drills (
+    id INTEGER PRIMARY KEY,
+    created_at TEXT NOT NULL,
+    set_id TEXT NOT NULL,              -- docs/features/pronunciation-drills.md
+    target TEXT NOT NULL,
+    heard TEXT NOT NULL,
+    correct INTEGER NOT NULL,          -- reference tokens heard correctly
+    total INTEGER NOT NULL,
+    focus_correct INTEGER NOT NULL,    -- focus words heard correctly
+    focus_total INTEGER NOT NULL,
+    avg_logprob REAL
+);
+CREATE TABLE IF NOT EXISTS fluency (
+    id INTEGER PRIMARY KEY,
+    created_at TEXT NOT NULL,
+    run TEXT NOT NULL,                 -- one 4/3/2 exercise (docs/features/fluency-432.md)
+    round INTEGER NOT NULL,            -- 1, 2, 3
+    limit_s INTEGER NOT NULL,
+    prompt_id TEXT NOT NULL,
+    prompt TEXT NOT NULL,
+    text TEXT NOT NULL,
+    words INTEGER NOT NULL,
+    duration_s REAL NOT NULL,
+    wpm_speaking INTEGER,              -- NULL when not measurable, like checks
+    hesitations INTEGER NOT NULL,
+    hesitations_per_100 REAL,
+    not_english INTEGER NOT NULL
+);
 """
 
 
@@ -274,3 +302,53 @@ def list_checks() -> list[dict]:
     with closing(_connect()) as conn:
         rows = conn.execute("SELECT * FROM checks ORDER BY created_at, id").fetchall()
     return [{**dict(r), "not_english": bool(r["not_english"])} for r in rows]
+
+
+def _insert(table: str, row: dict) -> int | None:
+    if not enabled():
+        return None
+    cols = ["created_at", *row]
+    with closing(_connect()) as conn, conn:
+        cur = conn.execute(
+            f"INSERT INTO {table} ({', '.join(cols)}) VALUES ({', '.join('?' * len(cols))})",
+            (_now(), *row.values()),
+        )
+        return cur.lastrowid
+
+
+def _rows(sql: str) -> list[dict]:
+    if not enabled():
+        return []
+    with closing(_connect()) as conn:
+        return [dict(r) for r in conn.execute(sql).fetchall()]
+
+
+def add_drill(attempt: dict) -> int | None:
+    """One pronunciation drill reading; keys match the `drills` columns."""
+    return _insert("drills", attempt)
+
+
+def list_drills() -> list[dict]:
+    """All drill readings, oldest first."""
+    return _rows("SELECT * FROM drills ORDER BY created_at, id")
+
+
+def list_readings() -> list[dict]:
+    """Every sentence read aloud against a reference (shadowing and drills), oldest first."""
+    rows = _rows(
+        "SELECT created_at, 0 AS src, id, target, heard, correct, total FROM shadows "
+        "UNION ALL SELECT created_at, 1 AS src, id, target, heard, correct, total FROM drills "
+        "ORDER BY created_at, src, id"  # timestamps have one-second resolution
+    )
+    return [{k: r[k] for k in ("created_at", "target", "heard", "correct", "total")} for r in rows]
+
+
+def add_fluency_round(row: dict) -> int | None:
+    """One round of a 4/3/2 exercise; keys match the `fluency` columns."""
+    return _insert("fluency", row)
+
+
+def list_fluency_rounds() -> list[dict]:
+    """All 4/3/2 rounds, oldest first."""
+    rows = _rows("SELECT * FROM fluency ORDER BY created_at, id")
+    return [{**r, "not_english": bool(r["not_english"])} for r in rows]

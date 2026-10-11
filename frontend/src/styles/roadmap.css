@@ -1,4 +1,4 @@
-/* Roadmap page (/roadmap): topics in order, each with a grid of unit cards. */
+/* Roadmap page (/roadmap): stages in order, each with its requirements, practice and topics. */
 .roadmap {
   max-width: 1080px;
   margin: 0 auto;
@@ -51,28 +51,12 @@
   align-items: flex-start;
   gap: 12px;
 }
-.topic-step {
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: var(--primary-soft);
-  color: var(--primary);
-  font-size: 13px;
-  font-weight: 650;
-}
-.topic-step.done {
-  background: var(--success-soft);
-  color: var(--success);
-}
 .topic-text {
   flex: 1;
   min-width: 0;
 }
-.topic-text h2 {
-  font-size: 16px;
+.topic-text h3 {
+  font-size: 15px;
   font-weight: 650;
   line-height: 28px;
 }
@@ -81,11 +65,111 @@
   font-size: 13.5px;
 }
 
+/* ----- Stage ----- */
+.stage {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-left: 18px;
+  border-left: 3px solid var(--border);
+}
+.stage-current {
+  border-left-color: var(--primary);
+}
+.stage-passed {
+  border-left-color: var(--success);
+}
+.stage-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.stage-step {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-size: 13px;
+  font-weight: 650;
+}
+.stage-step-passed {
+  background: var(--success-soft);
+  color: var(--success);
+}
+.stage-step-locked {
+  background: var(--surface-2);
+  color: var(--text-3);
+}
+.stage-text {
+  flex: 1;
+  min-width: 0;
+}
+.stage-text h2 {
+  font-size: 17px;
+  font-weight: 650;
+  line-height: 30px;
+}
+.stage-text p {
+  color: var(--text-2);
+  font-size: 13.5px;
+}
+.stage-locked .stage-text h2 {
+  color: var(--text-2);
+}
+.stage-gate {
+  padding: 14px 16px;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+.stage-gate .criteria {
+  margin-top: 4px;
+}
+.stage-gate .criteria li:last-child {
+  border-bottom: 0;
+}
+.stage-check-link {
+  margin-top: 8px;
+}
+.stage-body {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.stage-more summary {
+  cursor: pointer;
+  color: var(--text-2);
+  font-size: 13.5px;
+  font-weight: 550;
+}
+.stage-more[open] summary {
+  margin-bottom: 14px;
+}
+.practice-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px;
+}
+.practice-card h3 {
+  font-size: 14.5px;
+  font-weight: 650;
+}
+.practice-card p {
+  color: var(--text-2);
+  font-size: 13.5px;
+}
+
 /* ----- Unit cards ----- */
 .unit-grid {
   list-style: none;
   margin: 0;
-  padding: 0 0 0 40px;
+  padding: 0;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 12px;
@@ -132,9 +216,23 @@
   .roadmap {
     padding: 20px 16px 40px;
   }
+  .stage {
+    padding-left: 12px;
+  }
   .unit-grid {
-    padding-left: 0;
     grid-template-columns: 1fr;
+  }
+  .practice-card,
+  .stage-head {
+    flex-wrap: wrap;
+  }
+  .criteria li {
+    flex-wrap: wrap;
+  }
+  .criterion-value {
+    flex-basis: 100%;
+    padding-left: 32px;
+    text-align: left;
   }
 }
 

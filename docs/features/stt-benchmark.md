@@ -7,7 +7,7 @@ Nguyên tắc: so mọi cấu hình trên **cùng một bộ file ghi âm**, vì
 
 | Phần | Vị trí |
 |---|---|
-| Trang đọc theo câu mẫu | `frontend/src/features/bench/BenchPage.tsx` (route `/bench`) |
+| Trang đọc theo câu mẫu | `frontend/src/features/bench/BenchPage.tsx` (route `/bench`, mở từ liên kết cuối trang Tiến bộ, không nằm trên thanh điều hướng) |
 | Danh sách câu | `backend/app/data/bench_sentences.json` (18 câu, theo nghề của người dùng và các mẫu câu) |
 | API lưu file | `bench_list()`, `bench_save()` trong `backend/app/api/routes/bench.py`; lưu vào `recordings/bench/NN.webm` + `NN.ref.txt` |
 | Chạy so sánh | `backend/scripts/stt_bench.py` |
@@ -40,6 +40,7 @@ Mỗi `--config` có dạng `model,device,compute,beam`. Ghi âm trong ứng d�
 - `word_errors()` chuẩn hóa số và viết tắt trước khi so ("10,000" = "ten thousand", "I've" = "I have"). Bảng kết quả bên dưới được đo **trước** khi có chuẩn hóa này, nên WER thật thấp hơn một chút; chạy lại để có số mới.
 - Với turbo, phần lớn lỗi còn lại là phát âm thật của người dùng (xem [speech-recognition.md](speech-recognition.md)).
 - Mẫu nhỏ: chênh 1% chỉ khoảng 2 từ.
+- Chạy lại ngày 11/10/2026 (có chuẩn hóa): turbo cuda float16 beam 3 còn **5,2%**, 0,39 giây/câu. Các lỗi còn lại (customers → customer, thirty → 60%, cache → kit, unit tests → unise text) là nguồn của bộ câu luyện phát âm, xem [pronunciation-drills.md](pronunciation-drills.md).
 
 ## Hướng phát triển
 

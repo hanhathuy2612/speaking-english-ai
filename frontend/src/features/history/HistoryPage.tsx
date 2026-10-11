@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { Link } from "react-router";
 import type { HistorySession } from "../../api/types";
 import { AppBar } from "../../components/AppBar";
 import { TrashIcon } from "../../components/Icons";
@@ -168,6 +169,10 @@ export function HistoryPage() {
             <SessionsTable sessions={sessions} onDelete={onDelete} />
           </div>
         )}
+        <p className="history-foot">
+          Máy nghe sai nhiều từ bạn nói đúng? Đo lại độ chính xác nhận dạng ở trang{" "}
+          <Link to="/bench">Đo nhận dạng</Link>.
+        </p>
       </main>
     </>
   );

@@ -9,11 +9,12 @@ Mục đích: trả lời câu hỏi "mình đã nói được chưa" bằng s�
 | Phần | Vị trí |
 |---|---|
 | Đề bài | `backend/app/data/check_prompts.json` (`id`, `text` tiếng Anh, `hint` tiếng Việt) |
-| Chọn đề, đo, so mục tiêu | `backend/app/assessment/check.py` (`pick_prompt()`, `evaluate()`, các hằng `TARGET_*`) |
+| Chọn đề, so mục tiêu | `backend/app/assessment/check.py` (`pick_prompt()`, `evaluate()`, các hằng `TARGET_*`) |
+| Đo (dùng chung với bài 4–3–2) | `measure()`, `pick_least_used()`, `MIN_MEASURED_SECONDS` trong `backend/app/assessment/metrics.py` |
 | Đếm ngập ngừng giữa câu | `hesitation_pauses()` trong `backend/app/utils/parsing.py` |
 | API | `backend/app/api/routes/check.py` |
 | Lưu kết quả | bảng `checks`, `add_check()`, `list_checks()` trong `backend/app/services/history.py` |
-| Trang | `frontend/src/features/check/CheckPage.tsx`, `frontend/src/styles/check.css`, hàm thuần `frontend/src/lib/check.ts` |
+| Trang | `frontend/src/features/check/CheckPage.tsx`, `frontend/src/styles/check.css`, hàm thuần `frontend/src/lib/check.ts`; khối ghi âm `frontend/src/components/Recorder.tsx` |
 | Ô trên trang Lộ trình | `CheckCard` trong `frontend/src/features/roadmap/RoadmapPage.tsx` |
 | Test | `backend/tests/test_check.py`, `frontend/src/lib/check.test.ts` |
 
@@ -28,7 +29,7 @@ Mục đích: trả lời câu hỏi "mình đã nói được chưa" bằng s�
 
 - **Chỉ chấm tốc độ và ngập ngừng khi đo được** (`measurable`): phải có ít nhất 30 giây tiếng Anh (`MIN_MEASURED_SECONDS`). Một câu tiếng Việt 4 giây từng "đạt" cả hai tiêu chí này. Khi không đo được, hai tiêu chí tính là chưa đạt, trang hiện lời nhắc, và DB lưu `NULL` cho hai số đó để đường xu hướng không bị lệch.
 - **Ngập ngừng giữa câu**, không phải mọi khoảng nghỉ dài: khoảng nghỉ trên 0,7 giây sau từ kết thúc bằng `.`, `?`, `!` là nghỉ cuối câu tự nhiên. Đo ngày 11/10/2026: edge-tts đọc 217 từ có 11 khoảng nghỉ dài (5,1/100 từ) nhưng **0** ở giữa câu; trên bản ghi thật của người dùng, cách đếm này chỉ bắt chỗ ngập ngừng thật ("for" … 2,05 giây, "when" … 3,3 giây).
-- Các mức mục tiêu là **điểm khởi đầu**, cần chỉnh lại theo số đo đầu vào của người dùng.
+- Các mức mục tiêu là **mức đích** (giai đoạn 4 của lộ trình). Giai đoạn 2 và 3 dùng mức thấp hơn, đặt từ số đo đầu vào của người dùng (xem [roadmap.md](roadmap.md)). Kết quả bài kiểm tra quyết định việc qua giai đoạn 2, 3, 4.
 
 ## Chọn đề
 

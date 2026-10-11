@@ -128,3 +128,20 @@ def test_checks_are_stored_and_listed(db):
     })
     [c] = history.list_checks()
     assert c["prompt_id"] == "p" and c["not_english"] is True and c["total"] == 4
+
+
+def test_drills_and_shadows_feed_the_readings_list(db):
+    sid = history.start_session(UNIT)
+    history.add_shadow(sid, {"target": "A cat.", "heard": "a cap", "correct": 1, "total": 2})
+    history.add_drill({"set_id": "final-s", "target": "Two cats.", "heard": "two cat", "correct": 1,
+                       "total": 2, "focus_correct": 0, "focus_total": 1})  # fmt: skip
+    assert [r["target"] for r in history.list_readings()] == ["A cat.", "Two cats."]
+    assert history.list_drills()[0]["focus_total"] == 1
+
+
+def test_fluency_rounds_round_trip(db):
+    history.add_fluency_round({"run": "r1", "round": 1, "limit_s": 240, "prompt_id": "p", "prompt": "P",
+                               "text": "t", "words": 300, "duration_s": 200.0, "wpm_speaking": 100,
+                               "hesitations": 4, "hesitations_per_100": 1.3, "not_english": 0})  # fmt: skip
+    [r] = history.list_fluency_rounds()
+    assert r["run"] == "r1" and r["not_english"] is False

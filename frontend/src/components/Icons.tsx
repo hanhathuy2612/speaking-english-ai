@@ -74,3 +74,23 @@ export const StopIcon = ({ size = 22 }: P) => (
     <rect x="6" y="6" width="12" height="12" rx="2" />
   </svg>
 );
+
+export const MenuIcon = ({ size = 18 }: P) => (
+  <svg {...stroke(size)}>
+    <path d="M4 6h16M4 12h16M4 18h16" />
+  </svg>
+);
+
+export const SpeakerIcon = ({ size = 16 }: P) => (
+  <svg {...stroke(size)}>
+    <path d="M11 5 6 9H2v6h4l5 4z" />
+    <path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14" />
+  </svg>
+);
+
+export const LockIcon = ({ size = 14 }: P) => (
+  <svg {...stroke(size)}>
+    <rect x="4" y="11" width="16" height="10" rx="2" />
+    <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+  </svg>
+);

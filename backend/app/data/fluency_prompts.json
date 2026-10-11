@@ -1,0 +1,10 @@
+[
+  { "id": "my-project", "text": "Describe the project you are working on: what it does, who uses it, and your part in it.", "hint": "Dự án bạn đang làm: làm gì, ai dùng, phần việc của bạn." },
+  { "id": "explain-api", "text": "Explain to a non-technical friend what an API is and why apps need one.", "hint": "Giải thích cho bạn không làm IT: API là gì, vì sao app cần nó." },
+  { "id": "hard-bug", "text": "Tell the story of the hardest bug you have fixed, from the first report to the fix.", "hint": "Kể về con bug khó nhất bạn từng sửa, từ lúc được báo tới lúc sửa xong." },
+  { "id": "first-job", "text": "Talk about your first job in IT: how you got it and what you learned there.", "hint": "Công việc IT đầu tiên: bạn có nó thế nào và học được gì." },
+  { "id": "weekend-plan", "text": "Describe a perfect weekend for you, from Saturday morning to Sunday night.", "hint": "Một cuối tuần lý tưởng của bạn, từ sáng thứ Bảy tới tối Chủ nhật." },
+  { "id": "good-team", "text": "What makes a good software team? Use examples from teams you have worked in.", "hint": "Một đội phần mềm tốt cần gì? Lấy ví dụ từ các đội bạn từng làm." },
+  { "id": "a-decision", "text": "Talk about an important decision you made and how it turned out.", "hint": "Kể về một quyết định quan trọng bạn đã đưa ra và kết quả thế nào." },
+  { "id": "teach-skill", "text": "Teach a beginner how to start learning programming. What should they do first?", "hint": "Hướng dẫn người mới bắt đầu học lập trình: nên làm gì trước?" }
+]

@@ -13,7 +13,7 @@ Lượt nói lại **không gọi LLM, không chuyển câu hỏi**, không tín
 | Nhận tin, chọn prompt STT | `_on_text()` (tin `shadow`) và `_on_audio()` trong `backend/app/api/routes/ws.py` |
 | Trạng thái | `Session.shadow_target`, `Session.last_speech` trong `backend/app/interview/session.py` |
 | Lưu | bảng `shadows`, `add_shadow()` trong `backend/app/services/history.py` |
-| Giao diện | `CoachCard.tsx` (`ShadowResult`), hành động `beginShadow`/`cancelShadow`/`sendRecording` trong `useInterview.ts` (`frontend/src/features/practice/`); `.shadow-*`, `.tok.*` trong `frontend/src/styles/practice.css` |
+| Giao diện | `CoachCard.tsx` (`ShadowResult`, tô từng từ bằng `components/WordDiff.tsx`), hành động `beginShadow`/`cancelShadow`/`sendRecording` trong `useInterview.ts` (`frontend/src/features/practice/`); `.shadow-*` trong `frontend/src/styles/practice.css`, `.word-diff`/`.tok.*` trong `base.css` (dùng chung với trang luyện phát âm) |
 | Test | `backend/tests/test_compare.py`, `test_shadow_attempts_...` trong `backend/tests/test_history.py` |
 
 ## Luồng
@@ -52,4 +52,4 @@ Một từ viết thành nhiều token (ví dụ "I'm" thành "i am") mà chỉ 
 
 ## Dữ liệu
 
-Mỗi lần nói lại được lưu một dòng trong bảng `shadows` (câu mẫu, câu nghe được, số token đúng/tổng, số từ, tốc độ, số lần ngắt, `avg_logprob`), tách khỏi `turns` để không làm lệch số liệu phỏng vấn. Trang Tiến bộ **chưa** hiển thị dữ liệu này.
+Mỗi lần nói lại được lưu một dòng trong bảng `shadows` (câu mẫu, câu nghe được, số token đúng/tổng, số từ, tốc độ, số lần ngắt, `avg_logprob`), tách khỏi `turns` để không làm lệch số liệu phỏng vấn. Câu nào lần nói lại gần nhất còn từ sai sẽ vào nhóm "Câu bạn từng đọc sai" của trang luyện phát âm (xem [pronunciation-drills.md](pronunciation-drills.md)). Trang Tiến bộ hiện tỉ lệ đọc đúng của mỗi buổi (`shadow_accuracy`, xem [session-history.md](session-history.md)).

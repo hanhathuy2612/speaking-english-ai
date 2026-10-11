@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
-import type { CheckRow, Topic, UnitStatus } from "../../api/types";
+import type { CheckRow, Stage, Topic, UnitStatus } from "../../api/types";
 import { AppBar } from "../../components/AppBar";
-import { CheckIcon } from "../../components/Icons";
+import { CheckIcon, LockIcon, XIcon } from "../../components/Icons";
 import { Chip } from "../../components/ui";
 import { fmtClock } from "../../lib/check";
 import { fmtDate, fmtNum } from "../../lib/format";
-import { allUnits, pickUnit, unitState } from "../../lib/roadmap";
+import { unitState } from "../../lib/roadmap";
+import { requirementText } from "../../lib/stages";
 import "../../styles/roadmap.css";
 
 const STATE_CHIP = {
@@ -15,7 +16,28 @@ const STATE_CHIP = {
   new: { tone: "", text: "Chưa tập" },
 } as const;
 
-function UnitCard({ u, next }: { u: UnitStatus; next: boolean }) {
+const STAGE_CHIP = {
+  passed: { tone: "success", text: "Đã qua" },
+  current: { tone: "warning", text: "Đang học" },
+  locked: { tone: "", text: "Chưa mở" },
+} as const;
+
+const PRACTICE = {
+  drills: {
+    to: "/sounds",
+    title: "Luyện phát âm",
+    text: "Năm nhóm câu nhắm vào các lỗi đã đo trên giọng bạn, cộng nhóm câu bạn từng đọc sai.",
+    action: "Mở trang Phát âm",
+  },
+  fluency: {
+    to: "/fluency",
+    title: "Nói dài 4–3–2",
+    text: "Kể cùng một chuyện ba lần trong 4, 3 rồi 2 phút; app đo tốc độ và ngập ngừng từng lần.",
+    action: "Mở trang Nói dài",
+  },
+} as const;
+
+function UnitCard({ u, next, locked }: { u: UnitStatus; next: boolean; locked: boolean }) {
   const st = unitState(u);
   const chip = STATE_CHIP[st];
   return (
@@ -30,11 +52,114 @@ function UnitCard({ u, next }: { u: UnitStatus; next: boolean }) {
           {u.questions} câu hỏi
           {u.sessions > 0 && ` · đã tập ${u.sessions} lần · gần nhất ${fmtDate(u.last_at!, false)}`}
         </span>
-        <Link className={`btn btn-sm${next ? " btn-primary" : ""}`} to={`/?unit=${encodeURIComponent(u.id)}`}>
-          {st === "new" ? "Bắt đầu" : "Luyện lại"}
+        <Link
+          className={`btn btn-sm${next ? " btn-primary" : locked ? " btn-ghost" : ""}`}
+          to={`/?unit=${encodeURIComponent(u.id)}`}
+        >
+          {locked ? "Tập trước" : st === "new" ? "Bắt đầu" : "Luyện lại"}
         </Link>
       </div>
     </li>
+  );
+}
+
+function TopicBlock({ t, nextId, locked }: { t: Topic; nextId: string | null; locked: boolean }) {
+  const done = t.units.filter((u) => u.completed).length;
+  return (
+    <div className="topic">
+      <div className="topic-head">
+        <div className="topic-text">
+          <h3>{t.title}</h3>
+          <p>{t.description}</p>
+        </div>
+        <Chip tone={done === t.units.length ? "success" : ""}>
+          {done}/{t.units.length} bài
+        </Chip>
+      </div>
+      <ul className="unit-grid">
+        {t.units.map((u) => (
+          <UnitCard key={u.id} u={u} next={u.id === nextId} locked={locked} />
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function StageSection({ s, index, nextId }: { s: Stage; index: number; nextId: string | null }) {
+  const chip = STAGE_CHIP[s.status];
+  const locked = s.status === "locked";
+  const checkMissing = s.requirements.some((r) => r.kind === "check" && !r.met);
+  const practice = s.practice && PRACTICE[s.practice];
+  const body = (
+    <div className="stage-body">
+      {practice && (
+        <div className="card practice-card">
+          <div>
+            <h3>{practice.title}</h3>
+            <p>{practice.text}</p>
+          </div>
+          <Link className={`btn btn-sm${s.status === "current" ? " btn-primary" : ""}`} to={practice.to}>
+            {practice.action}
+          </Link>
+        </div>
+      )}
+      {s.topics.map((t) => (
+        <TopicBlock key={t.id} t={t} nextId={nextId} locked={locked} />
+      ))}
+    </div>
+  );
+  return (
+    <section className={`stage stage-${s.status}`} aria-labelledby={`stage-${s.id}`}>
+      <div className="stage-head">
+        <span className={`stage-step stage-step-${s.status}`} aria-hidden>
+          {s.status === "passed" ? <CheckIcon size={14} /> : locked ? <LockIcon /> : index + 1}
+        </span>
+        <div className="stage-text">
+          <h2 id={`stage-${s.id}`}>
+            Giai đoạn {index + 1}: {s.title}
+          </h2>
+          <p>{s.goal}</p>
+        </div>
+        <Chip tone={chip.tone}>{chip.text}</Chip>
+      </div>
+
+      {s.requirements.length > 0 && (
+        <div className="stage-gate">
+          <p className="eyebrow">{locked ? "Để qua giai đoạn này, cần" : "Tiêu chí qua giai đoạn"}</p>
+          <ul className="criteria">
+            {s.requirements.map((r, i) => {
+              const { label, value } = requirementText(r);
+              return (
+                <li key={i} className={r.met ? "pass" : "fail"}>
+                  <span className="criterion-mark" aria-hidden>
+                    {r.met ? <CheckIcon size={12} /> : <XIcon size={12} />}
+                  </span>
+                  <span className="criterion-label">
+                    {label}
+                    <span className="sr-only">{r.met ? ": đạt" : ": chưa đạt"}</span>
+                  </span>
+                  <span className="criterion-value">{value}</span>
+                </li>
+              );
+            })}
+          </ul>
+          {s.status === "current" && checkMissing && (
+            <Link className="btn btn-sm stage-check-link" to="/check">
+              Làm bài kiểm tra nói
+            </Link>
+          )}
+        </div>
+      )}
+
+      {s.status === "current" ? (
+        body
+      ) : (
+        <details className="stage-more">
+          <summary>{locked ? "Xem trước nội dung (vẫn tập trước được)" : "Xem lại nội dung"}</summary>
+          {body}
+        </details>
+      )}
+    </section>
   );
 }
 
@@ -52,7 +177,8 @@ function CheckCard({ checks }: { checks: CheckRow[] }) {
             </h2>
             <p>
               {fmtDate(last.created_at, false)} · nói {fmtClock(last.duration_s)} · {fmtNum(last.wpm_speaking)} từ/phút
-              khi nói · {fmtNum(last.hesitations_per_100)} lần ngập ngừng / 100 từ. Làm lại sau mỗi chủ đề để xem tiến bộ.
+              khi nói · {fmtNum(last.hesitations_per_100)} lần ngập ngừng / 100 từ. Kết quả này quyết định bạn qua giai
+              đoạn 2, 3 và 4.
             </p>
           </>
         ) : (
@@ -69,46 +195,22 @@ function CheckCard({ checks }: { checks: CheckRow[] }) {
   );
 }
 
-function TopicSection({ t, index, nextId }: { t: Topic; index: number; nextId: string | null }) {
-  const done = t.units.filter((u) => u.completed).length;
-  const all = done === t.units.length;
-  return (
-    <section className="topic" aria-labelledby={`topic-${t.id}`}>
-      <div className="topic-head">
-        <span className={`topic-step${all ? " done" : ""}`} aria-hidden>
-          {all ? <CheckIcon size={14} /> : index + 1}
-        </span>
-        <div className="topic-text">
-          <h2 id={`topic-${t.id}`}>{t.title}</h2>
-          <p>{t.description}</p>
-        </div>
-        <Chip tone={all ? "success" : ""}>
-          {done}/{t.units.length} bài
-        </Chip>
-      </div>
-      <ul className="unit-grid">
-        {t.units.map((u) => (
-          <UnitCard key={u.id} u={u} next={u.id === nextId} />
-        ))}
-      </ul>
-    </section>
-  );
-}
-
 export function RoadmapPage() {
-  const [topics, setTopics] = useState<Topic[] | null>(null);
+  const [stages, setStages] = useState<Stage[] | null>(null);
+  const [nextId, setNextId] = useState<string | null>(null);
   const [checks, setChecks] = useState<CheckRow[] | null>(null);
 
   useEffect(() => {
     document.title = "Lộ trình luyện nói";
-    void (async () => setTopics((await (await fetch("/api/units")).json()).topics))();
+    void (async () => {
+      const data: { stages: Stage[]; next_unit: string | null } = await (await fetch("/api/stages")).json();
+      setStages(data.stages);
+      setNextId(data.next_unit);
+    })();
     void (async () => setChecks((await (await fetch("/api/check")).json()).checks))();
   }, []);
 
-  const units = allUnits(topics ?? []);
-  const done = units.filter((u) => u.completed).length;
-  // Only highlight a "next" unit while something is left to finish.
-  const nextId = done < units.length ? pickUnit(topics ?? [], null) : null;
+  const passed = stages?.filter((s) => s.status === "passed").length ?? 0;
 
   return (
     <>
@@ -117,22 +219,23 @@ export function RoadmapPage() {
         <div className="roadmap-head">
           <h1>Lộ trình luyện nói</h1>
           <p className="roadmap-lead">
-            Đi lần lượt từ giao tiếp hằng ngày, tiếng Anh ở công ty, rồi tới phỏng vấn. Một bài được tính là hoàn
-            thành khi bạn trả lời hết các câu hỏi chính. Làm bài kiểm tra nói sau mỗi chủ đề để đo tiến bộ.
+            Năm giai đoạn, đi lần lượt. Một giai đoạn chỉ mở khi giai đoạn trước đạt đủ tiêu chí, và tiêu chí là số đo:
+            bài đã hoàn thành, độ chính xác khi đọc, kết quả bài kiểm tra nói. Mức kiểm tra tăng dần qua từng giai đoạn,
+            tới mức đích ở giai đoạn 4. Cần luyện gấp một bài chưa mở (ví dụ sắp phỏng vấn) thì vẫn chọn được ở Phòng tập.
           </p>
-          {topics && (
+          {stages && (
             <div className="roadmap-progress">
               <div className="roadmap-bar" aria-hidden>
-                <span style={{ width: `${units.length ? (done / units.length) * 100 : 0}%` }} />
+                <span style={{ width: `${(passed / stages.length) * 100}%` }} />
               </div>
               <span>
-                Hoàn thành {done}/{units.length} bài
+                Đã qua {passed}/{stages.length} giai đoạn
               </span>
             </div>
           )}
         </div>
         {checks && <CheckCard checks={checks} />}
-        {topics?.map((t, i) => <TopicSection key={t.id} t={t} index={i} nextId={nextId} />)}
+        {stages?.map((s, i) => <StageSection key={s.id} s={s} index={i} nextId={nextId} />)}
       </main>
     </>
   );

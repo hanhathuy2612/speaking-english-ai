@@ -144,6 +144,50 @@ svg {
   background: var(--primary-soft);
   color: var(--primary);
 }
+.nav-wrap {
+  position: relative;
+  flex: none; /* links cannot shrink: let the page's own appbar items (unit picker...) give way */
+}
+/* .nav-wrap prefix: .btn (declared later) would otherwise show the toggle on wide screens */
+.nav-wrap .nav-toggle {
+  display: none;
+}
+/* The links do not fit next to the practice page's unit picker: collapse them into a menu. */
+@media (max-width: 1240px) {
+  .nav-wrap .nav-toggle {
+    display: inline-flex;
+  }
+  .nav {
+    display: none;
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    z-index: 50;
+    min-width: 200px;
+    flex-direction: column;
+    padding: 6px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+  .nav.open {
+    display: flex;
+  }
+  .nav .btn {
+    justify-content: flex-start;
+    min-height: 44px;
+  }
+}
+@media (max-width: 560px) {
+  .nav-toggle-label {
+    display: none;
+  }
+  .appbar {
+    gap: 10px;
+    padding: 0 16px;
+  }
+}
 .sr-only {
   position: absolute;
   width: 1px;
@@ -395,4 +439,162 @@ td .btn {
 }
 td .btn:hover {
   color: var(--danger);
+}
+
+/* ----- Word-by-word comparison (shadowing, pronunciation drills) ----- */
+.word-diff {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 4px 6px;
+  font-size: 17px;
+  line-height: 1.4;
+}
+.tok {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+}
+.tok.wrong .tok-text {
+  color: var(--warning);
+  text-decoration: underline wavy var(--warning);
+  text-underline-offset: 4px;
+}
+.tok-heard {
+  font-size: 11.5px;
+  color: var(--warning);
+  margin-top: 2px;
+}
+.tok.miss .tok-text {
+  color: var(--text-3);
+  text-decoration: line-through;
+}
+.tok.extra {
+  align-self: center;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text-3);
+  font-size: 13px;
+}
+.tok.focus .tok-text {
+  font-weight: 700;
+}
+.tok.focus.ok .tok-text {
+  color: var(--success);
+}
+
+/* ----- Long-answer recorder (speaking check, 4/3/2) ----- */
+.recorder {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+.rec-btn {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 0;
+  background: var(--primary);
+  color: var(--on-primary);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.rec-btn:hover {
+  background: var(--primary-hover);
+}
+.rec-btn.on {
+  background: var(--danger);
+  animation: rec-pulse 1.4s ease-in-out infinite;
+}
+.rec-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+@keyframes rec-pulse {
+  50% {
+    box-shadow: 0 0 0 8px var(--danger-soft);
+  }
+}
+.recorder-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.recorder-time {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-variant-numeric: tabular-nums;
+}
+.recorder-time .clock {
+  font-size: 24px;
+  font-weight: 650;
+}
+.recorder-time .goal {
+  color: var(--text-3);
+  font-size: 13px;
+}
+.recorder-bar {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.recorder-bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--primary);
+  transition: width 0.25s linear;
+}
+.recorder-bar.reached span {
+  background: var(--success);
+}
+
+/* ----- Pass/fail list (check result, stage requirements) ----- */
+.criteria {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+}
+.criteria li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.criterion-mark {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+}
+.pass .criterion-mark {
+  background: var(--success-soft);
+  color: var(--success);
+}
+.fail .criterion-mark {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+.criterion-label {
+  flex: 1;
+  min-width: 0;
+}
+.criterion-value {
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
 }

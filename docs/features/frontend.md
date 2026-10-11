@@ -12,30 +12,36 @@ React 19 + TypeScript + Vite, định tuyến bằng React Router 7. Không có 
 | `npm run typecheck` | Chỉ kiểm tra kiểu |
 | `npm test` | Vitest (hàm thuần trong `src/lib/`) |
 
-Backend phục vụ bản build: `/`, `/roadmap`, `/history`, `/bench` đều trả `dist/index.html`, React Router chọn trang; JS/CSS nằm dưới `/assets`. Chưa build thì các trang này trả hướng dẫn build (HTTP 503). Xem `backend/app/main.py`.
+Backend phục vụ bản build: `/`, `/roadmap`, `/sounds`, `/fluency`, `/check`, `/history`, `/bench` đều trả `dist/index.html`, React Router chọn trang; JS/CSS nằm dưới `/assets`. Chưa build thì các trang này trả hướng dẫn build (HTTP 503). Xem `backend/app/main.py`.
 
 ## Cấu trúc `src/`
 
 ```
-main.tsx                    # gắn React Router: / , /roadmap , /check , /history , /bench
+main.tsx                    # gắn React Router: / , /roadmap , /sounds , /fluency , /check , /history , /bench; import base.css trước các trang
 api/types.ts                # kiểu dữ liệu của API và giao thức WebSocket
 lib/format.ts               # hàm thuần: fmtDate, fmtNum, niceMax, latestWithDelta (+ format.test.ts)
 lib/roadmap.ts              # hàm thuần: allUnits, pickUnit, unitState (+ roadmap.test.ts)
+lib/stages.ts               # hàm thuần: requirementText, checkLevelText (+ stages.test.ts)
+lib/drills.ts               # hàm thuần: markFocus (+ drills.test.ts)
+lib/fluency.ts              # hàm thuần: roundDelta (+ fluency.test.ts)
 lib/check.ts                # hàm thuần: fmtClock, criterionValue (+ check.test.ts)
-components/                 # dùng chung: AppBar (thanh trên + điều hướng), Icons, ui (Chip, StatusLine)
+components/                 # dùng chung: AppBar (thanh trên + điều hướng, thu thành menu khi hẹp), Icons, ui (Chip, StatusLine),
+                            #   WordDiff (tô từng từ so với câu mẫu), Recorder (bấm-bấm ghi âm dài, đồng hồ, thanh thời gian)
 hooks/
-  useHoldToTalk.ts          # ghi âm giữ để nói (MediaRecorder webm/opus) + giữ phím Space; trang /check gọi start()/stop() để bấm-bấm
+  useHoldToTalk.ts          # ghi âm giữ để nói (MediaRecorder webm/opus) + giữ phím Space; /check và /fluency gọi start()/stop() để bấm-bấm
   useAudioQueue.ts          # hàng đợi phát MP3, báo khi một câu bắt đầu phát
 features/
   practice/                 # phòng tập
     useInterview.ts         # WebSocket + reducer trạng thái + hành động (gửi chữ, ghi âm, hoàn tác, nói lại)
     PracticePage.tsx        # bố cục trang, nối hook ghi âm với useInterview
     Sidebar.tsx, Chat.tsx, CoachCard.tsx (thẻ NOTE + kết quả nói lại)
-  roadmap/                  # RoadmapPage.tsx (xem roadmap.md)
+  roadmap/                  # RoadmapPage.tsx: giai đoạn, tiêu chí, chủ đề (xem roadmap.md)
+  sounds/                   # SoundsPage.tsx: luyện phát âm (xem pronunciation-drills.md)
+  fluency/                  # FluencyPage.tsx: nói dài 4–3–2 (xem fluency-432.md)
   check/                    # CheckPage.tsx (xem speaking-check.md)
   history/                  # HistoryPage.tsx, LineChart.tsx (biểu đồ SVG)
   bench/                    # BenchPage.tsx
-styles/                     # base.css (token, component chung, bảng), practice.css, roadmap.css, check.css, history.css, bench.css
+styles/                     # base.css (token, component chung, bảng), practice.css, roadmap.css, sounds.css, fluency.css, check.css, history.css, bench.css
 ```
 
 ## Luồng dữ liệu phòng tập (`useInterview.ts`)
@@ -56,16 +62,23 @@ styles/                     # base.css (token, component chung, bảng), practic
   - `.chip` (biến thể `.chip-success`, `.chip-warning`).
   - `.status[data-state]` với `ready` | `busy` | `recording` | `warn` | `error`.
   - `.mic` / `.mic.rec`, `.card`, `.appbar`, `.nav`.
-  - Bảng: `.table-card`, `.table-wrap`, `table`, `.num` (dùng ở trang Tiến bộ và Kiểm tra).
-- CSS của mỗi trang được import trong component trang, nhưng Vite gộp tất cả thành một file. Vì vậy **tên class là toàn cục**: không đặt trùng tên class giữa các trang với ý nghĩa khác nhau.
+  - Bảng: `.table-card`, `.table-wrap`, `table`, `.num` (dùng ở trang Tiến bộ, Kiểm tra, Nói dài).
+  - So từng từ: `.word-diff`, `.tok` (`.ok`/`.wrong`/`.miss`/`.extra`, thêm `.focus` cho từ trọng tâm).
+  - Ghi âm dài: `.recorder`, `.rec-btn` (`.on` khi đang ghi), `.recorder-bar` (`.reached`).
+  - Danh sách đạt/chưa đạt: `.criteria` với `li.pass` / `li.fail`, `.criterion-mark`, `.criterion-label`, `.criterion-value` (kết quả kiểm tra, tiêu chí giai đoạn).
+- CSS của mỗi trang được import trong component trang, nhưng Vite gộp tất cả thành một file. Vì vậy:
+  - **Tên class là toàn cục**: không đặt trùng tên class giữa các trang với ý nghĩa khác nhau. Ví dụ `.current` của trang đo nhận dạng (chữ 24px) từng làm to chữ của giai đoạn "đang học", nên class trạng thái của lộ trình có tiền tố `stage-`.
+  - **Media query cũng toàn cục**: quy tắc chỉ dành cho một trang phải có class gốc của trang đó ở đầu (ví dụ `.app .appbar-spacer` của phòng tập), nếu không sẽ áp lên mọi trang.
+  - **Thứ tự**: `main.tsx` import `base.css` trước các trang, để CSS của trang đứng sau trong file gộp và thắng quy tắc chung cùng độ ưu tiên (ví dụ ẩn `.stt-chip` so với `.chip`).
 - Giảm chuyển động khi người dùng bật `prefers-reduced-motion`.
 
 ## Bố cục phòng tập
 
-- **Thanh trên:** logo, chọn bài, tiến độ, nhãn cấu hình STT (ẩn khi màn hình hẹp hơn 1180px), điều hướng (`NavLink` tự gắn `aria-current="page"`).
+- **Thanh trên:** logo, chọn bài, tiến độ, nhãn cấu hình STT (ẩn từ 1500px trở xuống, để đủ chỗ cho các mục điều hướng), điều hướng (`NavLink` tự gắn `aria-current="page"`).
+- **Điều hướng** (mọi trang): 6 mục (Phòng tập, Lộ trình, Phát âm, Nói dài, Kiểm tra, Tiến bộ). Khối điều hướng không co (`flex: none`), nên khi thiếu chỗ thì ô chọn bài và tiến độ co lại. Từ 1240px trở xuống thu thành nút menu (`.nav-toggle`, ghi tên trang hiện tại; từ 560px trở xuống chỉ còn icon) mở danh sách thả xuống. Đóng khi chọn trang, bấm ra ngoài hoặc nhấn Esc. Trang Đo nhận dạng là công cụ hiệu chỉnh, mở từ liên kết cuối trang Tiến bộ.
 - **Cột trái:** mục tiêu, mẫu câu kèm bộ đếm, "Chỉ số kỹ thuật" thu gọn.
 - **Giữa:** hội thoại (`.msg.ai` / `.msg.me`, chip chỉ số nói, `.unclear`; thẻ tổng kết ở cuối) và thanh dưới (`.dock`): thẻ NOTE (`.coach`, thêm `.shadowing` khi chờ đọc lại, `.has-result` khi có kết quả) và khung trả lời (`.composer`).
-- **Màn hình hẹp** (từ 960px trở xuống): một cột, thanh dưới dính đáy. Từ 560px trở xuống: ẩn tên app, nút hoàn tác xuống dòng, ẩn chú giải của kết quả nói lại.
+- **Màn hình hẹp** (từ 960px trở xuống): một cột, thanh dưới dính đáy. Từ 560px trở xuống: ẩn tên app và khoảng trống của thanh trên (ô chọn bài chiếm chỗ), nút hoàn tác xuống dòng, ẩn chú giải của kết quả nói lại.
 
 ## Quy ước
 

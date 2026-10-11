@@ -12,8 +12,8 @@ const unit = (id: string, sessions = 0, completed = 0): UnitStatus => ({
   last_at: null,
 });
 const topics: Topic[] = [
-  { id: "a", title: "A", description: "", units: [unit("a1", 2, 1), unit("a2", 1, 0)] },
-  { id: "b", title: "B", description: "", units: [unit("b1")] },
+  { id: "a", title: "A", description: "", locked: false, units: [unit("a1", 2, 1), unit("a2", 1, 0)] },
+  { id: "b", title: "B", description: "", locked: true, units: [unit("b1")] },
 ];
 
 describe("pickUnit", () => {
@@ -23,6 +23,11 @@ describe("pickUnit", () => {
   it("otherwise opens the first unit not completed", () => {
     expect(pickUnit(topics, "missing")).toBe("a2");
     expect(pickUnit(topics, null)).toBe("a2");
+  });
+  it("prefers the server's next unit in the open stages", () => {
+    expect(pickUnit(topics, null, "b1")).toBe("b1");
+    expect(pickUnit(topics, "a1", "b1")).toBe("a1");
+    expect(pickUnit(topics, null, "gone")).toBe("a2");
   });
   it("falls back to the first unit when all are done, and to null when there are none", () => {
     const done: Topic[] = [{ ...topics[0], units: [unit("x", 1, 1)] }];

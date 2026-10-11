@@ -40,81 +40,6 @@
   margin-top: 4px;
   color: var(--text-2);
 }
-.recorder {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  margin-top: 20px;
-  padding-top: 18px;
-  border-top: 1px solid var(--border);
-}
-.rec-btn {
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  border: 0;
-  background: var(--primary);
-  color: var(--on-primary);
-  cursor: pointer;
-  transition: background 0.15s;
-}
-.rec-btn:hover {
-  background: var(--primary-hover);
-}
-.rec-btn.on {
-  background: var(--danger);
-  animation: rec-pulse 1.4s ease-in-out infinite;
-}
-.rec-btn:disabled {
-  opacity: 0.6;
-  cursor: default;
-}
-@keyframes rec-pulse {
-  50% {
-    box-shadow: 0 0 0 8px var(--danger-soft);
-  }
-}
-.recorder-main {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.recorder-time {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  font-variant-numeric: tabular-nums;
-}
-.recorder-time .clock {
-  font-size: 24px;
-  font-weight: 650;
-}
-.recorder-time .goal {
-  color: var(--text-3);
-  font-size: 13px;
-}
-.recorder-bar {
-  height: 6px;
-  border-radius: 999px;
-  background: var(--surface-2);
-  overflow: hidden;
-}
-.recorder-bar span {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: var(--primary);
-  transition: width 0.25s linear;
-}
-.recorder-bar.reached span {
-  background: var(--success);
-}
-
 /* ----- Result ----- */
 .check-result {
   padding: 20px;
@@ -128,43 +53,6 @@
 .check-result h2 {
   font-size: 16px;
   font-weight: 650;
-}
-.criteria {
-  list-style: none;
-  margin: 12px 0 0;
-  padding: 0;
-}
-.criteria li {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--border);
-}
-.criterion-mark {
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-}
-.pass .criterion-mark {
-  background: var(--success-soft);
-  color: var(--success);
-}
-.fail .criterion-mark {
-  background: var(--danger-soft);
-  color: var(--danger);
-}
-.criterion-label {
-  flex: 1;
-  min-width: 0;
-}
-.criterion-value {
-  color: var(--text-2);
-  font-variant-numeric: tabular-nums;
-  text-align: right;
 }
 .check-warn {
   margin-top: 10px;

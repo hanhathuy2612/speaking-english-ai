@@ -53,8 +53,10 @@ Server gửi:
 
 ## HTTP
 
-- `GET /`, `/history`, `/bench`: `frontend/dist/index.html` (app React một trang; React Router chọn trang). `/assets/...`: JS/CSS đã build. Chưa build thì trả hướng dẫn (503).
+- `GET /`, `/roadmap`, `/sounds`, `/fluency`, `/check`, `/history`, `/bench`: `frontend/dist/index.html` (app React một trang; React Router chọn trang). `/assets/...`: JS/CSS đã build. Chưa build thì trả hướng dẫn (503).
 - `/api/history/...`: xem [session-history.md](features/session-history.md).
 - `/api/check`: bài kiểm tra nói, xem [speaking-check.md](features/speaking-check.md).
-- `GET /api/units`: chủ đề và bài theo thứ tự lộ trình, kèm trạng thái đã tập (`api/routes/units.py`, xem [roadmap.md](features/roadmap.md)).
+- `GET /api/units`, `GET /api/stages`: chủ đề và bài theo thứ tự lộ trình kèm trạng thái đã tập; các giai đoạn kèm tiêu chí và trạng thái mở khóa (`api/routes/units.py`, xem [roadmap.md](features/roadmap.md)).
+- `/api/drills`: luyện phát âm, xem [pronunciation-drills.md](features/pronunciation-drills.md).
+- `/api/fluency`: bài nói dài 4–3–2, xem [fluency-432.md](features/fluency-432.md).
 - `GET /bench`, `GET /api/bench`, `POST /api/bench/{i}`: xem [stt-benchmark.md](features/stt-benchmark.md).

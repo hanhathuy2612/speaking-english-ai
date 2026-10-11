@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { CheckReport, CheckRow, CheckState } from "../../api/types";
 import { AppBar } from "../../components/AppBar";
-import { CheckIcon, MicIcon, StopIcon, XIcon } from "../../components/Icons";
-import { Chip, type Status, StatusLine } from "../../components/ui";
+import { CheckIcon, XIcon } from "../../components/Icons";
+import { Recorder } from "../../components/Recorder";
+import { Chip, type Status } from "../../components/ui";
 import { useHoldToTalk } from "../../hooks/useHoldToTalk";
 import { criterionValue, fmtClock } from "../../lib/check";
 import { fmtDate, fmtNum, latestWithDelta } from "../../lib/format";
@@ -174,7 +175,6 @@ export function CheckPage() {
   }, [mic.recording, mic.stop]);
 
   const target = data?.targets.seconds ?? 120;
-  const pct = Math.min(100, (elapsed / target) * 100);
   const busy = mic.recording || scoring;
 
   return (
@@ -206,32 +206,15 @@ export function CheckPage() {
             </p>
             <p className="check-hint">{data.prompt.hint}</p>
 
-            <div className="recorder">
-              <button
-                className={`rec-btn${mic.recording ? " on" : ""}`}
-                onClick={() => (mic.recording ? mic.stop() : void mic.start())}
-                disabled={scoring}
-                aria-label={mic.recording ? "Dừng và chấm" : "Bắt đầu nói"}
-              >
-                {mic.recording ? <StopIcon /> : <MicIcon />}
-              </button>
-              <div className="recorder-main">
-                <div className="recorder-time">
-                  <span className="clock">{fmtClock(elapsed)}</span>
-                  <span className="goal">mục tiêu {fmtClock(target)}</span>
-                </div>
-                <div className={`recorder-bar${elapsed >= target ? " reached" : ""}`} aria-hidden>
-                  <span style={{ width: `${pct}%` }} />
-                </div>
-                <StatusLine
-                  status={
-                    status.text
-                      ? status
-                      : { text: "Bấm nút micro để bắt đầu, bấm lần nữa khi nói xong.", state: "" }
-                  }
-                />
-              </div>
-            </div>
+            <Recorder
+              recording={mic.recording}
+              disabled={scoring}
+              elapsed={elapsed}
+              goal={target}
+              goalLabel={`mục tiêu ${fmtClock(target)}`}
+              status={status.text ? status : { text: "Bấm nút micro để bắt đầu, bấm lần nữa khi nói xong.", state: "" }}
+              onToggle={() => (mic.recording ? mic.stop() : void mic.start())}
+            />
           </section>
         )}
 

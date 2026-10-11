@@ -1,52 +1,83 @@
-# Lộ trình và bài luyện
+# Lộ trình: giai đoạn, chủ đề và bài luyện
 
-Mục đích: người dùng biết nên tập bài nào tiếp theo, thay vì tự chọn trong một danh sách dài. Ý tưởng lấy từ roadmap của app Angular, nhưng chỉ dựa trên lịch sử luyện tập, không có tài khoản hay LLM chấm điểm.
+Mục đích: người dùng biết nên tập gì tiếp theo, và **biết bằng số đo** khi nào đã đủ để sang bước sau, thay vì tự chọn trong một danh sách dài. Ý tưởng roadmap lấy từ app Angular, nhưng chỉ dựa trên lịch sử luyện tập, không có tài khoản hay LLM chấm điểm.
 
 ## Mã nguồn
 
 | Phần | Vị trí |
 |---|---|
+| Giai đoạn và tiêu chí | `backend/app/data/stages.json` |
+| Đánh giá giai đoạn (hàm thuần) | `backend/app/assessment/stages.py` (`validate()`, `check_meets()`, `requirements()`, `evaluate()`, `open_topics()`) |
 | Nội dung: chủ đề và bài | `backend/app/data/units.json` (`topics`, `units`; schema trong [interview-flow.md](interview-flow.md)) |
-| Nạp và kiểm tra dữ liệu | `backend/app/interview/units.py` (`validate()`), `backend/tests/test_units.py` |
+| Nạp và kiểm tra bài | `backend/app/interview/units.py` (`validate()`), `backend/tests/test_units.py` |
 | Trạng thái từng bài | `unit_stats()` trong `backend/app/services/history.py` |
-| API | `GET /api/units` trong `backend/app/api/routes/units.py` |
+| API, gom số liệu cho giai đoạn | `backend/app/api/routes/units.py` (`GET /api/units`, `GET /api/stages`, `_report()`) |
 | Chọn bài mở đầu | `pickUnit()`, `unitState()` trong `frontend/src/lib/roadmap.ts` (+ `roadmap.test.ts`) |
+| Chữ của tiêu chí | `requirementText()`, `checkLevelText()` trong `frontend/src/lib/stages.ts` (+ `stages.test.ts`) |
 | Trang | `frontend/src/features/roadmap/RoadmapPage.tsx`, `frontend/src/styles/roadmap.css` |
 | Ô bài kiểm tra nói | `CheckCard` trong `RoadmapPage.tsx`, dữ liệu từ `GET /api/check` (xem [speaking-check.md](speaking-check.md)) |
+| Test | `backend/tests/test_stages.py` |
 
-## Nội dung hiện có (24 bài, 6 chủ đề)
+## Năm giai đoạn
 
-| Chủ đề | Bài |
-|---|---|
-| Giao tiếp hằng ngày | `weekend`, `hometown`, `hobbies`, `daily-routine`, `a-trip`, `opinions` (AI là đồng nghiệp, xem [conversation-mode.md](conversation-mode.md)) |
-| Tiếng Anh ở công ty | `standup`, `explain-a-bug`, `code-review`, `meeting-disagree`, `feature-demo`, `clarifying` |
-| Giới thiệu bản thân | `tell-me-about-yourself`, `current-project`, `career-goals` |
-| Kinh nghiệm kỹ thuật | `java-spring`, `microservices`, `database-performance`, `testing-quality` |
-| Tình huống thực tế (STAR) | `solved-a-problem`, `disagreement`, `tight-deadline`, `a-mistake` |
-| Cuối buổi phỏng vấn | `expectations` (lương, ngày bắt đầu, câu hỏi cho nhà tuyển dụng) |
+Mức bài kiểm tra tăng dần từ số đo đầu vào của người dùng (11/10/2026: nói 25 giây, 47 từ/phút; lần sau 59 giây, 69 từ/phút, 7,5 lần ngập ngừng / 100 từ) tới mức đích của bài kiểm tra ở giai đoạn 4.
 
-Thứ tự trong file là thứ tự lộ trình: giao tiếp hằng ngày → công việc → phỏng vấn, vì phản xạ với chủ đề quen thuộc cần có trước. Đầu trang là ô bài kiểm tra nói: chưa làm thì mời làm bài đầu vào, đã làm thì hiện kết quả gần nhất. Các bài STAR có `"followups": 0` (không hỏi câu phụ), vì câu chính đã đi qua từng bước. Bài `expectations` có câu "Do you have any questions for us?": `scenario` dặn AI trả lời ngắn, chung chung khi người học hỏi về công ty.
+| # | Giai đoạn | Luyện | Tiêu chí qua |
+|---|---|---|---|
+| 1 | Phát âm | Trang `/sounds` ([pronunciation-drills.md](pronunciation-drills.md)) | Tập đủ 5 nhóm âm; đọc đúng từ 90% từ trọng tâm trong 20 câu gần nhất |
+| 2 | Nói về bản thân và cuộc sống | Chủ đề `daily` | Hoàn thành mọi bài; bài kiểm tra nói liền 1:00, từ 80 từ/phút |
+| 3 | Tiếng Anh ở công ty | Chủ đề `workplace` | Hoàn thành mọi bài; bài kiểm tra 1:30, từ 95 từ/phút, dưới 5 lần ngập ngừng / 100 từ |
+| 4 | Nói dài và mạch lạc | Trang `/fluency` ([fluency-432.md](fluency-432.md)) | Làm trọn 2 bài 4–3–2; bài kiểm tra đạt mức đích: 2:00, từ 110 từ/phút, dưới 3 lần ngập ngừng |
+| 5 | Phỏng vấn | Chủ đề `intro`, `technical`, `behavioral`, `closing` | Hoàn thành mọi bài |
 
-## `GET /api/units`
+## Mở khóa (`evaluate()`)
+
+- Giai đoạn 1 luôn mở. Giai đoạn sau chỉ mở khi giai đoạn trước **đã qua** (mọi tiêu chí đạt). Trạng thái: `passed` (đã qua), `current` (đang học: mở nhưng chưa đạt), `locked` (chưa mở).
+- Tiêu chí được tính trên toàn bộ lịch sử, nên một bài kiểm tra tốt làm sớm vẫn được tính khi tới giai đoạn đó. Nhưng nó **không** mở giai đoạn đang bị khóa: phải qua lần lượt (có test).
+- Bài kiểm tra đạt một mức (`check_meets()`) khi: nói tiếng Anh, thời lượng đủ, tốc độ đủ (nếu mức có yêu cầu), ngập ngừng dưới ngưỡng (nếu có). Bài không đo được tốc độ (dưới 30 giây) không đạt mức nào có yêu cầu tốc độ.
+- **Khóa mềm:** trên trang Lộ trình, bài của giai đoạn chưa mở nằm trong mục thu gọn "Xem trước nội dung", nút ghi "Tập trước". Ở Phòng tập, ô chọn bài vẫn chọn được mọi bài (chủ đề chưa mở có chữ "(chưa mở)"), cho trường hợp cần luyện gấp, ví dụ sắp phỏng vấn. Phòng tập tự mở bài tiếp theo **trong các giai đoạn đã mở**.
+
+Mỗi chủ đề phải thuộc đúng một giai đoạn. `validate()` kiểm tra điều này khi khởi động (trong `api/routes/units.py`) và trong test.
+
+## API
 
 ```json
-{"topics": [{"id": "intro", "title": "...", "description": "...",
+GET /api/units
+{"topics": [{"id": "daily", "title": "...", "description": "...", "locked": false,
   "units": [{"id": "...", "title": "...", "goal": "...", "questions": 6,
-             "sessions": 2, "completed": 1, "last_at": "2026-10-11T10:05:10"}]}]}
+             "sessions": 2, "completed": 1, "last_at": "2026-10-11T10:05:10"}]}],
+ "next_unit": "hobbies"}
+
+GET /api/stages
+{"stages": [{"id": "sounds", "title": "...", "goal": "...", "practice": "drills", "topics": [],
+             "gate": {...}, "status": "current",
+             "requirements": [{"kind": "drill_sets", "done": 1, "total": 5, "met": false},
+                              {"kind": "drill_accuracy", "target": 90, "window": 20,
+                               "attempts": 2, "accuracy": 50, "met": false}]}],
+ "next_unit": null}
 ```
 
-- `sessions`: số buổi có ít nhất một câu trả lời. `completed`: số buổi hỏi hết câu chính. Lấy từ lịch sử, nên khi `HISTORY_DB` để trống thì mọi bài đều "chưa tập".
-- Trạng thái trên giao diện: **Hoàn thành** (`completed > 0`), **Đang tập dở** (có buổi nhưng chưa xong), **Chưa tập**.
+- `sessions`: số buổi có ít nhất một câu trả lời. `completed`: số buổi hỏi hết câu chính. Lấy từ lịch sử, nên khi `HISTORY_DB` để trống thì mọi bài đều "chưa tập" và chỉ giai đoạn 1 mở.
+- `next_unit`: bài đầu tiên chưa hoàn thành trong các chủ đề đã mở; `null` khi chưa mở chủ đề nào (đang ở giai đoạn 1) hoặc đã xong hết.
+- Loại tiêu chí (`kind`): `units`, `drill_sets`, `drill_accuracy`, `fluency_runs` (`done`/`total`), `check` (`target` là mức, `latest` là bài kiểm tra đạt mức đó, nếu chưa có thì bài gần nhất).
 
-## Hành vi
+## Trang Lộ trình
 
-- **Bài tiếp theo** = bài đầu tiên (theo thứ tự lộ trình) chưa hoàn thành. Thẻ của nó có viền màu chính và nút "Bắt đầu"/"Luyện lại" nổi bật. Hoàn thành hết thì không đánh dấu bài nào.
-- Nút trên thẻ mở `/?unit=<id>`. Phòng tập mở bài trong `?unit=`; không có (hoặc sai id) thì mở bài tiếp theo.
-- Đổi bài trong ô chọn của phòng tập cập nhật `?unit=` (thay thế, không thêm lịch sử trình duyệt), nên tải lại trang vẫn ở bài đó. Ô chọn nhóm bài theo chủ đề (`optgroup`), bài đã hoàn thành có dấu ✓.
+- Đầu trang: thanh "Đã qua X/5 giai đoạn" và ô bài kiểm tra nói (chưa làm thì mời làm bài đầu vào).
+- Mỗi giai đoạn: số thứ tự (dấu ✓ khi đã qua, ổ khóa khi chưa mở), mục tiêu, chip trạng thái, danh sách tiêu chí có dấu ✓/✗ kèm chữ và giá trị hiện tại. Giai đoạn đang học có nút "Làm bài kiểm tra nói" khi tiêu chí kiểm tra chưa đạt.
+- Nội dung (thẻ mở trang Phát âm / Nói dài, các chủ đề và thẻ bài) hiện sẵn ở giai đoạn đang học; giai đoạn khác thu gọn trong `<details>`.
+- Thẻ bài: **Hoàn thành** (`completed > 0`), **Đang tập dở**, **Chưa tập**; bài tiếp theo có viền màu chính và nút nổi bật. Nút mở `/?unit=<id>`.
+- Class trạng thái có tiền tố (`stage-current`, `stage-step-passed`…): class `.current` đã có nghĩa khác ở trang đo nhận dạng, mà CSS là toàn cục.
 
-## Thêm bài mới
+## Phòng tập
 
-1. Thêm vào `units` trong `units.json`, đặt `topic` là id có trong `topics`, đúng vị trí trong lộ trình.
+- Mở bài trong `?unit=`; không có (hoặc sai id) thì mở `next_unit`, rồi tới bài đầu tiên chưa hoàn thành.
+- Đổi bài trong ô chọn cập nhật `?unit=` (thay thế, không thêm lịch sử trình duyệt). Ô chọn nhóm bài theo chủ đề (`optgroup`), bài đã hoàn thành có dấu ✓.
+
+## Thêm bài hoặc giai đoạn
+
+1. Thêm bài vào `units` trong `units.json`, đặt `topic` là id có trong `topics`, đúng vị trí trong lộ trình.
 2. Mỗi câu hỏi cần `ask`, `simple`, `phrases`; mỗi mẫu câu cần ít nhất một câu hỏi nhắm tới.
 3. Không dùng từ của ví dụ mẫu trong prompt (`EXAMPLE_WORDS`: logistic, deliver, route, coordinator, driver). So khớp là so chuỗi con, nên "delivery", "router", "JDBC driver" cũng bị tính.
-4. `python -m pytest` (test_units bắt các lỗi trên), rồi chạy `scripts/replay.py --unit <id>` với vài câu trả lời mẫu để xem AI phản hồi.
+4. Chủ đề mới phải được đưa vào `topics` của một giai đoạn trong `stages.json`. Khóa của `gate`: `drill_sets`, `drill_accuracy`, `fluency_runs`, `check` (`seconds`, `wpm_speaking`, `hesitations_per_100`).
+5. `python -m pytest` (test_units và test_stages bắt các lỗi trên), rồi chạy `scripts/replay.py --unit <id>` với vài câu trả lời mẫu để xem AI phản hồi.

@@ -1,6 +1,7 @@
 import type { ShadowResult as Result } from "../../api/types";
 import { BulbIcon, MicIcon, PlayIcon } from "../../components/Icons";
 import { Chip } from "../../components/ui";
+import { WordDiff } from "../../components/WordDiff";
 
 /** Word-by-word result of reading the NOTE aloud (docs/features/shadowing.md). */
 function ShadowResult({ r }: { r: Result }) {
@@ -11,30 +12,7 @@ function ShadowResult({ r }: { r: Result }) {
   const fewer = !!o && r.speech.long_pauses < o.long_pauses;
   return (
     <div className="shadow-result" aria-live="polite">
-      <p className="shadow-line">
-        {r.compare.items.map((it, i) =>
-          it.kind === "extra" ? (
-            <span key={i} className="tok extra" title="Bạn nói thêm">
-              + {it.text}
-            </span>
-          ) : (
-            <span
-              key={i}
-              className={`tok ${it.status}`}
-              title={
-                it.status === "wrong"
-                  ? `Máy nghe thành: ${it.heard}`
-                  : it.status === "miss"
-                    ? "Máy không nghe thấy từ này"
-                    : undefined
-              }
-            >
-              <span className="tok-text">{it.text}</span>
-              {it.status === "wrong" && <span className="tok-heard">{it.heard}</span>}
-            </span>
-          ),
-        )}
-      </p>
+      <WordDiff items={r.compare.items} />
       <p className="shadow-heard">Máy nghe được: {r.heard}</p>
       <div className="meta">
         <Chip tone={pct >= 90 ? "success" : "warning"}>

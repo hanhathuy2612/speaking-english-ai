@@ -9,6 +9,7 @@ import type {
   UnitInfo,
   UnclearReason,
   Topic,
+  UnitsResponse,
 } from "../../api/types";
 import type { Status } from "../../components/ui";
 import { useAudioQueue } from "../../hooks/useAudioQueue";
@@ -206,9 +207,9 @@ export function useInterview(requestedUnit: string | null) {
     ws.current = sock;
     let closedByUs = false;
     sock.onopen = async () => {
-      const { topics }: { topics: Topic[] } = await (await fetch("/api/units")).json();
+      const { topics, next_unit }: UnitsResponse = await (await fetch("/api/units")).json();
       dispatch({ type: "topics", topics });
-      const first = pickUnit(topics, requestedUnit);
+      const first = pickUnit(topics, requestedUnit, next_unit);
       if (first) {
         dispatch({ type: "select", unitId: first });
         dispatch({ type: "status", status: { text: "Đang chuẩn bị bài…", state: "busy" } });

@@ -1,0 +1,37 @@
+[
+  {
+    "id": "sounds",
+    "title": "Phát âm",
+    "goal": "Sửa các lỗi phát âm máy đã đo trên giọng bạn: mất âm cuối -s, -ed, cụm phụ âm cuối, phụ âm cuối, âm th và số đếm.",
+    "practice": "drills",
+    "gate": { "drill_sets": true, "drill_accuracy": 90 }
+  },
+  {
+    "id": "daily",
+    "title": "Nói về bản thân và cuộc sống",
+    "goal": "Trò chuyện về cuối tuần, sở thích, quê, ý kiến cá nhân mà không phải dừng lại tìm từ.",
+    "topics": ["daily"],
+    "gate": { "check": { "seconds": 60, "wpm_speaking": 80 } }
+  },
+  {
+    "id": "work",
+    "title": "Tiếng Anh ở công ty",
+    "goal": "Standup, giải thích bug, code review, phản đối lịch sự trong họp, demo, hỏi lại khi chưa rõ.",
+    "topics": ["workplace"],
+    "gate": { "check": { "seconds": 90, "wpm_speaking": 95, "hesitations_per_100": 5 } }
+  },
+  {
+    "id": "long",
+    "title": "Nói dài và mạch lạc",
+    "goal": "Nói liền vài phút có đầu có cuối, kể cả khi giải thích kỹ thuật cho người không chuyên.",
+    "practice": "fluency",
+    "gate": { "fluency_runs": 2, "check": { "seconds": 120, "wpm_speaking": 110, "hesitations_per_100": 3 } }
+  },
+  {
+    "id": "interview",
+    "title": "Phỏng vấn",
+    "goal": "Giới thiệu bản thân, kinh nghiệm kỹ thuật, tình huống STAR và phần cuối buổi phỏng vấn.",
+    "topics": ["intro", "technical", "behavioral", "closing"],
+    "gate": {}
+  }
+]

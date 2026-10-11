@@ -1,0 +1,82 @@
+[
+  {
+    "id": "final-s",
+    "title": "Âm cuối -s",
+    "measured": "customers → customer",
+    "tip": "Tiếng Việt không có phụ âm cuối /s/, /z/ nên rất dễ bỏ. Số nhiều (customers, tests) và động từ ngôi thứ ba (works, uses) đều cần âm này. Đọc chậm, cố ý bật nhẹ âm 'xì' hoặc 'dz' ở cuối từ trước khi sang từ sau.",
+    "sentences": [
+      { "text": "Our customers book tickets on their phones.", "focus": ["customers", "tickets", "phones"] },
+      { "text": "She reviews my pull requests every morning.", "focus": ["reviews", "requests"] },
+      { "text": "The service sends emails when a payment fails.", "focus": ["sends", "emails", "fails"] },
+      { "text": "He works on two projects and helps the testers.", "focus": ["works", "projects", "helps", "testers"] },
+      { "text": "My team writes clean code and fixes bugs fast.", "focus": ["writes", "fixes", "bugs"] },
+      { "text": "The app uses three databases and two caches.", "focus": ["uses", "databases", "caches"] },
+      { "text": "Each request takes about two seconds.", "focus": ["takes", "seconds"] },
+      { "text": "Our users really like the new features.", "focus": ["users", "features"] }
+    ]
+  },
+  {
+    "id": "final-ed",
+    "title": "Âm cuối -ed",
+    "measured": "mất âm cuối -ed",
+    "tip": "-ed có 3 cách đọc: /t/ sau âm vô thanh (fixed, helped), /d/ sau âm hữu thanh (solved, changed), /ɪd/ sau t hoặc d (added, started). Bỏ âm này thì người nghe hiểu là bạn đang nói về hiện tại.",
+    "sentences": [
+      { "text": "I fixed the bug and deployed the new version.", "focus": ["fixed", "deployed"] },
+      { "text": "We started the project last year.", "focus": ["started"] },
+      { "text": "She solved the problem and helped the team.", "focus": ["solved", "helped"] },
+      { "text": "I added a cache and reduced the response time.", "focus": ["added", "reduced"] },
+      { "text": "They changed the design after the meeting.", "focus": ["changed"] },
+      { "text": "I learned a lot when I worked on that system.", "focus": ["learned", "worked"] },
+      { "text": "The test failed because the data looked wrong.", "focus": ["failed", "looked"] },
+      { "text": "We migrated the old services and improved the logs.", "focus": ["migrated", "improved"] }
+    ]
+  },
+  {
+    "id": "clusters",
+    "title": "Cụm phụ âm cuối",
+    "measured": "unit tests → unise text",
+    "tip": "Từ như tests, requests, results kết thúc bằng hai, ba phụ âm liền nhau. Đừng nuốt bớt: tests là /tests/, không phải 'tét' hay 'text'. Tách chậm từng âm (tes-t-s) rồi nối lại cho liền.",
+    "sentences": [
+      { "text": "I wrote unit tests and integration tests.", "focus": ["unit", "tests"] },
+      { "text": "The results of the tests were good.", "focus": ["results", "tests"] },
+      { "text": "We handle thousands of requests per second.", "focus": ["thousands", "requests"] },
+      { "text": "The cost of the cloud is our biggest concern.", "focus": ["cost", "biggest"] },
+      { "text": "She asked the client about the next steps.", "focus": ["asked", "client", "next", "steps"] },
+      { "text": "The text and the tests are different things.", "focus": ["text", "tests"] },
+      { "text": "I checked the last commits before the release.", "focus": ["checked", "last", "commits"] },
+      { "text": "Our first product was a small chat app.", "focus": ["first", "product"] }
+    ]
+  },
+  {
+    "id": "final-consonants",
+    "title": "Phụ âm cuối rõ ràng",
+    "measured": "cache → kit",
+    "tip": "Tiếng Việt có ít phụ âm cuối và thường không bật hơi. Tiếng Anh cần nghe rõ âm cuối: cache là /kæʃ/ (kết thúc bằng 'sh', không phải 'kít'), code /koʊd/, job /dʒɑːb/. Giữ đúng nguyên âm, rồi khép âm cuối rõ ràng.",
+    "sentences": [
+      { "text": "We put a cache in front of the database.", "focus": ["cache"] },
+      { "text": "Please check the code before the build.", "focus": ["check", "code", "build"] },
+      { "text": "My job is to fix the bug on the web page.", "focus": ["job", "bug", "web", "page"] },
+      { "text": "The cache made the page much faster.", "focus": ["cache", "made", "page", "much"] },
+      { "text": "I need a quick fix for this issue.", "focus": ["quick", "fix", "this"] },
+      { "text": "Let me share my screen and walk you through it.", "focus": ["share", "screen", "walk"] },
+      { "text": "The log shows a bad request.", "focus": ["log", "bad"] },
+      { "text": "We use Spring Boot for the backend.", "focus": ["Boot", "backend"] }
+    ]
+  },
+  {
+    "id": "th-numbers",
+    "title": "Âm th và số đếm",
+    "measured": "thirty → sixty",
+    "tip": "Âm /θ/ (think, thirty, three): đặt đầu lưỡi giữa hai hàm răng rồi thổi hơi, không đọc thành 't' hay 's'. Số -teen nhấn âm sau (thir-TEEN), số -ty nhấn âm đầu (THIR-ty), nên đừng đọc đều hai âm.",
+    "sentences": [
+      { "text": "It reduced the response time by thirty percent.", "focus": ["thirty"] },
+      { "text": "I think this is the third time it failed.", "focus": ["think", "third"] },
+      { "text": "We have thirteen tests and thirty users.", "focus": ["thirteen", "thirty"] },
+      { "text": "The meeting is on Thursday at three.", "focus": ["Thursday", "three"] },
+      { "text": "Thank you for the clear method.", "focus": ["Thank", "method"] },
+      { "text": "Both of them worked with the other team.", "focus": ["Both", "with", "other"] },
+      { "text": "Fifteen or fifty? I said fifty.", "focus": ["Fifteen", "fifty"] },
+      { "text": "The truth is that the growth was healthy.", "focus": ["truth", "growth", "healthy"] }
+    ]
+  }
+]

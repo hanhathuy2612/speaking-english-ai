@@ -77,7 +77,7 @@
 .stt-chip:empty {
   display: none;
 }
-@media (max-width: 1180px) {
+@media (max-width: 1500px) { /* leaves room for the navigation links */
   .stt-chip {
     display: none;
   }
@@ -337,41 +337,6 @@
   background: var(--surface);
   border: 1px solid var(--border);
 }
-.shadow-line {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  gap: 4px 6px;
-  font-size: 17px;
-  line-height: 1.4;
-}
-.tok {
-  display: inline-flex;
-  flex-direction: column;
-  align-items: center;
-}
-.tok.wrong .tok-text {
-  color: var(--warning);
-  text-decoration: underline wavy var(--warning);
-  text-underline-offset: 4px;
-}
-.tok-heard {
-  font-size: 11.5px;
-  color: var(--warning);
-  margin-top: 2px;
-}
-.tok.miss .tok-text {
-  color: var(--text-3);
-  text-decoration: line-through;
-}
-.tok.extra {
-  align-self: center;
-  padding: 0 6px;
-  border-radius: 999px;
-  background: var(--surface-2);
-  color: var(--text-3);
-  font-size: 13px;
-}
 .shadow-heard {
   margin-top: 10px;
   font-size: 13px;
@@ -514,7 +479,6 @@
     padding: 10px 16px;
     gap: 10px;
   }
-  .appbar-spacer,
   .stt-chip {
     display: none;
   }
@@ -525,8 +489,9 @@
 }
 @media (max-width: 560px) {
   .brand-name,
-  .hint {
-    display: none;
+  .hint,
+  .app .appbar-spacer {
+    display: none; /* the unit picker takes the free space instead */
   }
   .select {
     flex: 1;
@@ -553,7 +518,7 @@
     margin: 8px 0 10px;
     font-size: 15px;
   }
-  .shadow-line {
+  .coach .word-diff {
     font-size: 15px;
   }
   .shadow-legend,

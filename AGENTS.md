@@ -17,24 +17,24 @@ backend/
   app/
     main.py              # tạo FastAPI app, nạp Whisper lúc khởi động, gắn router, phục vụ frontend
     core/                # config.py (đọc .env, đường dẫn), cuda.py (DLL CUDA trên Windows)
-    api/routes/          # ws.py (WebSocket /ws), units.py, check.py, bench.py, history.py (/api/...)
+    api/routes/          # ws.py (WebSocket /ws), units.py (+ /api/stages), drills.py, fluency.py, check.py, bench.py, history.py (/api/...)
     services/            # stt.py (Whisper), tts.py (edge-tts + cache), llm.py (LM Studio), history.py (SQLite)
     interview/           # session.py (trạng thái, next_step), prompts.py, turn.py (một lượt), shadow.py (nói lại), units.py
-    assessment/          # check.py (bài kiểm tra nói 2 phút, không dùng LLM)
+    assessment/          # không dùng LLM: metrics.py (đo), check.py (kiểm tra 2 phút), drills.py (phát âm), fluency.py (4–3–2), stages.py (mở giai đoạn)
     utils/               # parsing.py, compare.py (hàm thuần), ws.py (Conn)
-    data/                # units.json (chủ đề + bài), check_prompts.json, bench_sentences.json
+    data/                # units.json (chủ đề + bài), stages.json, drills.json, check_prompts.json, fluency_prompts.json, bench_sentences.json
   scripts/               # replay.py (so prompt), stt_bench.py (đo STT)
   tests/                 # pytest
   pyproject.toml, requirements*.txt
 frontend/                # React + TypeScript + Vite; build vào frontend/dist (backend phục vụ)
   src/
-    main.tsx             # React Router: / , /roadmap , /check , /history , /bench
+    main.tsx             # React Router: / , /roadmap , /sounds , /fluency , /check , /history , /bench
     api/types.ts         # kiểu dữ liệu API + giao thức WebSocket
-    components/          # AppBar, Icons, ui (Chip, StatusLine)
+    components/          # AppBar, Icons, ui (Chip, StatusLine), WordDiff, Recorder
     hooks/               # useHoldToTalk (ghi âm), useAudioQueue (phát MP3)
-    features/            # practice/ (useInterview + các component), roadmap/, check/, history/, bench/
+    features/            # practice/ (useInterview + các component), roadmap/, sounds/, fluency/, check/, history/, bench/
     lib/                 # hàm thuần + test Vitest
-    styles/              # base.css (token, component chung, bảng), practice.css, roadmap.css, check.css, history.css, bench.css
+    styles/              # base.css (token, component chung, bảng), practice.css, roadmap.css, sounds.css, fluency.css, check.css, history.css, bench.css
 docs/                    # tài liệu theo tính năng (bảng bên dưới)
 recordings/              # giọng nói thật của người dùng, không commit
 data/                    # history.db: lịch sử luyện tập của người dùng, không commit
@@ -76,7 +76,9 @@ npm test           # Vitest
 | Giọng đọc, cache, phát âm thanh | [docs/features/tts-audio.md](docs/features/tts-audio.md) | `services/tts.py`, `frontend/src/hooks/useAudioQueue.ts` |
 | Chỉ số nói, mẫu câu đã dùng | [docs/features/speech-metrics.md](docs/features/speech-metrics.md) | `utils/parsing.py`, `interview/session.py` (`summary`) |
 | Nói lại câu mẫu (shadowing): so từng từ, chuẩn hóa số và viết tắt | [docs/features/shadowing.md](docs/features/shadowing.md) | `interview/shadow.py`, `utils/compare.py`, `frontend/src/features/practice/CoachCard.tsx` |
-| Lộ trình: 6 chủ đề, 24 bài, bài tiếp theo, thêm bài mới | [docs/features/roadmap.md](docs/features/roadmap.md) | `data/units.json`, `interview/units.py`, `api/routes/units.py`, `frontend/src/features/roadmap/` |
+| Lộ trình: 5 giai đoạn mở khóa theo số đo, 6 chủ đề, 24 bài, bài tiếp theo | [docs/features/roadmap.md](docs/features/roadmap.md) | `data/stages.json`, `assessment/stages.py`, `data/units.json`, `api/routes/units.py`, `frontend/src/features/roadmap/` |
+| Luyện phát âm theo lỗi đã đo, từ trọng tâm, nhóm câu từng đọc sai | [docs/features/pronunciation-drills.md](docs/features/pronunciation-drills.md) | `data/drills.json`, `assessment/drills.py`, `api/routes/drills.py`, `frontend/src/features/sounds/` |
+| Nói dài 4–3–2: kể một chuyện 3 lần, 4/3/2 phút | [docs/features/fluency-432.md](docs/features/fluency-432.md) | `assessment/fluency.py`, `api/routes/fluency.py`, `frontend/src/features/fluency/` |
 | Chế độ trò chuyện: AI đóng vai đồng nghiệp, trưởng nhóm, khách hàng… (`role`, `partner`) | [docs/features/conversation-mode.md](docs/features/conversation-mode.md) | `interview/prompts.py`, `data/units.json` (chủ đề `daily`, `workplace`) |
 | Bài kiểm tra nói 2 phút: tiêu chí, ngập ngừng giữa câu, trang `/check` | [docs/features/speaking-check.md](docs/features/speaking-check.md) | `assessment/check.py`, `api/routes/check.py`, `frontend/src/features/check/` |
 | Lịch sử luyện tập, trang Tiến bộ, biểu đồ xu hướng | [docs/features/session-history.md](docs/features/session-history.md) | `services/history.py`, `api/routes/history.py`, `frontend/src/features/history/` |
@@ -115,7 +117,7 @@ Theo [Conventional Commits 1.0.0](https://www.conventionalcommits.org/en/v1.0.0/
 ```
 
 - **type:** `feat` (tính năng mới), `fix` (sửa lỗi), `refactor` (đổi cấu trúc, không đổi hành vi), `perf`, `test`, `docs`, `style` (định dạng, không đổi logic), `build` (dependency, requirements), `chore` (việc vặt, cấu hình), `revert`.
-- **scope** (không bắt buộc): `backend`, `frontend`, `stt`, `tts`, `llm`, `interview`, `shadowing`, `history`, `bench`, `check`, `config`, `docs`.
+- **scope** (không bắt buộc): `backend`, `frontend`, `stt`, `tts`, `llm`, `interview`, `shadowing`, `history`, `bench`, `check`, `drills`, `fluency`, `roadmap`, `config`, `docs`.
 - **subject:** câu mệnh lệnh, chữ thường ở đầu, không dấu chấm cuối, tối đa 72 ký tự. Ví dụ: `fix(stt): fall back to cpu when cuda dlls are missing`.
 - **body:** xuống dòng ở khoảng 72 ký tự. Nêu lý do và cách đã kiểm chứng (test, replay, stt_bench).
 - **Thay đổi phá vỡ tương thích** (đổi lệnh chạy, đổi biến `.env`, đổi giao thức WebSocket): thêm `!` sau type (`refactor!: ...`) và footer `BREAKING CHANGE: <mô tả + cách chuyển đổi>`.
