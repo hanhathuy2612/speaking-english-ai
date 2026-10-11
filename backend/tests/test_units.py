@@ -40,3 +40,19 @@ def test_star_units_turn_follow_ups_off():
     for u in units:
         if u["topic"] == "behavioral":
             assert u.get("followups") == 0, u["id"]
+
+
+def test_interview_prompt_is_unchanged_by_the_role_field():
+    from app.interview.prompts import SYSTEM_TEMPLATE, build_messages
+    from app.interview.session import Session
+
+    u = next(u for u in units if "role" not in u)
+    system = build_messages(Session(unit=u, asked="Q?"), "answer")[0]["content"]
+    assert system.startswith("You play the INTERVIEWER in a job interview. The candidate")
+    assert "{role}" in SYSTEM_TEMPLATE
+
+
+def test_conversation_units_name_the_partner():
+    for u in units:
+        if "role" in u:
+            assert u.get("partner"), u["id"]

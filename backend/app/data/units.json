@@ -1,11 +1,667 @@
 {
   "topics": [
+    {"id": "daily", "title": "Giao tiếp hằng ngày", "description": "Nói chuyện phiếm về bản thân và cuộc sống: luyện phản xạ với chủ đề quen thuộc."},
+    {"id": "workplace", "title": "Tiếng Anh ở công ty", "description": "Standup, báo bug, code review, họp, demo, hỏi lại khi chưa rõ."},
     {"id": "intro", "title": "Giới thiệu bản thân", "description": "Mở đầu buổi phỏng vấn: bạn là ai, đang làm gì, muốn đi đâu."},
     {"id": "technical", "title": "Kinh nghiệm kỹ thuật", "description": "Giải thích công nghệ và cách bạn làm việc, kèm ví dụ thật."},
     {"id": "behavioral", "title": "Tình huống thực tế (STAR)", "description": "Kể chuyện theo Situation, Task, Action, Result."},
     {"id": "closing", "title": "Cuối buổi phỏng vấn", "description": "Lương, thời gian bắt đầu, và câu hỏi của bạn cho nhà tuyển dụng."}
   ],
   "units": [
+    {
+      "id": "weekend",
+      "topic": "daily",
+      "title": "Your weekend",
+      "role": "a friendly COLLEAGUE having a relaxed coffee chat",
+      "partner": "Đồng nghiệp",
+      "scenario": "This is not an interview. Two colleagues chat over coffee at work, in a friendly, informal way. It is Monday morning and they talk about the weekend.",
+      "goal": "Kể chuyện đã xảy ra bằng thì quá khứ (went, watched, had), thêm một chi tiết cụ thể cho mỗi ý.",
+      "greeting": "Morning! How are you doing?",
+      "closing": "Anyway, I should get back to work. Have a good week!",
+      "vocab": "weekend, Saturday, Sunday, family, friends, coffee shop, movie, football, gym, relax, trip, cook.",
+      "questions": [
+        { "ask": "So, how was your weekend? What did you do?", "phrases": [0], "simple": "Did you go anywhere on Saturday or Sunday?" },
+        { "ask": "What was the best part of it?", "phrases": [1], "simple": "What did you enjoy most?" },
+        { "ask": "Do you usually spend your weekends like that?", "phrases": [2], "simple": "What do you normally do on weekends?" },
+        { "ask": "Any plans for next weekend?", "phrases": [3], "simple": "What will you do next weekend?" }
+      ],
+      "phrases": [
+        {
+          "say": "On Saturday, I went to ...",
+          "match": [
+            "on saturday i",
+            "on sunday i",
+            "i went to"
+          ]
+        },
+        {
+          "say": "The best part was ...",
+          "match": [
+            "the best part was",
+            "the best thing was"
+          ]
+        },
+        {
+          "say": "I usually spend my weekends ...",
+          "match": [
+            "i usually spend",
+            "usually i spend",
+            "i normally spend"
+          ]
+        },
+        {
+          "say": "I'm planning to ...",
+          "match": [
+            "i'm planning to",
+            "i am planning to",
+            "i'm going to",
+            "i am going to"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "hometown",
+      "topic": "daily",
+      "title": "Where you're from",
+      "role": "a friendly COLLEAGUE having a relaxed coffee chat",
+      "partner": "Đồng nghiệp",
+      "scenario": "This is not an interview. Two colleagues chat over coffee at work, in a friendly, informal way. A new colleague asks where the learner is from.",
+      "goal": "Mô tả quê hoặc thành phố của bạn: ở đâu, có gì đặc biệt, bạn nhớ gì. Dùng tính từ cụ thể thay cho \"good\", \"nice\".",
+      "greeting": "Hi, I don't think we've talked much yet.",
+      "closing": "That sounds lovely. Maybe I'll visit one day!",
+      "vocab": "Vietnam, Hanoi, Ho Chi Minh City, Da Nang, Hue, countryside, province, beach, mountain, street food, pho, traffic, motorbike.",
+      "questions": [
+        { "ask": "Where are you from originally?", "phrases": [0], "simple": "Which city or town did you grow up in?" },
+        { "ask": "What's it like there?", "phrases": [1], "simple": "Is it a big city or a small town?" },
+        { "ask": "What do you miss most about it?", "phrases": [2], "simple": "What do you like about your hometown?" },
+        { "ask": "If I visited, what should I see or eat there?", "phrases": [3], "simple": "What is one thing a visitor should try there?" }
+      ],
+      "phrases": [
+        {
+          "say": "I'm originally from ..., in the ... of Vietnam.",
+          "match": [
+            "i'm originally from",
+            "i am originally from",
+            "i'm from",
+            "i am from"
+          ]
+        },
+        {
+          "say": "It's a ... place, famous for ...",
+          "match": [
+            "famous for",
+            "known for",
+            "it's a",
+            "it is a"
+          ]
+        },
+        {
+          "say": "What I miss most is ...",
+          "match": [
+            "what i miss most",
+            "i miss"
+          ]
+        },
+        {
+          "say": "You should definitely try ...",
+          "match": [
+            "you should definitely",
+            "you should try",
+            "you should visit"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "hobbies",
+      "topic": "daily",
+      "title": "Hobbies and free time",
+      "role": "a friendly COLLEAGUE having a relaxed coffee chat",
+      "partner": "Đồng nghiệp",
+      "scenario": "This is not an interview. Two colleagues chat over coffee at work, in a friendly, informal way. They talk about what they do outside work.",
+      "goal": "Nói bạn thích làm gì, từ khi nào, vì sao thích. Dùng \"I've been ... since ...\" và nêu lý do.",
+      "greeting": "Hey, quick coffee break?",
+      "closing": "Nice talking to you. I learned something new about you today!",
+      "vocab": "hobby, free time, gaming, reading, running, swimming, badminton, guitar, photography, cooking, travel, side project.",
+      "questions": [
+        { "ask": "What do you like to do when you're not working?", "phrases": [0], "simple": "What do you do in your free time?" },
+        { "ask": "How did you get into it?", "phrases": [1], "simple": "When did you start doing that?" },
+        { "ask": "Why do you enjoy it so much?", "phrases": [2], "simple": "What do you like about it?" },
+        { "ask": "Is there a new hobby you'd like to try?", "phrases": [3], "simple": "What would you like to learn to do?" }
+      ],
+      "phrases": [
+        {
+          "say": "In my free time, I like to ...",
+          "match": [
+            "in my free time",
+            "i like to",
+            "i really like"
+          ]
+        },
+        {
+          "say": "I've been doing it since ...",
+          "match": [
+            "i've been doing",
+            "i have been doing",
+            "since i was"
+          ]
+        },
+        {
+          "say": "I enjoy it because ...",
+          "match": [
+            "i enjoy it because",
+            "i like it because",
+            "i love it because"
+          ]
+        },
+        {
+          "say": "I'd love to try ...",
+          "match": [
+            "i'd love to try",
+            "i would love to try",
+            "i'd like to try",
+            "i would like to try"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "daily-routine",
+      "topic": "daily",
+      "title": "Your daily routine",
+      "role": "a friendly COLLEAGUE having a relaxed coffee chat",
+      "partner": "Đồng nghiệp",
+      "scenario": "This is not an interview. Two colleagues chat over coffee at work, in a friendly, informal way. They compare their daily routines.",
+      "goal": "Kể một ngày bình thường theo thứ tự thời gian với thì hiện tại đơn (I get up, I take...), dùng từ nối first, then, after that.",
+      "greeting": "You look busy today!",
+      "closing": "Thanks for sharing. Let's grab lunch together sometime.",
+      "vocab": "get up, alarm, breakfast, commute, traffic, bus, motorbike, office, lunch break, meeting, gym, dinner, bedtime.",
+      "questions": [
+        { "ask": "What does a normal day look like for you?", "phrases": [0], "simple": "What time do you get up, and what do you do first?" },
+        { "ask": "How do you get to work?", "phrases": [1], "simple": "Do you go to work by bus, car or motorbike?" },
+        { "ask": "What do you usually do after work?", "phrases": [2], "simple": "What do you do in the evening?" },
+        { "ask": "If you could change one thing about your routine, what would it be?", "phrases": [3], "simple": "What would you like to do differently every day?" }
+      ],
+      "phrases": [
+        {
+          "say": "I usually get up at ..., and then I ...",
+          "match": [
+            "i usually get up",
+            "i get up at",
+            "and then i"
+          ]
+        },
+        {
+          "say": "It takes me about ... to get to work.",
+          "match": [
+            "it takes me about",
+            "it takes me",
+            "it takes about"
+          ]
+        },
+        {
+          "say": "After work, I usually ...",
+          "match": [
+            "after work i",
+            "after work"
+          ]
+        },
+        {
+          "say": "I wish I could ...",
+          "match": [
+            "i wish i could",
+            "i'd like to",
+            "i would like to"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "a-trip",
+      "topic": "daily",
+      "title": "A trip you remember",
+      "role": "a friendly COLLEAGUE having a relaxed coffee chat",
+      "partner": "Đồng nghiệp",
+      "scenario": "This is not an interview. Two colleagues chat over coffee at work, in a friendly, informal way. They talk about travel and a trip the learner remembers.",
+      "goal": "Kể một chuyến đi theo trình tự: đi đâu, với ai, chuyện gì đáng nhớ, cảm nhận. Giữ đúng thì quá khứ.",
+      "greeting": "I'm thinking about my next holiday. Do you travel much?",
+      "closing": "What a great story. Now I want to go there too!",
+      "vocab": "trip, holiday, vacation, beach, mountain, flight, hotel, homestay, Da Lat, Phu Quoc, Sapa, Thailand, Japan, Korea, backpack.",
+      "questions": [
+        { "ask": "Tell me about a trip you really remember. Where did you go?", "phrases": [0], "simple": "Where did you go on your last holiday?" },
+        { "ask": "Who did you go with, and what did you do there?", "phrases": [1], "simple": "What did you do every day on that trip?" },
+        { "ask": "What was the most memorable moment?", "phrases": [2], "simple": "What do you remember most from it?" },
+        { "ask": "Would you go back? Why or why not?", "phrases": [3], "simple": "Do you want to go there again?" }
+      ],
+      "phrases": [
+        {
+          "say": "A few years ago, I went to ... with ...",
+          "match": [
+            "a few years ago",
+            "last year i went",
+            "i went to"
+          ]
+        },
+        {
+          "say": "We spent most of the time ...",
+          "match": [
+            "we spent",
+            "most of the time"
+          ]
+        },
+        {
+          "say": "What I remember most is ...",
+          "match": [
+            "what i remember most",
+            "i'll never forget",
+            "i will never forget"
+          ]
+        },
+        {
+          "say": "I'd definitely go back, because ...",
+          "match": [
+            "i'd definitely go back",
+            "i would definitely go back",
+            "i'd go back",
+            "i would go back"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "opinions",
+      "topic": "daily",
+      "title": "Giving your opinion",
+      "role": "a friendly COLLEAGUE having a relaxed coffee chat",
+      "partner": "Đồng nghiệp",
+      "scenario": "This is not an interview. Two colleagues chat over coffee at work, in a friendly, informal way. They exchange opinions on everyday topics. The colleague is curious about the learner's view and why.",
+      "goal": "Nêu ý kiến rõ ràng rồi đưa lý do (PREP: ý kiến, lý do, ví dụ, nhắc lại ý kiến). Biết nói ý kiến trái chiều một cách lịch sự.",
+      "greeting": "Can I ask your opinion about something?",
+      "closing": "Interesting, you've given me a lot to think about.",
+      "vocab": "opinion, remote work, office, AI tools, ChatGPT, Copilot, social media, learning English, work-life balance, productivity, advantage, disadvantage.",
+      "questions": [
+        { "ask": "Do you prefer working from home or in the office?", "phrases": [0, 1], "simple": "Where do you like working more, home or office? Why?" },
+        { "ask": "What do you think about using AI tools for coding?", "phrases": [0, 2], "simple": "Do AI coding tools help you? How?" },
+        { "ask": "Some people say social media wastes too much time. Do you agree?", "phrases": [3], "simple": "Is social media good or bad for you?" },
+        { "ask": "What's the best way to learn to speak English, in your opinion?", "phrases": [0, 1], "simple": "How do you think people learn English best?" }
+      ],
+      "phrases": [
+        {
+          "say": "In my opinion, ...",
+          "match": [
+            "in my opinion",
+            "personally i think",
+            "i think that"
+          ]
+        },
+        {
+          "say": "The main reason is that ...",
+          "match": [
+            "the main reason is",
+            "the main reason",
+            "that's because",
+            "that is because"
+          ]
+        },
+        {
+          "say": "For example, ...",
+          "match": [
+            "for example",
+            "for instance"
+          ]
+        },
+        {
+          "say": "I see your point, but I think ...",
+          "match": [
+            "i see your point",
+            "i partly agree",
+            "i don't really agree",
+            "i do not really agree"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "standup",
+      "topic": "workplace",
+      "title": "Daily stand-up",
+      "role": "a TEAM LEAD running the daily stand-up meeting",
+      "partner": "Trưởng nhóm",
+      "scenario": "This is not an interview. A short daily stand-up meeting in a software team. The team lead asks the learner for their update.",
+      "goal": "Báo cáo ngắn gọn theo 3 ý: hôm qua làm gì, hôm nay làm gì, có vướng mắc gì. Nói con số và thời gian cụ thể.",
+      "greeting": "Okay, let's start the stand-up.",
+      "closing": "Okay, next person, please.",
+      "vocab": "ticket, task, pull request, merge, deploy, staging, production, bug fix, API, endpoint, unit test, blocker, review, sprint, Jira.",
+      "questions": [
+        { "ask": "What did you work on yesterday?", "phrases": [0], "simple": "What did you finish yesterday?" },
+        { "ask": "What are you going to work on today?", "phrases": [1], "simple": "What is your task for today?" },
+        { "ask": "Is anything blocking you?", "phrases": [2], "simple": "Do you have any problem that stops your work?" },
+        { "ask": "When do you think it will be ready?", "phrases": [3], "simple": "How long do you need to finish it?" }
+      ],
+      "phrases": [
+        {
+          "say": "Yesterday, I worked on ... and finished ...",
+          "match": [
+            "yesterday i worked on",
+            "yesterday i",
+            "i finished"
+          ]
+        },
+        {
+          "say": "Today, I'm going to ...",
+          "match": [
+            "today i'm going to",
+            "today i am going to",
+            "today i will",
+            "today i'll"
+          ]
+        },
+        {
+          "say": "I'm blocked by ..., so I need ...",
+          "match": [
+            "i'm blocked by",
+            "i am blocked by",
+            "i'm waiting for",
+            "i am waiting for",
+            "no blockers"
+          ]
+        },
+        {
+          "say": "It should be ready by ...",
+          "match": [
+            "should be ready by",
+            "it should be ready",
+            "it will be ready by"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "explain-a-bug",
+      "topic": "workplace",
+      "title": "Explaining a bug",
+      "role": "a SENIOR DEVELOPER helping a teammate investigate a production bug",
+      "partner": "Đồng nghiệp senior",
+      "scenario": "This is not an interview. A teammate tells a senior developer about a bug they are investigating. The senior developer listens and asks practical questions.",
+      "goal": "Mô tả bug rõ ràng: hiện tượng, khi nào bắt đầu, đã kiểm tra gì, nghi ngờ nguyên nhân gì, bước tiếp theo.",
+      "greeting": "Hey, you said you wanted to talk about a bug?",
+      "closing": "Good, that sounds like a solid plan. Ping me if you get stuck.",
+      "vocab": "bug, error, exception, stack trace, log, null pointer, timeout, database, query, cache, deploy, rollback, reproduce, environment, staging, production.",
+      "questions": [
+        { "ask": "So what's the problem exactly?", "phrases": [0], "simple": "What is going wrong?" },
+        { "ask": "When did it start, and how many users are affected?", "phrases": [1], "simple": "When did you first see it?" },
+        { "ask": "What have you checked so far?", "phrases": [2], "simple": "What did you already try?" },
+        { "ask": "What do you think is causing it?", "phrases": [3], "simple": "Do you have an idea why it happens?" },
+        { "ask": "What's your next step?", "phrases": [4], "simple": "What will you do now?" }
+      ],
+      "phrases": [
+        {
+          "say": "The problem is that when users ..., they get ...",
+          "match": [
+            "the problem is that",
+            "the problem is",
+            "when users"
+          ]
+        },
+        {
+          "say": "It started after ..., and it affects ...",
+          "match": [
+            "it started after",
+            "it started",
+            "it affects"
+          ]
+        },
+        {
+          "say": "So far, I've checked ...",
+          "match": [
+            "so far i've checked",
+            "so far i have checked",
+            "i've checked",
+            "i have checked"
+          ]
+        },
+        {
+          "say": "I suspect it's caused by ...",
+          "match": [
+            "i suspect",
+            "i think it's caused by",
+            "i think it is caused by"
+          ]
+        },
+        {
+          "say": "Next, I'm going to ...",
+          "match": [
+            "next i'm going to",
+            "next i am going to",
+            "next i will",
+            "next i'll"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "code-review",
+      "topic": "workplace",
+      "title": "Discussing a code review",
+      "role": "a TEAMMATE reviewing the learner's pull request",
+      "partner": "Người review",
+      "scenario": "This is not an interview. A teammate has reviewed the learner's pull request and they talk about it. The reviewer asks questions and suggests changes politely.",
+      "goal": "Giải thích thay đổi của bạn, lý do chọn cách làm đó, và phản hồi góp ý một cách lịch sự (đồng ý, hoặc không đồng ý kèm lý do).",
+      "greeting": "Hi, I had a look at your pull request.",
+      "closing": "Great, thanks. Update it and I'll approve it.",
+      "vocab": "pull request, commit, refactor, method, class, interface, naming, null check, exception handling, unit test, edge case, performance, readability, duplicate code.",
+      "questions": [
+        { "ask": "Can you give me a quick summary of what this pull request changes?", "phrases": [0], "simple": "What does your change do?" },
+        { "ask": "Why did you choose this approach?", "phrases": [1], "simple": "Why did you write it this way?" },
+        { "ask": "I think this method is a bit long. Could we split it into smaller ones?", "phrases": [2], "simple": "Do you agree to make this method shorter?" },
+        { "ask": "How did you test it?", "phrases": [3], "simple": "What tests did you write for it?" }
+      ],
+      "phrases": [
+        {
+          "say": "This pull request adds ... so that ...",
+          "match": [
+            "this pull request",
+            "this pr",
+            "so that"
+          ]
+        },
+        {
+          "say": "I chose this approach because ...",
+          "match": [
+            "i chose this approach",
+            "i chose this",
+            "i went with"
+          ]
+        },
+        {
+          "say": "Good point, I'll ... / I see what you mean, but ...",
+          "match": [
+            "good point",
+            "i see what you mean",
+            "that makes sense"
+          ]
+        },
+        {
+          "say": "I tested it by ...",
+          "match": [
+            "i tested it by",
+            "i tested it with",
+            "i added tests for",
+            "i added unit tests"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "meeting-disagree",
+      "topic": "workplace",
+      "title": "Raising a concern in a meeting",
+      "role": "a PRODUCT MANAGER in a sprint planning meeting",
+      "partner": "Quản lý sản phẩm",
+      "scenario": "This is not an interview. In a planning meeting the product manager wants to release a feature quickly. The learner is the developer and should raise concerns politely and suggest options.",
+      "goal": "Phản đối lịch sự: ghi nhận ý người khác, nêu rủi ro cụ thể, đưa ra phương án thay thế, rồi tóm tắt điều đã thống nhất.",
+      "greeting": "Thanks for joining. I want to plan the next release.",
+      "closing": "Okay, that works for me. Thanks for raising it early.",
+      "vocab": "release, deadline, scope, feature, risk, testing, bug, technical debt, estimate, priority, MVP, phase, rollout, user, feedback.",
+      "questions": [
+        { "ask": "I'd like to release the new search feature next Friday. Does that work for you?", "phrases": [0], "simple": "Can your team finish the search feature by next Friday?" },
+        { "ask": "What exactly is the risk?", "phrases": [1], "simple": "Why do you think it is a problem?" },
+        { "ask": "So what would you suggest instead?", "phrases": [2], "simple": "What is your idea?" },
+        { "ask": "Okay. Can you summarise what we've agreed?", "phrases": [3], "simple": "So what is the final plan?" }
+      ],
+      "phrases": [
+        {
+          "say": "I understand why that's important, but I'm worried that ...",
+          "match": [
+            "i'm worried that",
+            "i am worried that",
+            "i understand why",
+            "i'm a bit worried",
+            "i am a bit worried"
+          ]
+        },
+        {
+          "say": "The main risk is that ...",
+          "match": [
+            "the main risk is",
+            "the biggest risk is"
+          ]
+        },
+        {
+          "say": "What if we ...? That way, ...",
+          "match": [
+            "what if we",
+            "that way",
+            "how about we"
+          ]
+        },
+        {
+          "say": "So, to sum up, we agreed to ...",
+          "match": [
+            "to sum up",
+            "so we agreed",
+            "we agreed to"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "feature-demo",
+      "topic": "workplace",
+      "title": "Demoing a feature",
+      "role": "a MANAGER watching the end-of-sprint demo",
+      "partner": "Quản lý",
+      "scenario": "This is not an interview. At the sprint demo the learner shows a feature they built. The manager watches and asks questions.",
+      "goal": "Trình bày tính năng như dẫn người xem: dành cho ai, giải quyết vấn đề gì, đi qua các bước chính, còn gì chưa xong.",
+      "greeting": "Alright, you're up next for the demo.",
+      "closing": "Nice work, the team will be happy with that.",
+      "vocab": "feature, demo, screen, button, page, dashboard, filter, export, notification, user, admin, mobile, release, feedback, next sprint.",
+      "questions": [
+        { "ask": "What are you going to show us today?", "phrases": [0], "simple": "Which feature did you build?" },
+        { "ask": "Who is it for, and what problem does it solve?", "phrases": [1], "simple": "Why do users need this?" },
+        { "ask": "Can you walk us through how it works?", "phrases": [2], "simple": "What does the user do first, and then?" },
+        { "ask": "Is there anything that's not finished yet?", "phrases": [3], "simple": "What is still missing?" },
+        { "ask": "What's next for this feature?", "phrases": [4], "simple": "What will you do next?" }
+      ],
+      "phrases": [
+        {
+          "say": "Today, I'm going to show you ...",
+          "match": [
+            "today i'm going to show",
+            "today i am going to show",
+            "i'm going to show you",
+            "i am going to show you"
+          ]
+        },
+        {
+          "say": "It's for ..., who need to ...",
+          "match": [
+            "it's for",
+            "it is for",
+            "it helps"
+          ]
+        },
+        {
+          "say": "First, the user ... Then ...",
+          "match": [
+            "first the user",
+            "first you",
+            "then you",
+            "after that"
+          ]
+        },
+        {
+          "say": "One thing that's not done yet is ...",
+          "match": [
+            "not done yet",
+            "not finished yet",
+            "still working on"
+          ]
+        },
+        {
+          "say": "Next sprint, we plan to ...",
+          "match": [
+            "next sprint",
+            "we plan to",
+            "we're planning to",
+            "we are planning to"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "clarifying",
+      "topic": "workplace",
+      "title": "Asking for clarification",
+      "role": "a CLIENT describing a vague request to a developer",
+      "partner": "Khách hàng",
+      "scenario": "This is not an interview. A client gives the learner (a developer) a vague request. The learner must ask clarifying questions and confirm understanding. The client answers briefly and plainly when asked.",
+      "goal": "Đừng đoán: hỏi lại cho rõ, xin ví dụ, hỏi hạn chót, rồi nhắc lại yêu cầu bằng lời của bạn để xác nhận.",
+      "greeting": "Hi, thanks for taking the call. I have a request for you.",
+      "closing": "Perfect, it sounds like we're on the same page.",
+      "vocab": "requirement, report, page, export, Excel, PDF, filter, deadline, priority, example, user, customer, slow, faster, dashboard.",
+      "questions": [
+        { "ask": "We need the report page to be faster. Can you handle that?", "phrases": [0], "simple": "The report page is slow. What do you want to ask me about it?" },
+        { "ask": "Sorry, I mean the monthly sales report. It's really slow, especially in the morning. What else do you need to know?", "phrases": [1, 2], "simple": "Do you want to ask how slow it is, or when we need it?" },
+        { "ask": "It takes about a minute to open, and we need it fixed before the end of the month. Anything else?", "phrases": [1, 2], "simple": "Do you have any other question about the report or the deadline?" },
+        { "ask": "Great. Can you repeat back what you're going to do, so we're on the same page?", "phrases": [3], "simple": "What will you do for us? Please say it in your own words." }
+      ],
+      "phrases": [
+        {
+          "say": "Just to clarify, do you mean ...?",
+          "match": [
+            "just to clarify",
+            "do you mean"
+          ]
+        },
+        {
+          "say": "Could you give me an example of ...?",
+          "match": [
+            "could you give me an example",
+            "can you give me an example",
+            "for example"
+          ]
+        },
+        {
+          "say": "When do you need it by?",
+          "match": [
+            "when do you need it by",
+            "when do you need it",
+            "what's the deadline",
+            "what is the deadline"
+          ]
+        },
+        {
+          "say": "So if I understand correctly, you want ...",
+          "match": [
+            "if i understand correctly",
+            "so you want",
+            "let me make sure"
+          ]
+        }
+      ]
+    },
     {
       "id": "tell-me-about-yourself",
       "topic": "intro",

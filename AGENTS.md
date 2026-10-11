@@ -1,7 +1,8 @@
-# Speaking demo: luyện phỏng vấn tiếng Anh, chạy local
+# Speaking app: luyện nói tiếng Anh (giao tiếp, công việc, phỏng vấn), chạy local
 
 Người dùng là lập trình viên Java người Việt, hiểu tiếng Anh tốt nhưng nói chưa trôi chảy.
-App tạo một buổi phỏng vấn giả: nghe câu hỏi, nói, xem cách nói tự nhiên hơn (NOTE), nói lại.
+App tạo các buổi hội thoại có kịch bản (trò chuyện, tình huống công việc, phỏng vấn): nghe câu hỏi, nói, xem cách nói
+tự nhiên hơn (NOTE), nói lại. Bài kiểm tra nói 2 phút đo tiến bộ bằng số.
 Đây là code chính thức của sản phẩm, nhánh `main` trên `hanhathuy2612/speaking-english-ai`.
 App Angular cũ được giữ ở nhánh `old_main` của repo đó, chỉ dùng để tham khảo ý tưởng (topic, roadmap, đóng gói Android
 bằng Capacitor), không ghép code vào. Không đưa lại các cách làm đã bỏ của app đó: LLM tự dẫn dắt buổi nói, LLM chấm điểm, câu mẫu đọc thành tiếng.
@@ -21,7 +22,7 @@ backend/
     interview/           # session.py (trạng thái, next_step), prompts.py, turn.py (một lượt), shadow.py (nói lại), units.py
     assessment/          # check.py (bài kiểm tra nói 2 phút, không dùng LLM)
     utils/               # parsing.py, compare.py (hàm thuần), ws.py (Conn)
-    data/                # units.json (bài tập), check_prompts.json, bench_sentences.json
+    data/                # units.json (chủ đề + bài), check_prompts.json, bench_sentences.json
   scripts/               # replay.py (so prompt), stt_bench.py (đo STT)
   tests/                 # pytest
   pyproject.toml, requirements*.txt
@@ -75,7 +76,8 @@ npm test           # Vitest
 | Giọng đọc, cache, phát âm thanh | [docs/features/tts-audio.md](docs/features/tts-audio.md) | `services/tts.py`, `frontend/src/hooks/useAudioQueue.ts` |
 | Chỉ số nói, mẫu câu đã dùng | [docs/features/speech-metrics.md](docs/features/speech-metrics.md) | `utils/parsing.py`, `interview/session.py` (`summary`) |
 | Nói lại câu mẫu (shadowing): so từng từ, chuẩn hóa số và viết tắt | [docs/features/shadowing.md](docs/features/shadowing.md) | `interview/shadow.py`, `utils/compare.py`, `frontend/src/features/practice/CoachCard.tsx` |
-| Lộ trình: chủ đề, 12 bài luyện, bài tiếp theo, thêm bài mới | [docs/features/roadmap.md](docs/features/roadmap.md) | `data/units.json`, `interview/units.py`, `api/routes/units.py`, `frontend/src/features/roadmap/` |
+| Lộ trình: 6 chủ đề, 24 bài, bài tiếp theo, thêm bài mới | [docs/features/roadmap.md](docs/features/roadmap.md) | `data/units.json`, `interview/units.py`, `api/routes/units.py`, `frontend/src/features/roadmap/` |
+| Chế độ trò chuyện: AI đóng vai đồng nghiệp, trưởng nhóm, khách hàng… (`role`, `partner`) | [docs/features/conversation-mode.md](docs/features/conversation-mode.md) | `interview/prompts.py`, `data/units.json` (chủ đề `daily`, `workplace`) |
 | Bài kiểm tra nói 2 phút: tiêu chí, ngập ngừng giữa câu, trang `/check` | [docs/features/speaking-check.md](docs/features/speaking-check.md) | `assessment/check.py`, `api/routes/check.py`, `frontend/src/features/check/` |
 | Lịch sử luyện tập, trang Tiến bộ, biểu đồ xu hướng | [docs/features/session-history.md](docs/features/session-history.md) | `services/history.py`, `api/routes/history.py`, `frontend/src/features/history/` |
 | Đo độ chính xác STT, trang đọc theo câu mẫu | [docs/features/stt-benchmark.md](docs/features/stt-benchmark.md) | `scripts/stt_bench.py`, `api/routes/bench.py`, `frontend/src/features/bench/` |
@@ -88,7 +90,7 @@ npm test           # Vitest
 ## Quy tắc chung
 
 - **App điều khiển luồng phỏng vấn, không phải LLM.** LLM chỉ phản ứng, hỏi tối đa một câu phụ và viết NOTE. Lý do nằm trong interview-flow.md.
-- **AI luôn là người phỏng vấn.** Lời AI nói ở ngôi thứ hai. Câu mẫu ngôi thứ nhất chỉ nằm trong NOTE (hiện chữ, không đọc).
+- **AI luôn là người đối thoại theo `role` của bài** (người phỏng vấn, đồng nghiệp, trưởng nhóm…), không bao giờ nói thay người học. Lời AI nói ở ngôi thứ hai. Câu mẫu ngôi thứ nhất chỉ nằm trong NOTE (hiện chữ, không đọc).
 - **Ngôn ngữ:**
   - **Code và comment bằng tiếng Anh:** tên biến/hàm, comment, docstring, log in ra terminal, thông báo `assert`/exception, output và `--help` của script, commit message.
   - **Chữ người dùng nhìn thấy bằng tiếng Việt:** chữ trên giao diện (`frontend/`), các tin `error` gửi qua WebSocket, nhãn hiện trên giao diện. Đây là chuỗi trong code nhưng không phải comment, nên giữ tiếng Việt.

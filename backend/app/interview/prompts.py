@@ -6,7 +6,11 @@ from app.core.config import MAX_HISTORY
 from app.interview.session import Session, followup_limit
 from app.utils.parsing import norm
 
-SYSTEM_TEMPLATE = """You play the INTERVIEWER in a job interview. The candidate is a learner practising spoken English. Each user message gives the current question and the candidate's latest answer.
+# Interview units use DEFAULT_ROLE, which renders exactly the prompt validated with replay.py.
+# Conversation units set "role" in units.json (docs/features/conversation-mode.md).
+DEFAULT_ROLE = "the INTERVIEWER in a job interview"
+
+SYSTEM_TEMPLATE = """You play {role}. The candidate is a learner practising spoken English. Each user message gives the current question and the candidate's latest answer.
 
 Never talk about your own job or experience. Never say a first-person sentence that sounds like the candidate's answer. Speak to the candidate as "you".
 
@@ -89,7 +93,9 @@ def target_phrases(unit: dict, q_index: int) -> list[str]:
 
 def build_messages(s: Session, answer: str) -> list[dict]:
     phrases = "\n".join(f"- {p['say']}" for p in s.unit["phrases"])
-    system = SYSTEM_TEMPLATE.format(scenario=s.unit["scenario"], phrases=phrases)
+    system = SYSTEM_TEMPLATE.format(
+        role=s.unit.get("role", DEFAULT_ROLE), scenario=s.unit["scenario"], phrases=phrases
+    )
     return [
         {"role": "system", "content": system},
         *FEW_SHOT,

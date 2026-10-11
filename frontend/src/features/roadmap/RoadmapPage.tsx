@@ -100,7 +100,7 @@ export function RoadmapPage() {
   const [checks, setChecks] = useState<CheckRow[] | null>(null);
 
   useEffect(() => {
-    document.title = "Lộ trình luyện phỏng vấn";
+    document.title = "Lộ trình luyện nói";
     void (async () => setTopics((await (await fetch("/api/units")).json()).topics))();
     void (async () => setChecks((await (await fetch("/api/check")).json()).checks))();
   }, []);
@@ -115,10 +115,10 @@ export function RoadmapPage() {
       <AppBar />
       <main className="roadmap">
         <div className="roadmap-head">
-          <h1>Lộ trình luyện phỏng vấn</h1>
+          <h1>Lộ trình luyện nói</h1>
           <p className="roadmap-lead">
-            Đi lần lượt từ giới thiệu bản thân đến cuối buổi phỏng vấn. Một bài được tính là hoàn thành khi bạn trả
-            lời hết các câu hỏi chính.
+            Đi lần lượt từ giao tiếp hằng ngày, tiếng Anh ở công ty, rồi tới phỏng vấn. Một bài được tính là hoàn
+            thành khi bạn trả lời hết các câu hỏi chính. Làm bài kiểm tra nói sau mỗi chủ đề để đo tiến bộ.
           </p>
           {topics && (
             <div className="roadmap-progress">

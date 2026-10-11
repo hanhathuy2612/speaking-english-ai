@@ -6,7 +6,7 @@ LLM: Qwen2.5-7B-Instruct qua LM Studio, `temperature` 0.35, `max_tokens` 160, c�
 
 | Phần | Vị trí (trong `backend/app/`) |
 |---|---|
-| System prompt | `SYSTEM_TEMPLATE`, `build_messages()` trong `interview/prompts.py` |
+| System prompt | `SYSTEM_TEMPLATE` (`You play {role}.`), `DEFAULT_ROLE`, `build_messages()` trong `interview/prompts.py`. Vai theo bài: [conversation-mode.md](conversation-mode.md) |
 | Ví dụ mẫu | `FEW_SHOT` (3 cặp user/assistant) trong `interview/prompts.py` |
 | Tin nhắn mỗi lượt | `build_user_message()` trong `interview/prompts.py` |
 | Gọi LLM | `stream_reply()` trong `services/llm.py` |

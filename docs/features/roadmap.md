@@ -14,16 +14,18 @@ Mục đích: người dùng biết nên tập bài nào tiếp theo, thay vì t
 | Trang | `frontend/src/features/roadmap/RoadmapPage.tsx`, `frontend/src/styles/roadmap.css` |
 | Ô bài kiểm tra nói | `CheckCard` trong `RoadmapPage.tsx`, dữ liệu từ `GET /api/check` (xem [speaking-check.md](speaking-check.md)) |
 
-## Nội dung hiện có (12 bài, 4 chủ đề)
+## Nội dung hiện có (24 bài, 6 chủ đề)
 
 | Chủ đề | Bài |
 |---|---|
+| Giao tiếp hằng ngày | `weekend`, `hometown`, `hobbies`, `daily-routine`, `a-trip`, `opinions` (AI là đồng nghiệp, xem [conversation-mode.md](conversation-mode.md)) |
+| Tiếng Anh ở công ty | `standup`, `explain-a-bug`, `code-review`, `meeting-disagree`, `feature-demo`, `clarifying` |
 | Giới thiệu bản thân | `tell-me-about-yourself`, `current-project`, `career-goals` |
 | Kinh nghiệm kỹ thuật | `java-spring`, `microservices`, `database-performance`, `testing-quality` |
 | Tình huống thực tế (STAR) | `solved-a-problem`, `disagreement`, `tight-deadline`, `a-mistake` |
 | Cuối buổi phỏng vấn | `expectations` (lương, ngày bắt đầu, câu hỏi cho nhà tuyển dụng) |
 
-Thứ tự trong file là thứ tự lộ trình. Các bài STAR có `"followups": 0` (không hỏi câu phụ), vì câu chính đã đi qua từng bước. Bài `expectations` có câu "Do you have any questions for us?": `scenario` dặn AI trả lời ngắn, chung chung khi người học hỏi về công ty.
+Thứ tự trong file là thứ tự lộ trình: giao tiếp hằng ngày → công việc → phỏng vấn, vì phản xạ với chủ đề quen thuộc cần có trước. Đầu trang là ô bài kiểm tra nói: chưa làm thì mời làm bài đầu vào, đã làm thì hiện kết quả gần nhất. Các bài STAR có `"followups": 0` (không hỏi câu phụ), vì câu chính đã đi qua từng bước. Bài `expectations` có câu "Do you have any questions for us?": `scenario` dặn AI trả lời ngắn, chung chung khi người học hỏi về công ty.
 
 ## `GET /api/units`
 

@@ -26,7 +26,7 @@ function SpeechChips({ speech }: { speech: Speech }) {
   );
 }
 
-function Message({ item }: { item: Extract<ChatItem, { kind: "ai" | "me" }> }) {
+function Message({ item, partner }: { item: Extract<ChatItem, { kind: "ai" | "me" }>; partner: string }) {
   const me = item.kind === "me";
   return (
     <div className={`msg ${item.kind}${me && item.unclear ? " unclear" : ""}`}>
@@ -34,7 +34,7 @@ function Message({ item }: { item: Extract<ChatItem, { kind: "ai" | "me" }> }) {
         {me ? "Bạn" : "AI"}
       </div>
       <div className="msg-body">
-        <div className="who">{me ? "Bạn" : "Người phỏng vấn"}</div>
+        <div className="who">{me ? "Bạn" : partner}</div>
         <div className="bubble">{item.text}</div>
         {me && (
           <div className="meta">
@@ -98,7 +98,7 @@ function SummaryCard({ s }: { s: SessionSummary }) {
   );
 }
 
-export function Chat({ items }: { items: ChatItem[] }) {
+export function Chat({ items, partner }: { items: ChatItem[]; partner: string }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     ref.current?.scrollTo({ top: ref.current.scrollHeight });
@@ -106,7 +106,7 @@ export function Chat({ items }: { items: ChatItem[] }) {
   return (
     <div className="chat" aria-live="polite" ref={ref}>
       {items.map((it) =>
-        it.kind === "summary" ? <SummaryCard key={it.id} s={it.summary} /> : <Message key={it.id} item={it} />,
+        it.kind === "summary" ? <SummaryCard key={it.id} s={it.summary} /> : <Message key={it.id} item={it} partner={partner} />,
       )}
     </div>
   );

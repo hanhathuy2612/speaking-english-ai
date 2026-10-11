@@ -18,7 +18,7 @@ export function AppBar({ children }: { children?: ReactNode }) {
         <span className="brand-mark" aria-hidden>
           <ChatIcon />
         </span>
-        <span className="brand-name">Phòng tập phỏng vấn</span>
+        <span className="brand-name">Phòng tập nói</span>
       </Link>
       {children}
       <div className="appbar-spacer" />

@@ -30,6 +30,7 @@ export type UnitInfo = {
   scenario: string;
   phrases: { say: string }[];
   stt: string;
+  partner: string; // who the AI plays, e.g. "Người phỏng vấn", "Đồng nghiệp"
 };
 
 export type CompareItem =

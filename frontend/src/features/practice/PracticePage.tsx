@@ -16,7 +16,7 @@ export function PracticePage() {
   const { unit, progress, coach, shadow } = state;
 
   useEffect(() => {
-    document.title = "Phòng tập phỏng vấn";
+    document.title = "Phòng tập nói";
   }, []);
 
   const mic = useHoldToTalk({
@@ -81,7 +81,7 @@ export function PracticePage() {
         <Sidebar unit={unit} used={state.used} metrics={state.metrics} conf={state.conf} />
 
         <main className="stage">
-          <Chat items={state.items} />
+          <Chat items={state.items} partner={unit?.partner ?? "Người phỏng vấn"} />
 
           <div className="dock">
             {coach && (
