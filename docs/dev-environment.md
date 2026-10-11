@@ -32,6 +32,44 @@ powershell -NoProfile -Command "Get-NetTCPConnection -LocalPort 8001 -State List
 - `recordings/` (giọng nói) và `data/` (lịch sử luyện tập) là dữ liệu thật của người dùng. Không xóa, không ghi đè. File tạo ra khi thử thì tự dọn.
 - Editor của người dùng tự định dạng file Python khi lưu (kiểu Black, 88 ký tự, sắp xếp lại import). Đọc lại file trước khi sửa nếu công cụ báo file đã thay đổi.
 
+## Dùng từ thiết bị khác trong mạng LAN (điện thoại, máy khác)
+
+Mặc định uvicorn chỉ nghe ở `127.0.0.1`, nên chỉ chính máy này vào được. Muốn mở từ thiết bị cùng mạng:
+
+1. **HTTPS là bắt buộc nếu muốn dùng micro.** Trình duyệt chỉ cho ghi âm trên `https://` hoặc `localhost`; mở `http://192.168.x.x:8000` vẫn thấy trang nhưng bấm micro sẽ lỗi. Tạo chứng chỉ tự ký một lần (cần `openssl`, có sẵn trong Git Bash), ghi IP LAN của máy (`ipconfig`):
+
+```
+python -m scripts.make_cert 192.168.0.2
+```
+
+   Chứng chỉ ở `certs/lan-cert.pem` + `certs/lan-key.pem` (không commit, có khóa riêng), hạn 825 ngày, gồm IP đó + `localhost`. Đổi IP thì chạy lại.
+
+2. **Ghi cấu hình vào `.env`** (đã có trong `.env` của người dùng, mẫu ở `.env.example`):
+
+```
+SERVER_HOST=0.0.0.0
+SSL_CERTFILE=certs/lan-cert.pem
+SSL_KEYFILE=certs/lan-key.pem
+```
+
+   Rồi chạy app bằng lệnh ngắn: `run` (file `run.cmd` ở thư mục gốc, trong PowerShell gõ `.\run`; không cần `cd` hay kích hoạt venv), hoặc `python -m app` trong `backend/`. Cả hai đọc `SERVER_HOST`, `SERVER_PORT`, `SSL_*` từ `.env` (`backend/app/__main__.py`) và in sẵn địa chỉ để mở, kể cả địa chỉ LAN. Lệnh `uvicorn ...` trực tiếp **không** đọc các biến này.
+
+   Khi có HTTPS, máy chính cũng phải mở `https://localhost:8000`. Frontend tự chọn `wss://` cho WebSocket khi trang là HTTPS.
+
+3. **Mở cổng 8000 trên Windows Firewall** cho mạng Private (PowerShell chạy quyền Administrator, người dùng tự làm). Mạng Wi-Fi/Ethernet ở nhà phải đặt là Private:
+
+```
+New-NetFirewallRule -DisplayName "Speaking app 8000 (LAN)" -Direction Inbound -Protocol TCP -LocalPort 8000 -Action Allow -Profile Private
+```
+
+4. Trên thiết bị kia mở `https://192.168.0.2:8000`. Trình duyệt cảnh báo chứng chỉ không tin cậy (vì tự ký): chọn "Nâng cao" → "Tiếp tục truy cập". Sau đó cho phép micro.
+
+Không có đăng nhập: ai trong cùng mạng mở được địa chỉ này đều xem và ghi được lịch sử luyện tập. Chỉ bật ở mạng nhà tin cậy; không mở cổng này ra Internet (dùng Tailscale hoặc Cloudflare Tunnel nếu cần truy cập từ ngoài).
+
+Đã thử ngày 11/10/2026 trên server thử (HTTPS, cổng 8001, chạy bằng `.\run.cmd` từ PowerShell với `SERVER_PORT`/`SERVER_HOST` đặt bằng biến môi trường): trang, `/api/stages` và WebSocket `wss://` đều chạy với chứng chỉ này.
+
+Agent không chạy `run.cmd` để thử nếu `.env` có `SERVER_HOST=0.0.0.0` mà không ghi đè: server thử sẽ mở ra mạng LAN. Trong PowerShell, `$env:SAVE_AUDIO_DIR = ""` **xóa** biến chứ không đặt rỗng, nên giá trị trong `.env` lại được dùng; muốn tắt lưu ghi âm thì dùng lệnh `uvicorn` như ở trên.
+
 ## Lỗi thường gặp
 
 - **In tiếng Việt lỗi `UnicodeEncodeError: 'charmap'`** khi chuyển output ra file: đặt `PYTHONIOENCODING=utf-8`. `app/main.py` đã tự `reconfigure` stdout, nhưng các script khác thì chưa.

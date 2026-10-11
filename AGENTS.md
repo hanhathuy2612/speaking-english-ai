@@ -16,6 +16,7 @@ LLM Qwen2.5-7B qua LM Studio, STT faster-whisper `large-v3-turbo` trên GPU, TTS
 backend/
   app/
     main.py              # tạo FastAPI app, nạp Whisper lúc khởi động, gắn router, phục vụ frontend
+    __main__.py          # python -m app: chạy uvicorn với SERVER_*/SSL_* trong .env (run.cmd ở thư mục gốc gọi file này)
     core/                # config.py (đọc .env, đường dẫn), cuda.py (DLL CUDA trên Windows)
     api/routes/          # ws.py (WebSocket /ws), units.py (+ /api/stages), drills.py, fluency.py, check.py, bench.py, history.py (/api/...)
     services/            # stt.py (Whisper), tts.py (edge-tts + cache), llm.py (LM Studio), history.py (SQLite)
@@ -23,7 +24,7 @@ backend/
     assessment/          # không dùng LLM: metrics.py (đo), check.py (kiểm tra 2 phút), drills.py (phát âm), fluency.py (4–3–2), stages.py (mở giai đoạn)
     utils/               # parsing.py, compare.py (hàm thuần), ws.py (Conn)
     data/                # units.json (chủ đề + bài), stages.json, drills.json, check_prompts.json, fluency_prompts.json, bench_sentences.json
-  scripts/               # replay.py (so prompt), stt_bench.py (đo STT)
+  scripts/               # replay.py (so prompt), stt_bench.py (đo STT), make_cert.py (HTTPS cho LAN)
   tests/                 # pytest
   pyproject.toml, requirements*.txt
 frontend/                # React + TypeScript + Vite; build vào frontend/dist (backend phục vụ)
@@ -49,9 +50,11 @@ Backend (từ `backend/`):
 ```
 ..\.venv\Scripts\activate
 uvicorn app.main:app --port 8000      # app của người dùng; agent thử nghiệm ở cổng 8001
+python -m app                         # như trên nhưng đọc SERVER_HOST/PORT, SSL_* trong .env (LAN + HTTPS); ở thư mục gốc: run
 python -m pytest                      # test backend
 python -m scripts.replay answers.txt --runs 3 --url ws://localhost:8001/ws
 python -m scripts.stt_bench --config large-v3-turbo,cuda,float16,3 --show
+python -m scripts.make_cert 192.168.0.2   # HTTPS cho thiết bị trong LAN, xem docs/dev-environment.md
 ```
 
 Frontend (từ `frontend/`):
@@ -85,7 +88,7 @@ npm test           # Vitest
 | Đo độ chính xác STT, trang đọc theo câu mẫu | [docs/features/stt-benchmark.md](docs/features/stt-benchmark.md) | `scripts/stt_bench.py`, `api/routes/bench.py`, `frontend/src/features/bench/` |
 | Giao diện React: cấu trúc, luồng dữ liệu, hệ thiết kế | [docs/features/frontend.md](docs/features/frontend.md) | `frontend/src/` |
 | Biến cấu hình | [docs/configuration.md](docs/configuration.md) | `.env`, `core/config.py` |
-| Môi trường Windows, kiểm thử, lỗi thường gặp | [docs/dev-environment.md](docs/dev-environment.md) | |
+| Môi trường Windows, kiểm thử, lỗi thường gặp, mở app từ điện thoại trong LAN (HTTPS) | [docs/dev-environment.md](docs/dev-environment.md) | `scripts/make_cert.py` |
 
 Đường dẫn trong cột mã nguồn tính từ `backend/app/`, trừ khi ghi rõ `frontend/` hay `scripts/`.
 

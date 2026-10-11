@@ -25,6 +25,9 @@ recordings/
 *.wav
 *.mp3
 
+# Chứng chỉ HTTPS tự ký cho mạng LAN (có khóa riêng), tạo bằng scripts/make_cert.py
+certs/
+
 # Model tải về nếu để trong dự án (mặc định nằm trong ~/.cache/huggingface)
 models/
 

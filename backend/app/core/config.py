@@ -49,3 +49,11 @@ HISTORY_DB = os.getenv("HISTORY_DB", "data/history.db")  # relative to the proje
 # ----- TTS (edge-tts) -----
 TTS_VOICE = os.getenv("TTS_VOICE", "en-US-JennyNeural")
 TTS_RATE = os.getenv("TTS_RATE", "-10%")
+
+# ----- Server (`python -m app` / `run.cmd`; plain `uvicorn ...` ignores these) -----
+SERVER_HOST = os.getenv("SERVER_HOST", "127.0.0.1")  # 0.0.0.0: reachable from other devices on the LAN
+SERVER_PORT = int(os.getenv("SERVER_PORT", "8000"))
+# HTTPS: browsers only allow the microphone on https:// or localhost. Paths relative to the
+# project root; create them with `python -m scripts.make_cert <LAN IP>`. Empty: plain HTTP.
+SSL_CERTFILE = os.getenv("SSL_CERTFILE", "")
+SSL_KEYFILE = os.getenv("SSL_KEYFILE", "")
