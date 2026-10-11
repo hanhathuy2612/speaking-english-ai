@@ -2,9 +2,9 @@
 
 Người dùng là lập trình viên Java người Việt, hiểu tiếng Anh tốt nhưng nói chưa trôi chảy.
 App tạo một buổi phỏng vấn giả: nghe câu hỏi, nói, xem cách nói tự nhiên hơn (NOTE), nói lại.
-Đây là hướng phát triển chính của sản phẩm (nhánh `feat/speaking-demo` trên `hanhathuy2612/speaking-english-ai`).
-App Angular trên `main` của repo đó chỉ dùng để tham khảo ý tưởng (topic, roadmap, đóng gói Android bằng Capacitor),
-không ghép code vào. Không đưa lại các cách làm đã bỏ của app đó: LLM tự dẫn dắt buổi nói, LLM chấm điểm, câu mẫu đọc thành tiếng.
+Đây là code chính thức của sản phẩm, nhánh `main` trên `hanhathuy2612/speaking-english-ai`.
+App Angular cũ được giữ ở nhánh `old_main` của repo đó, chỉ dùng để tham khảo ý tưởng (topic, roadmap, đóng gói Android
+bằng Capacitor), không ghép code vào. Không đưa lại các cách làm đã bỏ của app đó: LLM tự dẫn dắt buổi nói, LLM chấm điểm, câu mẫu đọc thành tiếng.
 
 **Stack:** backend FastAPI + WebSocket (Python 3.11), frontend React 19 + TypeScript + Vite (Node 22.12+).
 LLM Qwen2.5-7B qua LM Studio, STT faster-whisper `large-v3-turbo` trên GPU, TTS edge-tts. Cấu hình nằm trong `.env` ở thư mục gốc.
