@@ -17,13 +17,14 @@ Backend phục vụ bản build: `/`, `/roadmap`, `/history`, `/bench` đều tr
 ## Cấu trúc `src/`
 
 ```
-main.tsx                    # gắn React Router: / , /roadmap , /history , /bench
+main.tsx                    # gắn React Router: / , /roadmap , /check , /history , /bench
 api/types.ts                # kiểu dữ liệu của API và giao thức WebSocket
 lib/format.ts               # hàm thuần: fmtDate, fmtNum, niceMax, latestWithDelta (+ format.test.ts)
 lib/roadmap.ts              # hàm thuần: allUnits, pickUnit, unitState (+ roadmap.test.ts)
+lib/check.ts                # hàm thuần: fmtClock, criterionValue (+ check.test.ts)
 components/                 # dùng chung: AppBar (thanh trên + điều hướng), Icons, ui (Chip, StatusLine)
 hooks/
-  useHoldToTalk.ts          # ghi âm giữ để nói (MediaRecorder webm/opus) + giữ phím Space
+  useHoldToTalk.ts          # ghi âm giữ để nói (MediaRecorder webm/opus) + giữ phím Space; trang /check gọi start()/stop() để bấm-bấm
   useAudioQueue.ts          # hàng đợi phát MP3, báo khi một câu bắt đầu phát
 features/
   practice/                 # phòng tập
@@ -31,9 +32,10 @@ features/
     PracticePage.tsx        # bố cục trang, nối hook ghi âm với useInterview
     Sidebar.tsx, Chat.tsx, CoachCard.tsx (thẻ NOTE + kết quả nói lại)
   roadmap/                  # RoadmapPage.tsx (xem roadmap.md)
+  check/                    # CheckPage.tsx (xem speaking-check.md)
   history/                  # HistoryPage.tsx, LineChart.tsx (biểu đồ SVG)
   bench/                    # BenchPage.tsx
-styles/                     # base.css (token, component chung), practice.css, roadmap.css, history.css, bench.css
+styles/                     # base.css (token, component chung, bảng), practice.css, roadmap.css, check.css, history.css, bench.css
 ```
 
 ## Luồng dữ liệu phòng tập (`useInterview.ts`)
@@ -54,6 +56,7 @@ styles/                     # base.css (token, component chung), practice.css, r
   - `.chip` (biến thể `.chip-success`, `.chip-warning`).
   - `.status[data-state]` với `ready` | `busy` | `recording` | `warn` | `error`.
   - `.mic` / `.mic.rec`, `.card`, `.appbar`, `.nav`.
+  - Bảng: `.table-card`, `.table-wrap`, `table`, `.num` (dùng ở trang Tiến bộ và Kiểm tra).
 - CSS của mỗi trang được import trong component trang, nhưng Vite gộp tất cả thành một file. Vì vậy **tên class là toàn cục**: không đặt trùng tên class giữa các trang với ý nghĩa khác nhau.
 - Giảm chuyển động khi người dùng bật `prefers-reduced-motion`.
 

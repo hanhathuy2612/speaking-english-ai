@@ -104,3 +104,52 @@ export type HistorySession = {
 };
 
 export type BenchItem = { text: string; done: boolean };
+
+// ----- Speaking check (docs/features/speaking-check.md) -----
+
+export type CheckPrompt = { id: string; text: string; hint: string };
+
+export type CheckCriterion = {
+  key: "duration" | "wpm_speaking" | "hesitations_per_100" | "english";
+  label: string;
+  value: number | boolean | null;
+  target: number | boolean;
+  passed: boolean;
+};
+
+export type CheckReport = {
+  prompt: CheckPrompt;
+  text: string;
+  words: number;
+  duration_s: number;
+  wpm: number | null;
+  wpm_speaking: number | null;
+  hesitations: number; // pauses > 0.7 s inside a sentence
+  hesitations_per_100: number | null;
+  not_english: boolean;
+  measurable: boolean; // at least 30 s of English, so speed and hesitation are judged
+  criteria: CheckCriterion[];
+  passed: number;
+};
+
+export type CheckRow = {
+  id: number;
+  created_at: string;
+  prompt_id: string;
+  prompt: string;
+  text: string;
+  words: number;
+  duration_s: number;
+  wpm_speaking: number | null;
+  hesitations_per_100: number | null;
+  not_english: boolean;
+  passed: number;
+  total: number;
+};
+
+export type CheckState = {
+  enabled: boolean;
+  prompt: CheckPrompt;
+  targets: { seconds: number; wpm_speaking: number; hesitations_per_100: number };
+  checks: CheckRow[];
+};

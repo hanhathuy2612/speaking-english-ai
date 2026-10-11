@@ -137,3 +137,28 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ----- Speaking check card ----- */
+.check-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px;
+}
+.check-card h2 {
+  margin-top: 2px;
+  font-size: 15.5px;
+  font-weight: 650;
+}
+.check-card p:last-child {
+  margin-top: 2px;
+  color: var(--text-2);
+  font-size: 13.5px;
+}
+@media (max-width: 560px) {
+  .check-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

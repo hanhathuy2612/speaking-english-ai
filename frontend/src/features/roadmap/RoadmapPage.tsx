@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
-import type { Topic, UnitStatus } from "../../api/types";
+import type { CheckRow, Topic, UnitStatus } from "../../api/types";
 import { AppBar } from "../../components/AppBar";
 import { CheckIcon } from "../../components/Icons";
 import { Chip } from "../../components/ui";
-import { fmtDate } from "../../lib/format";
+import { fmtClock } from "../../lib/check";
+import { fmtDate, fmtNum } from "../../lib/format";
 import { allUnits, pickUnit, unitState } from "../../lib/roadmap";
 import "../../styles/roadmap.css";
 
@@ -37,6 +38,37 @@ function UnitCard({ u, next }: { u: UnitStatus; next: boolean }) {
   );
 }
 
+/** Speaking check status: the placement test first, then the latest result. */
+function CheckCard({ checks }: { checks: CheckRow[] }) {
+  const last = checks[checks.length - 1];
+  return (
+    <section className="card check-card" aria-label="Bài kiểm tra nói">
+      <div className="check-card-text">
+        <p className="eyebrow">Bài kiểm tra nói</p>
+        {last ? (
+          <>
+            <h2>
+              Lần gần nhất đạt {last.passed}/{last.total} tiêu chí
+            </h2>
+            <p>
+              {fmtDate(last.created_at, false)} · nói {fmtClock(last.duration_s)} · {fmtNum(last.wpm_speaking)} từ/phút
+              khi nói · {fmtNum(last.hesitations_per_100)} lần ngập ngừng / 100 từ. Làm lại sau mỗi chủ đề để xem tiến bộ.
+            </p>
+          </>
+        ) : (
+          <>
+            <h2>Bắt đầu bằng bài kiểm tra đầu vào</h2>
+            <p>Nói 2 phút về một đề chưa chuẩn bị để lấy số đo ban đầu. App chỉ đo, không dùng AI chấm.</p>
+          </>
+        )}
+      </div>
+      <Link className={`btn${last ? "" : " btn-primary"}`} to="/check">
+        {last ? "Kiểm tra lại" : "Làm bài đầu vào"}
+      </Link>
+    </section>
+  );
+}
+
 function TopicSection({ t, index, nextId }: { t: Topic; index: number; nextId: string | null }) {
   const done = t.units.filter((u) => u.completed).length;
   const all = done === t.units.length;
@@ -65,10 +97,12 @@ function TopicSection({ t, index, nextId }: { t: Topic; index: number; nextId: s
 
 export function RoadmapPage() {
   const [topics, setTopics] = useState<Topic[] | null>(null);
+  const [checks, setChecks] = useState<CheckRow[] | null>(null);
 
   useEffect(() => {
     document.title = "Lộ trình luyện phỏng vấn";
     void (async () => setTopics((await (await fetch("/api/units")).json()).topics))();
+    void (async () => setChecks((await (await fetch("/api/check")).json()).checks))();
   }, []);
 
   const units = allUnits(topics ?? []);
@@ -97,6 +131,7 @@ export function RoadmapPage() {
             </div>
           )}
         </div>
+        {checks && <CheckCard checks={checks} />}
         {topics?.map((t, i) => <TopicSection key={t.id} t={t} index={i} nextId={nextId} />)}
       </main>
     </>

@@ -1,6 +1,7 @@
 """Pure-logic tests, no model or network needed. Run from backend/: python -m pytest"""
 
 from app.utils.parsing import (
+    hesitation_pauses,
     has_vietnamese,
     is_question,
     ready_sentences,
@@ -107,3 +108,13 @@ def test_has_vietnamese():
     assert has_vietnamese("Em làm Java được 5 năm rồi.")
     assert not has_vietnamese("I've been working as a Java developer for five years.")
     assert not has_vietnamese("We met at a café near the office.")  # loanword accents are fine
+
+
+def test_hesitation_pauses_ignore_sentence_breaks():
+    w = lambda text, s, e: {"w": text, "s": s, "e": e, "p": 0.9}  # noqa: E731
+    words = [
+        w("I", 0.0, 0.2), w("work.", 0.3, 0.6),  # 1.0 s after "work." = sentence break, not counted
+        w("Then", 1.6, 1.8), w("I", 1.9, 2.0),  # 1.5 s after "I" = hesitation
+        w("code,", 3.5, 3.8), w("mostly", 4.0, 4.3),
+    ]
+    assert hesitation_pauses(words) == 1

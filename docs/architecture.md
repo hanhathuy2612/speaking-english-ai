@@ -55,5 +55,6 @@ Server gửi:
 
 - `GET /`, `/history`, `/bench`: `frontend/dist/index.html` (app React một trang; React Router chọn trang). `/assets/...`: JS/CSS đã build. Chưa build thì trả hướng dẫn (503).
 - `/api/history/...`: xem [session-history.md](features/session-history.md).
+- `/api/check`: bài kiểm tra nói, xem [speaking-check.md](features/speaking-check.md).
 - `GET /api/units`: chủ đề và bài theo thứ tự lộ trình, kèm trạng thái đã tập (`api/routes/units.py`, xem [roadmap.md](features/roadmap.md)).
 - `GET /bench`, `GET /api/bench`, `POST /api/bench/{i}`: xem [stt-benchmark.md](features/stt-benchmark.md).

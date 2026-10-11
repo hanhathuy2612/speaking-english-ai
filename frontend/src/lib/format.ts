@@ -24,18 +24,19 @@ export type Delta = { text: string; tone?: "good" | "bad" };
 export function latestWithDelta(
   values: (number | null)[],
   lowerIsBetter: boolean,
+  since = "buổi đầu",
 ): { value: number | null; delta: Delta } {
   const vals = values.filter((v): v is number => v != null);
   if (!vals.length) return { value: null, delta: { text: "Chưa có lượt nói đủ dài để tính" } };
   const last = vals[vals.length - 1];
-  if (vals.length < 2) return { value: last, delta: { text: "Cần ít nhất 2 buổi để so sánh" } };
+  if (vals.length < 2) return { value: last, delta: { text: `Cần ít nhất 2 ${since.split(" ")[0]} để so sánh` } };
   const diff = Math.round((last - vals[0]) * 10) / 10;
   const better = lowerIsBetter ? diff < 0 : diff > 0;
   const sign = diff > 0 ? "+" : diff < 0 ? "−" : "±";
   return {
     value: last,
     delta: {
-      text: `${sign}${fmtNum(Math.abs(diff))} so với buổi đầu`,
+      text: `${sign}${fmtNum(Math.abs(diff))} so với ${since}`,
       tone: diff === 0 ? undefined : better ? "good" : "bad",
     },
   };

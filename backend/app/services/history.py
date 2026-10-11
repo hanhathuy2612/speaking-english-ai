@@ -58,6 +58,23 @@ CREATE TABLE IF NOT EXISTS shadows (
     long_pauses INTEGER,
     avg_logprob REAL
 );
+CREATE TABLE IF NOT EXISTS checks (
+    id INTEGER PRIMARY KEY,
+    created_at TEXT NOT NULL,
+    prompt_id TEXT NOT NULL,
+    prompt TEXT NOT NULL,
+    text TEXT NOT NULL,
+    words INTEGER NOT NULL,
+    duration_s REAL NOT NULL,
+    wpm INTEGER,
+    wpm_speaking INTEGER,
+    hesitations INTEGER NOT NULL,      -- pauses > 0.7 s inside a sentence
+    hesitations_per_100 REAL,
+    not_english INTEGER NOT NULL,
+    avg_logprob REAL,
+    passed INTEGER NOT NULL,           -- targets met (docs/features/speaking-check.md)
+    total INTEGER NOT NULL             -- number of targets
+);
 """
 
 
@@ -235,3 +252,25 @@ def unit_stats() -> dict[str, dict]:
         st["completed"] += s["completed"]
         st["last_at"] = max(st["last_at"] or "", s["started_at"])
     return stats
+
+
+def add_check(check: dict) -> int | None:
+    """One speaking check (docs/features/speaking-check.md); keys match the `checks` columns."""
+    if not enabled():
+        return None
+    cols = ["created_at", *check]
+    with closing(_connect()) as conn, conn:
+        cur = conn.execute(
+            f"INSERT INTO checks ({', '.join(cols)}) VALUES ({', '.join('?' * len(cols))})",
+            (_now(), *check.values()),
+        )
+        return cur.lastrowid
+
+
+def list_checks() -> list[dict]:
+    """All speaking checks, oldest first."""
+    if not enabled():
+        return []
+    with closing(_connect()) as conn:
+        rows = conn.execute("SELECT * FROM checks ORDER BY created_at, id").fetchall()
+    return [{**dict(r), "not_english": bool(r["not_english"])} for r in rows]

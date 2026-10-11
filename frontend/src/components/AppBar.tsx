@@ -5,6 +5,7 @@ import { ChatIcon } from "./Icons";
 const NAV = [
   { to: "/", label: "Phòng tập" },
   { to: "/roadmap", label: "Lộ trình" },
+  { to: "/check", label: "Kiểm tra" },
   { to: "/history", label: "Tiến bộ" },
   { to: "/bench", label: "Đo nhận dạng" },
 ];

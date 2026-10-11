@@ -118,3 +118,13 @@ def test_unit_stats_counts_answered_sessions(db):
     history.start_session(UNIT)  # no answers: not counted
     st = history.unit_stats()["u1"]
     assert st["sessions"] == 2 and st["completed"] == 1 and st["last_at"]
+
+
+def test_checks_are_stored_and_listed(db):
+    history.add_check({
+        "prompt_id": "p", "prompt": "Talk", "text": "hello", "words": 1, "duration_s": 0.5,
+        "wpm": None, "wpm_speaking": None, "hesitations": 0, "hesitations_per_100": 0.0,
+        "not_english": 1, "avg_logprob": -0.3, "passed": 0, "total": 4,
+    })
+    [c] = history.list_checks()
+    assert c["prompt_id"] == "p" and c["not_english"] is True and c["total"] == 4

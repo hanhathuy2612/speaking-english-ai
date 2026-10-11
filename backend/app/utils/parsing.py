@@ -85,6 +85,17 @@ def used_phrase_indices(text: str, phrases: list[dict]) -> list[int]:
     ]
 
 
+def hesitation_pauses(words: list[dict]) -> int:
+    """Long pauses (> LONG_PAUSE_S) inside a sentence. A pause after ".", "?" or "!" is a natural
+    sentence break: fluent speech has them too (edge-tts reading 217 words: 11 long pauses, 0 inside
+    a sentence), so only the others count as hesitation."""
+    return sum(
+        1
+        for a, b in zip(words, words[1:])
+        if b["s"] - a["e"] > LONG_PAUSE_S and not a["w"].rstrip().endswith((".", "?", "!"))
+    )
+
+
 def speech_metrics(words: list[dict]) -> dict:
     """words: [{'w','s','e','p'}] (word, start, end, recognition probability).
 

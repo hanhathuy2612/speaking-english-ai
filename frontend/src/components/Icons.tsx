@@ -62,3 +62,15 @@ export const TrashIcon = ({ size = 15 }: P) => (
     <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" />
   </svg>
 );
+
+export const XIcon = ({ size = 12, width = 3.5 }: P & { width?: number }) => (
+  <svg {...stroke(size)} strokeWidth={width}>
+    <path d="M18 6 6 18M6 6l12 12" />
+  </svg>
+);
+
+export const StopIcon = ({ size = 22 }: P) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+    <rect x="6" y="6" width="12" height="12" rx="2" />
+  </svg>
+);

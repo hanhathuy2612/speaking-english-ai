@@ -31,3 +31,10 @@ describe("latestWithDelta", () => {
     expect(latestWithDelta([null], true).value).toBeNull();
   });
 });
+
+describe("latestWithDelta wording", () => {
+  it("can compare with the first check instead of the first session", () => {
+    expect(latestWithDelta([100, 110], false, "lần đầu").delta.text).toBe("+10 so với lần đầu");
+    expect(latestWithDelta([100], false, "lần đầu").delta.text).toBe("Cần ít nhất 2 lần để so sánh");
+  });
+});

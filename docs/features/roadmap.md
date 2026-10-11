@@ -12,6 +12,7 @@ Mục đích: người dùng biết nên tập bài nào tiếp theo, thay vì t
 | API | `GET /api/units` trong `backend/app/api/routes/units.py` |
 | Chọn bài mở đầu | `pickUnit()`, `unitState()` trong `frontend/src/lib/roadmap.ts` (+ `roadmap.test.ts`) |
 | Trang | `frontend/src/features/roadmap/RoadmapPage.tsx`, `frontend/src/styles/roadmap.css` |
+| Ô bài kiểm tra nói | `CheckCard` trong `RoadmapPage.tsx`, dữ liệu từ `GET /api/check` (xem [speaking-check.md](speaking-check.md)) |
 
 ## Nội dung hiện có (12 bài, 4 chủ đề)
 
