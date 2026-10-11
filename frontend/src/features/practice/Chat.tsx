@@ -38,7 +38,13 @@ function Message({ item }: { item: Extract<ChatItem, { kind: "ai" | "me" }> }) {
         <div className="bubble">{item.text}</div>
         {me && (
           <div className="meta">
-            {item.unclear && <Chip tone="warning">Máy nghe chưa rõ, AI chưa trả lời</Chip>}
+            {item.unclear && (
+              <Chip tone="warning">
+                {item.unclear === "not_english"
+                  ? "Chưa phải tiếng Anh, AI chưa trả lời"
+                  : "Máy nghe chưa rõ, AI chưa trả lời"}
+              </Chip>
+            )}
             <SpeechChips speech={item.speech} />
           </div>
         )}

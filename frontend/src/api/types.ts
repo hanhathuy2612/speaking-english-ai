@@ -8,6 +8,8 @@ export type Speech = {
   low_conf: string[];
 };
 
+export type UnclearReason = "not_english" | "low_confidence";
+
 export type UnitSummary = { id: string; title: string };
 
 export type UnitInfo = {
@@ -52,7 +54,7 @@ export type Metrics = {
 export type ServerMessage =
   | { type: "started"; unit: UnitInfo }
   | { type: "status"; msg: "transcribing" | "thinking" }
-  | { type: "transcript"; text: string; speech: Speech; used: number[]; unclear: boolean; conf: number | null }
+  | { type: "transcript"; text: string; speech: Speech; used: number[]; unclear: boolean; reason: UnclearReason | null; conf: number | null }
   | { type: "sentence"; text: string; role: "ai" | "model" }
   | { type: "note"; text: string; retry: boolean }
   | ({ type: "shadow_result" } & ShadowResult)

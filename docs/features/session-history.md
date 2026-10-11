@@ -21,7 +21,7 @@ File mặc định: `data/history.db` ở thư mục gốc (biến `HISTORY_DB`,
 - **`sessions`:** một dòng cho mỗi lần làm bài. Chỉ được tạo **khi có câu trả lời đầu tiên**, nên mở bài rồi bỏ đi không để lại phiên rỗng. `completed` = 1 khi đã hỏi hết câu.
 - **`turns`:** một dòng cho mỗi lượt trả lời. Ghi: câu hỏi, câu trả lời, nguồn (`voice`/`text`), cờ `unclear`, số từ, tốc độ, số lần ngắt dài, `avg_logprob` và `no_speech` của Whisper, các mẫu câu dùng trong lượt, NOTE, cờ RETRY, độ trễ.
 - **`shadows`:** mỗi lần nói lại câu NOTE (xem [shadowing.md](shadowing.md)). Tách khỏi `turns` nên không ảnh hưởng số liệu phỏng vấn; trang Tiến bộ chưa hiển thị.
-- Lượt "máy nghe chưa rõ" cũng được ghi (`unclear` = 1). Đây là dữ liệu để hiệu chỉnh `STT_MIN_LOGPROB` sau này.
+- Lượt "máy nghe chưa rõ" hoặc "chưa phải tiếng Anh" cũng được ghi (`unclear` = 1), làm dữ liệu hiệu chỉnh ngưỡng STT.
 - Hoàn tác xóa hẳn dòng của lượt vừa rồi và cập nhật lại `completed`.
 - Số liệu tổng hợp được tính khi đọc, không lưu sẵn, nên xóa hay hoàn tác không làm lệch số.
 

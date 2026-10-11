@@ -70,8 +70,9 @@ async def handle_user_input(
         "no_speech": stt_result["no_speech"] if stt_result else None,
         "used_phrases": used_now,
     }
-    if stt_result and stt.is_unclear(stt_result):
-        # Low STT confidence: do not let the LLM guess, ask the learner to repeat.
+    reason = stt.unclear_reason(stt_result) if stt_result else None
+    if reason:
+        # Not English, or low STT confidence: do not let the LLM guess, ask the learner to repeat.
         # Still recorded (unclear=1): these rows are the data for calibrating the threshold.
         history.add_turn(
             _history_id(s),
@@ -79,7 +80,7 @@ async def handle_user_input(
         )
         await conn.json(
             {"type": "transcript", "text": text, "speech": speech, "used": sorted(s.used),
-             "unclear": True, "conf": conf}
+             "unclear": True, "reason": reason, "conf": conf}
         )
         await conn.json({"type": "metrics", "stt_ms": round(((t_stt or t0) - t0) * 1000)})
         await conn.json({"type": "turn_done", "can_undo": False})
@@ -91,7 +92,7 @@ async def handle_user_input(
     s.last_speech = speech if words else None
     await conn.json(
         {"type": "transcript", "text": text, "speech": speech, "used": sorted(s.used),
-         "unclear": False, "conf": conf}
+         "unclear": False, "reason": None, "conf": conf}
     )
     await conn.json({"type": "status", "msg": "thinking"})
     await run_turn(conn, s, text, t0, t_stt, record)

@@ -8,6 +8,7 @@ from pathlib import Path
 
 from app.core import config
 from app.core.cuda import add_cuda_dlls
+from app.utils.parsing import has_vietnamese
 
 add_cuda_dlls()  # before importing faster_whisper
 
@@ -37,17 +38,30 @@ def load() -> None:
         label = f"{c.STT_MODEL} · cpu (GPU lỗi) · int8 · beam {c.STT_BEAM}"
 
 
-def transcribe(path: str, prompt: str = "") -> dict:
+def _run(path: str, prompt: str, language: str | None):
     assert _model is not None, "call stt.load() first"
-    segments, _info = _model.transcribe(
+    return _model.transcribe(
         path,
-        language="en",
+        language=language,
         beam_size=config.STT_BEAM,
         vad_filter=True,
         word_timestamps=True,
         condition_on_previous_text=False,
         initial_prompt=prompt or None,
     )
+
+
+def transcribe(path: str, prompt: str = "", check_language: bool = False) -> dict:
+    """check_language: let Whisper detect the language instead of forcing English
+    (see STT_CHECK_LANGUAGE). `language` in the result is "en" unless another language was detected."""
+    language = "en"
+    if check_language:
+        segments, info = _run(path, prompt, None)
+        if info.language != "en" and info.language_probability < 0.5:
+            segments, info = _run(path, prompt, "en")  # unsure: decode as English, like the default
+        language = info.language
+    else:
+        segments, _info = _run(path, prompt, "en")
     words, logprob, no_speech, total = [], 0.0, 0.0, 0.0
     for seg in segments:  # generator: recognition actually runs in this loop
         dur = max(seg.end - seg.start, 0.01)
@@ -61,15 +75,20 @@ def transcribe(path: str, prompt: str = "") -> dict:
         "words": words,
         "avg_logprob": round(logprob / total, 3) if total else -9.0,
         "no_speech": round(no_speech / total, 3) if total else 1.0,
+        "language": language,
     }
 
 
-def is_unclear(result: dict) -> bool:
-    """Low confidence: skip the LLM and ask the learner to repeat."""
-    return (
+def unclear_reason(result: dict) -> str | None:
+    """Why the LLM should not see this answer: "not_english", "low_confidence", or None."""
+    if result.get("language", "en") != "en" or has_vietnamese(result["text"]):
+        return "not_english"
+    if (
         result["avg_logprob"] < config.STT_MIN_LOGPROB
         or result["no_speech"] > config.STT_MAX_NO_SPEECH
-    )
+    ):
+        return "low_confidence"
+    return None
 
 
 def save_recording(data: bytes) -> str:

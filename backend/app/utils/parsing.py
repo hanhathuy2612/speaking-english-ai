@@ -4,6 +4,7 @@
 - ready_sentences: complete SAY sentences that can go to TTS right away
 - speech_metrics: objective metrics from Whisper word timestamps
 - used_phrase_indices: which target phrases the learner used
+- has_vietnamese: Whisper output that is Vietnamese text
 """
 
 from __future__ import annotations
@@ -64,6 +65,15 @@ def is_question(text: str) -> bool:
 def norm(text: str) -> str:
     t = text.lower().replace("’", "'")
     return " ".join(re.sub(r"[^a-z0-9' ]+", " ", t).split())
+
+
+# Letters that only Vietnamese uses (plain accented vowels like é also appear in English loanwords).
+_VIETNAMESE = re.compile(r"[ăâđêôơưạảấầẩẫậắằẳẵặẹẻẽếềểễệỉịọỏốồổỗộớờởỡợụủứừửữựỳỵỷỹ]", re.IGNORECASE)
+
+
+def has_vietnamese(text: str) -> bool:
+    """True when Whisper wrote Vietnamese text even though it was told the audio is English."""
+    return bool(_VIETNAMESE.search(text))
 
 
 def used_phrase_indices(text: str, phrases: list[dict]) -> list[int]:

@@ -7,6 +7,7 @@ import type {
   ShadowResult,
   Speech,
   UnitInfo,
+  UnclearReason,
   UnitSummary,
 } from "../../api/types";
 import type { Status } from "../../components/ui";
@@ -14,7 +15,7 @@ import { useAudioQueue } from "../../hooks/useAudioQueue";
 
 export type ChatItem =
   | { id: number; kind: "ai"; turn: number; text: string }
-  | { id: number; kind: "me"; turn: number; text: string; speech: Speech; unclear: boolean }
+  | { id: number; kind: "me"; turn: number; text: string; speech: Speech; unclear: UnclearReason | null }
   | { id: number; kind: "summary"; summary: SessionSummary };
 
 export type InterviewState = {
@@ -107,7 +108,7 @@ function onServer(s: InterviewState, m: ServerMessage): InterviewState {
       };
     case "transcript": {
       const turn = s.turn + 1;
-      const me = { id: nextId++, kind: "me" as const, turn, text: m.text, speech: m.speech, unclear: m.unclear };
+      const me = { id: nextId++, kind: "me" as const, turn, text: m.text, speech: m.speech, unclear: m.reason };
       if (m.unclear) {
         return {
           ...s,
@@ -115,7 +116,10 @@ function onServer(s: InterviewState, m: ServerMessage): InterviewState {
           items: [...s.items, me],
           conf: m.conf,
           canUndo: false,
-          status: { text: "Máy nghe chưa rõ, bạn nói lại nhé.", state: "warn" },
+          status: {
+            text: m.reason === "not_english" ? "Hãy trả lời bằng tiếng Anh nhé." : "Máy nghe chưa rõ, bạn nói lại nhé.",
+            state: "warn",
+          },
         };
       }
       return {

@@ -19,8 +19,9 @@ Server tự nạp `.env` bằng python-dotenv khi khởi động. Biến môi tr
 | `STT_THREADS` | `8` | `8` | Chỉ dùng khi chạy CPU |
 | `STT_BEAM` | `1` | `3` | |
 | `STT_VOCAB` | trống | `Hi, I'm Huy.` | Thông tin riêng giúp Whisper nghe đúng tên |
-| `STT_MIN_LOGPROB` | `-1.0` | `-1.0` | Ngưỡng "nghe chưa rõ", chưa hiệu chỉnh |
+| `STT_MIN_LOGPROB` | `-1.0` | `-1.0` | Ngưỡng "nghe chưa rõ". Đã đo: không nên nâng (xem speech-recognition.md) |
 | `STT_MAX_NO_SPEECH` | `0.6` | `0.6` | |
+| `STT_CHECK_LANGUAGE` | `0` | không đặt | `1` = Whisper tự nhận ngôn ngữ để bắt câu tiếng Việt, chậm thêm ~0,24 giây/lượt |
 | `SAVE_AUDIO_DIR` | trống | `recordings` | Giữ file ghi âm mỗi lượt (tương đối với thư mục gốc) |
 | `HISTORY_DB` | `data/history.db` | `data/history.db` | File SQLite lưu lịch sử luyện tập (tương đối với thư mục gốc, hoặc đường dẫn tuyệt đối). Để trống thì tắt |
 | `TTS_VOICE` / `TTS_RATE` | `en-US-JennyNeural` / `-10%` | giống mặc định | |

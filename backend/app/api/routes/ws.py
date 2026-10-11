@@ -6,7 +6,7 @@ import asyncio
 import json
 import time
 
-from app.core.config import STT_VOCAB
+from app.core.config import STT_CHECK_LANGUAGE, STT_VOCAB
 from app.interview.session import Session, progress
 from app.interview.shadow import handle_shadow
 from app.interview.turn import handle_user_input, start_session
@@ -69,7 +69,8 @@ async def _on_audio(conn: Conn, session: Session, data: bytes) -> None:
     # and hide exactly the pronunciation mistakes we want to show.
     prompt = "" if session.shadow_target else f"{STT_VOCAB} {session.unit.get('vocab', '')}".strip()
     try:
-        result = await asyncio.to_thread(stt.transcribe, path, prompt)
+        check = STT_CHECK_LANGUAGE and not session.shadow_target  # shadowing reads English text
+        result = await asyncio.to_thread(stt.transcribe, path, prompt, check)
     except Exception as e:  # noqa: BLE001
         stt.finish_recording(path, None)
         await conn.json({"type": "error", "msg": f"STT: {e}"})
@@ -78,7 +79,8 @@ async def _on_audio(conn: Conn, session: Session, data: bytes) -> None:
     stt.finish_recording(path, result["text"])
     t_stt = time.monotonic()
     print(
-        f"STT logprob={result['avg_logprob']} no_speech={result['no_speech']}: {result['text']}"
+        f"STT logprob={result['avg_logprob']} no_speech={result['no_speech']} "
+        f"lang={result['language']}: {result['text']}"
     )
     if not result["text"]:
         session.shadow_target = None

@@ -5,7 +5,7 @@
 ```
 Trình duyệt (React: useInterview.ts)    Server (backend/app)
   giữ nút -> MediaRecorder (webm) ──bytes──> api/routes/ws.py: stt.save_recording -> stt.transcribe (GPU)
-                                              │ nghe không chắc? -> "transcript" unclear, dừng
+                                              │ không phải tiếng Anh, nghe không chắc? -> "transcript" unclear, dừng
                                               v
                                             interview/turn.py handle_user_input: lưu snapshot, đếm mẫu câu
                                               v
@@ -40,7 +40,7 @@ Server gửi:
 |---|---|
 | `started` | Thông tin bài (`goal`, `phrases`, `stt` là nhãn cấu hình STT đang chạy). |
 | `status` | `transcribing` hoặc `thinking`. |
-| `transcript` | Chữ nhận dạng, `speech` (chỉ số), `used` (mẫu câu đã dùng), `unclear`, `conf`. |
+| `transcript` | Chữ nhận dạng, `speech` (chỉ số), `used` (mẫu câu đã dùng), `unclear`, `reason` (`not_english` / `low_confidence` / `null`), `conf`. |
 | `sentence` + khung nhị phân | Một câu AI nói kèm MP3. `role`: `ai` hoặc `model`. |
 | `note` | NOTE và cờ `retry`. |
 | `progress` | `q`/`n`, `done`. |

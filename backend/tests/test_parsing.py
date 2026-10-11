@@ -1,6 +1,7 @@
 """Pure-logic tests, no model or network needed. Run from backend/: python -m pytest"""
 
 from app.utils.parsing import (
+    has_vietnamese,
     is_question,
     ready_sentences,
     speech_metrics,
@@ -99,3 +100,10 @@ def test_is_question():
     assert is_question("What did you build?")
     assert not is_question("NEXT")
     assert not is_question("That sounds great.")
+
+
+def test_has_vietnamese():
+    assert has_vietnamese("Dạ em chưa hiểu câu hỏi lắm à.")
+    assert has_vietnamese("Em làm Java được 5 năm rồi.")
+    assert not has_vietnamese("I've been working as a Java developer for five years.")
+    assert not has_vietnamese("We met at a café near the office.")  # loanword accents are fine

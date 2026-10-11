@@ -38,6 +38,9 @@ STT_BEAM = int(os.getenv("STT_BEAM", "1"))
 STT_VOCAB = os.getenv("STT_VOCAB", "")  # the user's name and job vocabulary
 STT_MIN_LOGPROB = float(os.getenv("STT_MIN_LOGPROB", "-1.0"))
 STT_MAX_NO_SPEECH = float(os.getenv("STT_MAX_NO_SPEECH", "0.6"))
+# Let Whisper detect the language, so Vietnamese answers are caught even when Whisper would
+# translate them to English. Costs about 0.24 s per turn on the RTX 3060.
+STT_CHECK_LANGUAGE = os.getenv("STT_CHECK_LANGUAGE", "0") == "1"
 SAVE_AUDIO_DIR = os.getenv("SAVE_AUDIO_DIR", "")  # relative to the project root, e.g. "recordings"
 
 # ----- Practice history (SQLite) -----
