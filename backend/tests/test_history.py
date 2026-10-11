@@ -96,3 +96,14 @@ def test_shadow_attempts_are_stored_apart_and_deleted_with_the_session(db):
     history.delete_session(sid)
     assert count() == 0
     assert history.add_shadow(None, {"target": "x", "heard": "x", "correct": 1, "total": 1}) is None
+
+
+def test_shadow_accuracy_pools_attempts(db):
+    sid = history.start_session(UNIT)
+    history.add_turn(sid, voice(20, 100, 120, 1))
+    [s] = history.list_sessions()
+    assert s["shadow_attempts"] == 0 and s["shadow_accuracy"] is None
+    history.add_shadow(sid, {"target": "t", "heard": "h", "correct": 9, "total": 10})
+    history.add_shadow(sid, {"target": "t", "heard": "h", "correct": 3, "total": 10})
+    [s] = history.list_sessions()
+    assert s["shadow_attempts"] == 2 and s["shadow_accuracy"] == 60

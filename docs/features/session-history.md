@@ -20,7 +20,7 @@ File mặc định: `data/history.db` ở thư mục gốc (biến `HISTORY_DB`,
 
 - **`sessions`:** một dòng cho mỗi lần làm bài. Chỉ được tạo **khi có câu trả lời đầu tiên**, nên mở bài rồi bỏ đi không để lại phiên rỗng. `completed` = 1 khi đã hỏi hết câu.
 - **`turns`:** một dòng cho mỗi lượt trả lời. Ghi: câu hỏi, câu trả lời, nguồn (`voice`/`text`), cờ `unclear`, số từ, tốc độ, số lần ngắt dài, `avg_logprob` và `no_speech` của Whisper, các mẫu câu dùng trong lượt, NOTE, cờ RETRY, độ trễ.
-- **`shadows`:** mỗi lần nói lại câu NOTE (xem [shadowing.md](shadowing.md)). Tách khỏi `turns` nên không ảnh hưởng số liệu phỏng vấn; trang Tiến bộ chưa hiển thị.
+- **`shadows`:** mỗi lần nói lại câu NOTE (xem [shadowing.md](shadowing.md)). Tách khỏi `turns` nên không ảnh hưởng số liệu phỏng vấn.
 - Lượt "máy nghe chưa rõ" hoặc "chưa phải tiếng Anh" cũng được ghi (`unclear` = 1), làm dữ liệu hiệu chỉnh ngưỡng STT.
 - Hoàn tác xóa hẳn dòng của lượt vừa rồi và cập nhật lại `completed`.
 - Số liệu tổng hợp được tính khi đọc, không lưu sẵn, nên xóa hay hoàn tác không làm lệch số.
@@ -34,6 +34,7 @@ Thêm cột mới: thêm vào `SCHEMA` (`CREATE TABLE IF NOT EXISTS` không tự
 | Tốc độ khi nói | Trung bình `wpm_speaking` của các lượt **giọng nói, máy nghe rõ, từ 10 từ trở lên** trong buổi |
 | Ngắt dài / 100 từ | Tổng số lần ngắt trên 0,7 giây ÷ tổng số từ × 100, **chỉ trên cùng các lượt đó**. Câu quá ngắn bị loại, vì một câu 2 từ không ngắt sẽ cho ra 0 |
 | Mẫu câu | Số mẫu câu khác nhau đã dùng trong buổi / tổng số mẫu câu của bài |
+| Đọc đúng khi nói lại | Tổng số từ máy nghe đúng ÷ tổng số từ của câu mẫu × 100, **gộp mọi lần** nói lại trong buổi (`shadow_accuracy`, kèm `shadow_attempts`). Câu dài nặng ký hơn câu ngắn |
 | So với buổi đầu | Buổi gần nhất có số liệu trừ buổi đầu tiên có số liệu. Màu xanh khi tốt lên (tốc độ tăng, ngắt giảm) |
 
 Lượt gõ chữ được tính vào số lượt và mẫu câu, nhưng không vào tốc độ hay số lần ngắt.
@@ -48,8 +49,8 @@ Lượt gõ chữ được tính vào số lượt và mẫu câu, nhưng không
 
 ## Trang `/history`
 
-- 4 ô số liệu: số buổi, số lượt nói bằng giọng, tốc độ và tỉ lệ ngắt của buổi gần nhất so với buổi đầu.
-- 2 biểu đồ đường riêng (không gộp chung một trục vì khác đơn vị), vẽ bằng SVG thuần, có đường dóng và chú thích nổi khi rê chuột, nhãn giá trị ở điểm cuối.
+- 5 ô số liệu: số buổi, số lượt nói bằng giọng, tốc độ, tỉ lệ ngắt và độ đọc đúng khi nói lại của buổi gần nhất so với buổi đầu.
+- 3 biểu đồ đường riêng (không gộp chung một trục vì khác đơn vị; biểu đồ % cố định trục 0–100), vẽ bằng SVG thuần, có đường dóng và chú thích nổi khi rê chuột, nhãn giá trị ở điểm cuối.
 - Màu đường biểu đồ là token `--chart-line` trong `base.css`, đã kiểm tra độ tương phản và dải độ sáng ở cả hai chế độ bằng `validate_palette.js` của skill dataviz.
 - Bảng các buổi tập (cũng là cách xem số liệu không cần biểu đồ), có nút xóa kèm hộp xác nhận.
 

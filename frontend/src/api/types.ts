@@ -88,6 +88,8 @@ export type HistorySession = {
   pauses_per_100_words: number | null;
   phrases_used: number;
   phrase_total: number;
+  shadow_attempts: number;
+  shadow_accuracy: number | null; // % of reference words read correctly, all attempts pooled
 };
 
 export type BenchItem = { text: string; done: boolean };

@@ -151,9 +151,12 @@ def delete_session(session_id: int) -> bool:
         )
 
 
-def _summarize(session: sqlite3.Row, turns: list[sqlite3.Row]) -> dict:
+def _summarize(
+    session: sqlite3.Row, turns: list[sqlite3.Row], shadows: list[sqlite3.Row] = ()
+) -> dict:
     """Aggregate one session. Speed and pause rate only use spoken, clear turns long enough to time,
-    so a session with one two-word answer does not report 0 pauses per 100 words."""
+    so a session with one two-word answer does not report 0 pauses per 100 words.
+    Shadowing accuracy pools all attempts: correct reference words / reference words."""
     answered = [t for t in turns if not t["unclear"]]
     spoken = [t for t in answered if t["source"] == "voice" and t["words"]]
     timed = [t for t in spoken if t["wpm"] is not None]
@@ -184,6 +187,12 @@ def _summarize(session: sqlite3.Row, turns: list[sqlite3.Row]) -> dict:
         ),
         "phrases_used": len(used),
         "phrase_total": session["phrase_total"],
+        "shadow_attempts": len(shadows),
+        "shadow_accuracy": (
+            round(sum(a["correct"] for a in shadows) / shadow_words * 100)
+            if (shadow_words := sum(a["total"] for a in shadows))
+            else None
+        ),
     }
 
 
@@ -196,10 +205,14 @@ def list_sessions() -> list[dict]:
             "SELECT * FROM sessions ORDER BY started_at, id"
         ).fetchall()
         turns = conn.execute("SELECT * FROM turns ORDER BY id").fetchall()
+        shadows = conn.execute("SELECT * FROM shadows ORDER BY id").fetchall()
     by_session: dict[int, list[sqlite3.Row]] = {}
     for t in turns:
         by_session.setdefault(t["session_id"], []).append(t)
-    out = [_summarize(s, by_session.get(s["id"], [])) for s in sessions]
+    shadows_by: dict[int, list[sqlite3.Row]] = {}
+    for a in shadows:
+        shadows_by.setdefault(a["session_id"], []).append(a)
+    out = [_summarize(s, by_session.get(s["id"], []), shadows_by.get(s["id"], [])) for s in sessions]
     return [s for s in out if s["turns"]]
 
 

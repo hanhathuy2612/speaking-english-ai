@@ -26,12 +26,19 @@ function Tiles({ sessions }: { sessions: HistorySession[] }) {
   const words = sessions.reduce((a, s) => a + s.words, 0);
   const speed = latestWithDelta(sessions.map((s) => s.wpm_speaking), false);
   const pauses = latestWithDelta(sessions.map((s) => s.pauses_per_100_words), true);
+  const shadow = latestWithDelta(sessions.map((s) => s.shadow_accuracy), false);
   return (
     <section className="tiles" aria-label="Tóm tắt">
       <Tile label="Buổi tập" value={`${sessions.length}`} delta={{ text: `${completed} buổi hoàn thành đủ câu hỏi` }} />
       <Tile label="Lượt nói bằng giọng" value={`${spoken}`} delta={{ text: `${words} từ đã nói` }} />
       <Tile label="Tốc độ khi nói, buổi gần nhất" value={fmtNum(speed.value)} unit="từ/phút" delta={speed.delta} />
       <Tile label="Ngắt dài / 100 từ, buổi gần nhất" value={fmtNum(pauses.value)} delta={pauses.delta} />
+      <Tile
+        label="Đọc đúng khi nói lại, buổi gần nhất"
+        value={fmtNum(shadow.value)}
+        unit="%"
+        delta={shadow.value == null ? { text: "Chưa có lần nói lại câu mẫu nào" } : shadow.delta}
+      />
     </section>
   );
 }
@@ -50,6 +57,7 @@ function SessionsTable({ sessions, onDelete }: { sessions: HistorySession[]; onD
               <th scope="col" className="num">Từ/phút khi nói</th>
               <th scope="col" className="num">Ngắt / 100 từ</th>
               <th scope="col" className="num">Mẫu câu</th>
+              <th scope="col" className="num">Nói lại</th>
               <th scope="col">Trạng thái</th>
               <th scope="col">
                 <span className="sr-only">Xóa</span>
@@ -68,6 +76,9 @@ function SessionsTable({ sessions, onDelete }: { sessions: HistorySession[]; onD
                 <td className="num">{fmtNum(s.pauses_per_100_words)}</td>
                 <td className="num">
                   {s.phrases_used}/{s.phrase_total}
+                </td>
+                <td className="num">
+                  {s.shadow_accuracy == null ? "–" : `${s.shadow_accuracy}% · ${s.shadow_attempts} lần`}
                 </td>
                 <td>
                   <Chip tone={s.completed ? "success" : ""}>{s.completed ? "Hoàn thành" : "Dở dang"}</Chip>
@@ -145,6 +156,13 @@ export function HistoryPage() {
                   <p>Số lần dừng quá 0,7 giây. Thấp hơn là tốt hơn.</p>
                 </figcaption>
                 <LineChart sessions={sessions} field="pauses_per_100_words" unit="lần / 100 từ" />
+              </figure>
+              <figure className="card chart-card">
+                <figcaption>
+                  <h2>Đọc đúng khi nói lại câu mẫu</h2>
+                  <p>% từ máy nghe đúng, gộp mọi lần nói lại trong buổi. Cao hơn là phát âm rõ hơn.</p>
+                </figcaption>
+                <LineChart sessions={sessions} field="shadow_accuracy" unit="%" max={100} />
               </figure>
             </section>
             <SessionsTable sessions={sessions} onDelete={onDelete} />

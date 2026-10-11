@@ -2,7 +2,7 @@ import { type PointerEvent, useEffect, useRef, useState } from "react";
 import type { HistorySession } from "../../api/types";
 import { fmtDate, fmtNum, niceMax } from "../../lib/format";
 
-type Key = "wpm_speaking" | "pauses_per_100_words";
+type Key = "wpm_speaking" | "pauses_per_100_words" | "shadow_accuracy";
 const M = { top: 12, right: 44, bottom: 26, left: 36 };
 
 function useWidth<T extends HTMLElement>() {
@@ -22,7 +22,17 @@ function useWidth<T extends HTMLElement>() {
  * 10% area wash, 8px points with a surface ring, a direct label on the latest value only, and a
  * crosshair + tooltip that snaps to the nearest session. The sessions table is the non-visual view.
  */
-export function LineChart({ sessions, field, unit }: { sessions: HistorySession[]; field: Key; unit: string }) {
+export function LineChart({
+  sessions,
+  field,
+  unit,
+  max,
+}: {
+  sessions: HistorySession[];
+  field: Key;
+  unit: string;
+  max?: number; // fixed axis maximum (e.g. 100 for a percentage)
+}) {
   const [ref, W] = useWidth<HTMLDivElement>();
   const [hover, setHover] = useState<{ i: number; x: number; y: number } | null>(null);
   const pts = sessions.filter((s) => s[field] != null);
@@ -37,7 +47,7 @@ export function LineChart({ sessions, field, unit }: { sessions: HistorySession[
 
   const iw = W - M.left - M.right;
   const ih = H - M.top - M.bottom;
-  const maxV = niceMax(Math.max(...pts.map((p) => p[field] as number)) * 1.1);
+  const maxV = max ?? niceMax(Math.max(...pts.map((p) => p[field] as number)) * 1.1);
   const x = (i: number) => M.left + (pts.length === 1 ? iw / 2 : (i / (pts.length - 1)) * iw);
   const y = (v: number) => M.top + ih - (v / maxV) * ih;
   const coords = pts.map((p, i) => [x(i), y(p[field] as number)] as const);
