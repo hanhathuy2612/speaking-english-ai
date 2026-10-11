@@ -1,4 +1,5 @@
 import { type PointerEvent, useCallback, useEffect, useRef, useState } from "react";
+import { stopReplay } from "../lib/replay";
 
 const MIN_BYTES = 3000; // shorter recordings are almost always an accidental tap
 
@@ -23,6 +24,7 @@ export function useHoldToTalk({ onRecorded, onStart, onTooShort, onError, spaceK
   const start = useCallback(async () => {
     if (holding.current) return;
     holding.current = true;
+    stopReplay(); // do not record your own playback
     cb.current.onStart?.();
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });

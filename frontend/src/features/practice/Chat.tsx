@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { Link } from "react-router";
 import type { SessionSummary, Speech } from "../../api/types";
 import { CheckIcon } from "../../components/Icons";
+import { ReplayButton } from "../../components/ReplayButton";
 import { Chip, type Tone } from "../../components/ui";
 import type { ChatItem } from "./useInterview";
 
@@ -45,6 +46,7 @@ function Message({ item, partner }: { item: Extract<ChatItem, { kind: "ai" | "me
                   : "Máy nghe chưa rõ, AI chưa trả lời"}
               </Chip>
             )}
+            <ReplayButton src={item.audio} />
             <SpeechChips speech={item.speech} />
           </div>
         )}

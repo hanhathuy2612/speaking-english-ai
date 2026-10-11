@@ -3,10 +3,13 @@ import type { FluencyResult, FluencyRound, FluencyRun, FluencyState } from "../.
 import { AppBar } from "../../components/AppBar";
 import { Recorder } from "../../components/Recorder";
 import type { Status } from "../../components/ui";
+import { ReplayButton } from "../../components/ReplayButton";
 import { useHoldToTalk } from "../../hooks/useHoldToTalk";
+import { useRecordings } from "../../hooks/useRecordings";
 import { fmtClock } from "../../lib/check";
 import { roundDelta } from "../../lib/fluency";
 import { fmtDate, fmtNum } from "../../lib/format";
+import type { WithAudio } from "../../lib/replay";
 import "../../styles/fluency.css";
 
 const ROUND_TIPS = [
@@ -15,7 +18,7 @@ const ROUND_TIPS = [
   "Lần cuối: vẫn đủ ý, nói liền một mạch. Những câu đã nói hai lần giờ sẽ ra nhanh hơn.",
 ];
 
-function RoundsTable({ rounds, limits }: { rounds: FluencyRound[]; limits: number[] }) {
+function RoundsTable({ rounds, limits }: { rounds: WithAudio<FluencyRound>[]; limits: number[] }) {
   const speed = roundDelta(rounds, "wpm_speaking");
   const pauses = roundDelta(rounds, "hesitations_per_100");
   return (
@@ -39,7 +42,10 @@ function RoundsTable({ rounds, limits }: { rounds: FluencyRound[]; limits: numbe
           {rounds.map((r) => (
             <tr key={r.round}>
               <td>
-                {r.round} <span className="muted">(tối đa {fmtClock(limits[r.round - 1])})</span>
+                <span className="round-cell">
+                  {r.round} <span className="muted">(tối đa {fmtClock(limits[r.round - 1])})</span>
+                  <ReplayButton src={r.audio} label="Nghe" />
+                </span>
               </td>
               <td className="num">{fmtClock(r.duration_s)}</td>
               <td className="num">{fmtNum(r.wpm_speaking)}</td>
@@ -103,7 +109,8 @@ function Past({ runs }: { runs: FluencyRun[] }) {
 export function FluencyPage() {
   const [data, setData] = useState<FluencyState | null>(null);
   const [run, setRun] = useState<string | null>(null);
-  const [results, setResults] = useState<FluencyResult[]>([]);
+  const [results, setResults] = useState<WithAudio<FluencyResult>[]>([]);
+  const keepRecording = useRecordings();
   const [scoring, setScoring] = useState(false);
   const [status, setStatus] = useState<Status>({ text: "", state: "" });
   const [elapsed, setElapsed] = useState(0);
@@ -142,7 +149,7 @@ export function FluencyPage() {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const r: FluencyResult = await res.json();
       setRun(r.run);
-      setResults((rs) => [...rs, r]);
+      setResults((rs) => [...rs, { ...r, audio: keepRecording(blob) }]);
       setStatus(
         r.measurable
           ? { text: "", state: "" }

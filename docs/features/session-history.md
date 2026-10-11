@@ -30,7 +30,7 @@ File mặc định: `data/history.db` ở thư mục gốc (biến `HISTORY_DB`,
 - Hoàn tác xóa hẳn dòng của lượt vừa rồi và cập nhật lại `completed`.
 - Số liệu tổng hợp được tính khi đọc, không lưu sẵn, nên xóa hay hoàn tác không làm lệch số.
 
-Thêm cột mới: thêm vào `SCHEMA` (`CREATE TABLE IF NOT EXISTS` không tự thêm cột vào bảng đã có, nên với DB cũ phải `ALTER TABLE` hoặc xóa file).
+Thêm cột mới: thêm vào `SCHEMA` **và** `MIGRATIONS` (`CREATE TABLE IF NOT EXISTS` không tự thêm cột vào bảng đã có; `init()` thêm các cột trong `MIGRATIONS` cho DB cũ).
 
 ## Chỉ số trên trang Tiến bộ
 
@@ -49,7 +49,8 @@ Lượt gõ chữ được tính vào số lượt và mẫu câu, nhưng không
 | Route | Việc |
 |---|---|
 | `GET /api/history/sessions` | `{enabled, sessions: [...]}`, các buổi có ít nhất 1 lượt trả lời, cũ trước mới sau |
-| `GET /api/history/sessions/{id}/turns` | Chi tiết từng lượt của một buổi |
+| `GET /api/history/sessions/{id}/turns` | Chi tiết từng lượt của một buổi, kèm `audio_url` khi còn file ghi âm |
+| `GET /api/history/audio/{name}` | File ghi âm của một lượt (`audio/webm`). Chỉ nhận tên dạng `YYYYMMDD-HHMMSS-ffffff.webm` trong `SAVE_AUDIO_DIR`, tên khác trả 404 |
 | `DELETE /api/history/sessions/{id}` | Xóa một buổi (xóa luôn các lượt) |
 
 ## Trang `/history`
@@ -58,6 +59,15 @@ Lượt gõ chữ được tính vào số lượt và mẫu câu, nhưng không
 - 3 biểu đồ đường riêng (không gộp chung một trục vì khác đơn vị; biểu đồ % cố định trục 0–100), vẽ bằng SVG thuần, có đường dóng và chú thích nổi khi rê chuột, nhãn giá trị ở điểm cuối.
 - Màu đường biểu đồ là token `--chart-line` trong `base.css`, đã kiểm tra độ tương phản và dải độ sáng ở cả hai chế độ bằng `validate_palette.js` của skill dataviz.
 - Bảng các buổi tập (cũng là cách xem số liệu không cần biểu đồ), có nút xóa kèm hộp xác nhận.
+- Nút **"Xem"** của mỗi buổi mở thẻ "Chi tiết buổi tập" ngay dưới bảng (`SessionDetail.tsx`, tự cuộn tới khi tải xong; đặt ngoài bảng vì bảng cuộn ngang trên điện thoại): từng câu hỏi, câu bạn trả lời, nút **"Nghe lại"** giọng bạn, tốc độ, NOTE.
+
+## Nghe lại buổi cũ
+
+- File ghi âm chỉ còn khi `SAVE_AUDIO_DIR` được đặt (`.env` của người dùng: `recordings`). Xóa buổi tập **không** xóa file ghi âm.
+- Lượt nói mới lưu tên file vào cột `turns.audio` (`stt.kept_name()` → `result["recording"]` trong `ws.py` → `handle_user_input()`).
+- Lượt lưu trước khi có cột này được ghép **một lần**, khi mở chi tiết buổi (`match_turns()` trong `services/recordings.py`): file có `.hyp.txt` trùng đúng chữ câu trả lời, ghi trong vòng 10 phút trước lúc lượt được lưu; chọn file gần nhất, mỗi file dùng một lần; kết quả được lưu lại vào `turns.audio`. Đo ngày 11/10/2026 trên lịch sử thật: ghép được 29/29 lượt nói.
+- Cột mới trên DB cũ: `init()` chạy `MIGRATIONS` (`ALTER TABLE ... ADD COLUMN` khi cột chưa có).
+- App không có đăng nhập: khi chạy cho mạng LAN (`SERVER_HOST=0.0.0.0`), thiết bị cùng mạng cũng nghe được các file này.
 
 ## Khi thử nghiệm
 

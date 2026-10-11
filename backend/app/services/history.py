@@ -42,7 +42,8 @@ CREATE TABLE IF NOT EXISTS turns (
     note TEXT,
     retry INTEGER,
     stt_ms INTEGER,
-    first_audio_ms INTEGER
+    first_audio_ms INTEGER,
+    audio TEXT                         -- recording file name in SAVE_AUDIO_DIR (services/recordings.py)
 );
 CREATE INDEX IF NOT EXISTS turns_session ON turns(session_id);
 CREATE TABLE IF NOT EXISTS shadows (
@@ -132,6 +133,8 @@ CREATE TABLE IF NOT EXISTS card_reviews (
 );
 """
 
+MIGRATIONS = [("turns", "audio", "TEXT")]  # (table, column, type) added to older databases
+
 
 def enabled() -> bool:
     return bool(config.HISTORY_DB)
@@ -151,6 +154,10 @@ def init() -> None:
         return
     with closing(_connect()) as conn, conn:
         conn.executescript(SCHEMA)
+        # Columns added after a table existed: CREATE TABLE IF NOT EXISTS does not add them.
+        for table, column, kind in MIGRATIONS:
+            if column not in {r[1] for r in conn.execute(f"PRAGMA table_info({table})")}:
+                conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {kind}")
 
 
 def _now() -> str:
@@ -296,6 +303,19 @@ def session_turns(session_id: int) -> list[dict]:
             "SELECT * FROM turns WHERE session_id = ? ORDER BY id", (session_id,)
         ).fetchall()
     return [{**dict(r), "used_phrases": json.loads(r["used_phrases"])} for r in rows]
+
+
+def set_turn_audio(audio: dict[int, str]) -> None:
+    """Store the recording file names of turns saved before `turns.audio` existed."""
+    if not audio or not enabled():
+        return
+    with closing(_connect()) as conn, conn:
+        conn.executemany("UPDATE turns SET audio = ? WHERE id = ?", [(n, i) for i, n in audio.items()])
+
+
+def turn_audio_names() -> set[str]:
+    """Recording names already linked to a turn."""
+    return {r["audio"] for r in _rows("SELECT audio FROM turns WHERE audio IS NOT NULL")}
 
 
 def unit_stats() -> dict[str, dict]:

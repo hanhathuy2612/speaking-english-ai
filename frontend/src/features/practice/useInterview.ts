@@ -13,11 +13,21 @@ import type {
 } from "../../api/types";
 import type { Status } from "../../components/ui";
 import { useAudioQueue } from "../../hooks/useAudioQueue";
+import { useRecordings } from "../../hooks/useRecordings";
+import type { WithAudio } from "../../lib/replay";
 import { pickUnit } from "../../lib/roadmap";
 
 export type ChatItem =
   | { id: number; kind: "ai"; turn: number; text: string }
-  | { id: number; kind: "me"; turn: number; text: string; speech: Speech; unclear: UnclearReason | null }
+  | {
+      id: number;
+      kind: "me";
+      turn: number;
+      text: string;
+      speech: Speech;
+      unclear: UnclearReason | null;
+      audio?: string; // object URL of the recording, for "Nghe lại" (spoken answers only)
+    }
   | { id: number; kind: "summary"; summary: SessionSummary };
 
 export type InterviewState = {
@@ -28,7 +38,7 @@ export type InterviewState = {
   used: number[];
   progress: { q: number; n: number; done: boolean } | null;
   coach: { text: string; retry: boolean } | null;
-  shadow: { waiting: boolean; result: ShadowResult | null };
+  shadow: { waiting: boolean; result: WithAudio<ShadowResult> | null };
   metrics: Metrics;
   conf: number | null;
   status: Status;
@@ -57,7 +67,7 @@ const initial: InterviewState = {
 type Action =
   | { type: "topics"; topics: Topic[] }
   | { type: "select"; unitId: string }
-  | { type: "server"; msg: ServerMessage }
+  | { type: "server"; msg: ServerMessage; audio?: string }
   | { type: "aiSentence"; turn: number; text: string }
   | { type: "status"; status: Status }
   | { type: "shadowWaiting"; waiting: boolean };
@@ -85,11 +95,12 @@ function reducer(s: InterviewState, a: Action): InterviewState {
       return { ...s, items };
     }
     case "server":
-      return onServer(s, a.msg);
+      return onServer(s, a.msg, a.audio);
   }
 }
 
-function onServer(s: InterviewState, m: ServerMessage): InterviewState {
+/** `audio`: object URL of the recording a transcript or shadow_result came from. */
+function onServer(s: InterviewState, m: ServerMessage, audio?: string): InterviewState {
   switch (m.type) {
     case "started":
       return {
@@ -110,7 +121,7 @@ function onServer(s: InterviewState, m: ServerMessage): InterviewState {
       };
     case "transcript": {
       const turn = s.turn + 1;
-      const me = { id: nextId++, kind: "me" as const, turn, text: m.text, speech: m.speech, unclear: m.reason };
+      const me = { id: nextId++, kind: "me" as const, turn, text: m.text, speech: m.speech, unclear: m.reason, audio };
       if (m.unclear) {
         return {
           ...s,
@@ -161,7 +172,7 @@ function onServer(s: InterviewState, m: ServerMessage): InterviewState {
       return m.text ? { ...s, coach: { text: m.text, retry: m.retry }, shadow: noShadow } : s;
     case "shadow_result": {
       const { type: _type, ...result } = m;
-      return { ...s, shadow: { waiting: false, result } };
+      return { ...s, shadow: { waiting: false, result: { ...result, audio } } };
     }
     case "metrics": {
       const { type: _type, ...metrics } = m;
@@ -190,6 +201,8 @@ export function useInterview(requestedUnit: string | null) {
   // Mirrors state.turn but is updated synchronously per message, because audio frames of a turn
   // can arrive before React re-renders.
   const turnRef = useRef(0);
+  const keepRecording = useRecordings();
+  const lastRecording = useRef<string | null>(null); // recording waiting for its transcript
 
   const audio = useAudioQueue<AudioMeta>((meta) => {
     if (meta.role === "ai") dispatch({ type: "aiSentence", turn: meta.turn, text: meta.text });
@@ -234,6 +247,12 @@ export function useInterview(requestedUnit: string | null) {
       }
       if (msg.type === "started") turnRef.current = 0;
       if (msg.type === "transcript") turnRef.current += 1;
+      if (msg.type === "transcript" || msg.type === "shadow_result") {
+        // The answer to the recording sent last: keep it for "Nghe lại".
+        dispatch({ type: "server", msg, audio: lastRecording.current ?? undefined });
+        lastRecording.current = null;
+        return;
+      }
       dispatch({ type: "server", msg });
     };
     return () => {
@@ -256,6 +275,7 @@ export function useInterview(requestedUnit: string | null) {
     (text: string) => {
       audio.stop();
       dispatch({ type: "shadowWaiting", waiting: false }); // a typed message is always an interview answer
+      lastRecording.current = null;
       send({ type: "text", text });
     },
     [audio, send],
@@ -265,10 +285,11 @@ export function useInterview(requestedUnit: string | null) {
   const sendRecording = useCallback(
     (blob: Blob) => {
       dispatch({ type: "status", status: { text: "Đang gửi…", state: "busy" } });
+      lastRecording.current = keepRecording(blob);
       if (state.shadow.waiting && state.coach) send({ type: "shadow", text: state.coach.text });
       send(blob);
     },
-    [send, state.shadow.waiting, state.coach],
+    [send, state.shadow.waiting, state.coach, keepRecording],
   );
 
   const actions = {

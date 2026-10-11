@@ -93,6 +93,10 @@
   border-top: 1px solid var(--border);
 }
 .review-heard {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
   font-size: 13.5px;
   color: var(--text-2);
 }

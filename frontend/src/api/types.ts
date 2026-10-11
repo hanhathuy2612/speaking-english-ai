@@ -333,3 +333,17 @@ export type ReviewAttempt = {
   total?: number;
   accuracy?: number;
 };
+
+/** One turn of a past session (GET /api/history/sessions/{id}/turns). */
+export type HistoryTurn = {
+  id: number;
+  created_at: string;
+  question: string;
+  answer: string;
+  source: "voice" | "text";
+  unclear: number; // 1 = not sent to the AI (not English, or unclear audio)
+  note: string | null;
+  words: number | null;
+  wpm_speaking: number | null;
+  audio_url: string | null; // the kept recording, when SAVE_AUDIO_DIR is set
+};

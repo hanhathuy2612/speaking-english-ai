@@ -101,6 +101,12 @@
 .fluency-results td.bad {
   color: var(--danger);
 }
+.round-cell {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
 .fluency .muted {
   color: var(--text-3);
   font-size: 12.5px;

@@ -1,7 +1,11 @@
-import type { ShadowResult as Result } from "../../api/types";
+import type { ShadowResult as ShadowData } from "../../api/types";
 import { BulbIcon, MicIcon, PlayIcon } from "../../components/Icons";
 import { Chip } from "../../components/ui";
+import { ReplayButton } from "../../components/ReplayButton";
 import { WordDiff } from "../../components/WordDiff";
+import type { WithAudio } from "../../lib/replay";
+
+type Result = WithAudio<ShadowData>;
 
 /** Word-by-word result of reading the NOTE aloud (docs/features/shadowing.md). */
 function ShadowResult({ r }: { r: Result }) {
@@ -15,6 +19,7 @@ function ShadowResult({ r }: { r: Result }) {
       <WordDiff items={r.compare.items} />
       <p className="shadow-heard">Máy nghe được: {r.heard}</p>
       <div className="meta">
+        <ReplayButton src={r.audio} />
         <Chip tone={pct >= 90 ? "success" : "warning"}>
           {correct === total ? `Đúng hết ${total}/${total} từ` : `Đúng ${correct}/${total} từ (${pct}%)`}
         </Chip>

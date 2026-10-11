@@ -104,6 +104,11 @@ def save_recording(data: bytes) -> str:
         return f.name
 
 
+def kept_name(path: str) -> str | None:
+    """File name of a recording that stays in SAVE_AUDIO_DIR (None for a temp file)."""
+    return Path(path).name if config.SAVE_AUDIO_DIR else None
+
+
 def finish_recording(path: str, text: str | None) -> None:
     """After recognition: save the hypothesis next to the recording, or delete the temp file."""
     if not config.SAVE_AUDIO_DIR:

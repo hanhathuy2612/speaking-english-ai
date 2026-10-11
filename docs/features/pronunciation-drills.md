@@ -57,3 +57,7 @@ Xem [roadmap.md](roadmap.md): tập đủ 5 nhóm, và trong **20 câu gần nh�
 ## Thêm câu hoặc nhóm
 
 Thêm vào `drills.json`. Mỗi từ trong `focus` phải là một từ của câu (so không phân biệt hoa thường và dấu câu); `validate()` chặn lúc khởi động và test bắt lỗi này. Id `mine` là id dành riêng. Ưu tiên lỗi đo được: chạy `stt_bench.py --show` trên bản thu âm mới để xem từ nào bị nghe sai.
+
+## Nghe lại
+
+Kết quả có nút "Nghe lại" để nghe chính bản ghi vừa gửi. Bản ghi chỉ giữ trong trình duyệt tới khi rời trang, không lưu trên server (xem [frontend.md](frontend.md)).

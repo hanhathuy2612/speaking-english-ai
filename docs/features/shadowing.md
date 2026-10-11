@@ -23,6 +23,7 @@ Lượt nói lại **không gọi LLM, không chuyển câu hỏi**, không tín
 3. Server nhận dạng **không có `initial_prompt`**. Gợi ý từ vựng sẽ kéo Whisper về đúng các từ trong câu mẫu và che mất lỗi phát âm.
 4. `handle_shadow()` gửi `shadow_result`: `target`, `heard`, `compare`, `speech` (chỉ số nói của lần đọc lại), `original` (chỉ số của câu trả lời đã sinh ra NOTE, `null` nếu câu đó gõ chữ). Mỗi yêu cầu chỉ dùng cho **một** lần ghi âm; "Thử lại" gửi lại `shadow`.
 5. Gõ chữ, hoàn tác hay có câu trả lời mới đều thoát chế độ nói lại.
+6. Kết quả có nút "Nghe lại" để nghe chính lần đọc đó (chỉ trong trình duyệt, xem [frontend.md](frontend.md)).
 
 ## So sánh (`compare.py`)
 

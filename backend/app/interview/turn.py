@@ -70,6 +70,7 @@ async def handle_user_input(
         "avg_logprob": conf,
         "no_speech": stt_result["no_speech"] if stt_result else None,
         "used_phrases": used_now,
+        "audio": stt_result.get("recording") if stt_result else None,
     }
     reason = stt.unclear_reason(stt_result) if stt_result else None
     if reason:

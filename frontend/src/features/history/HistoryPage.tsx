@@ -7,6 +7,7 @@ import { Chip } from "../../components/ui";
 import { type Delta, fmtDate, fmtNum, latestWithDelta } from "../../lib/format";
 import "../../styles/history.css";
 import { LineChart } from "./LineChart";
+import { SessionDetail } from "./SessionDetail";
 
 function Tile({ label, value, unit = "", delta }: { label: string; value: string; unit?: string; delta?: Delta }) {
   return (
@@ -44,7 +45,14 @@ function Tiles({ sessions }: { sessions: HistorySession[] }) {
   );
 }
 
-function SessionsTable({ sessions, onDelete }: { sessions: HistorySession[]; onDelete: (s: HistorySession) => void }) {
+type TableProps = {
+  sessions: HistorySession[];
+  openId: number | null;
+  onOpen: (s: HistorySession) => void;
+  onDelete: (s: HistorySession) => void;
+};
+
+function SessionsTable({ sessions, openId, onOpen, onDelete }: TableProps) {
   return (
     <section className="card table-card">
       <h2>Các buổi tập</h2>
@@ -61,13 +69,16 @@ function SessionsTable({ sessions, onDelete }: { sessions: HistorySession[]; onD
               <th scope="col" className="num">Nói lại</th>
               <th scope="col">Trạng thái</th>
               <th scope="col">
+                <span className="sr-only">Câu trả lời và ghi âm</span>
+              </th>
+              <th scope="col">
                 <span className="sr-only">Xóa</span>
               </th>
             </tr>
           </thead>
           <tbody>
             {[...sessions].reverse().map((s) => (
-              <tr key={s.id}>
+              <tr key={s.id} className={s.id === openId ? "selected" : undefined}>
                 <td>{fmtDate(s.started_at)}</td>
                 <td>{s.unit_title}</td>
                 <td className="num">
@@ -83,6 +94,16 @@ function SessionsTable({ sessions, onDelete }: { sessions: HistorySession[]; onD
                 </td>
                 <td>
                   <Chip tone={s.completed ? "success" : ""}>{s.completed ? "Hoàn thành" : "Dở dang"}</Chip>
+                </td>
+                <td>
+                  <button
+                    className="btn btn-sm"
+                    aria-pressed={s.id === openId}
+                    aria-label={`Xem câu trả lời và nghe lại buổi ${fmtDate(s.started_at)}`}
+                    onClick={() => onOpen(s)}
+                  >
+                    Xem
+                  </button>
                 </td>
                 <td>
                   <button
@@ -104,6 +125,7 @@ function SessionsTable({ sessions, onDelete }: { sessions: HistorySession[]; onD
 
 export function HistoryPage() {
   const [data, setData] = useState<{ enabled: boolean; sessions: HistorySession[] } | null>(null);
+  const [openId, setOpenId] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     setData(await (await fetch("/api/history/sessions")).json());
@@ -117,10 +139,12 @@ export function HistoryPage() {
   const onDelete = async (s: HistorySession) => {
     if (!confirm(`Xóa buổi tập ${fmtDate(s.started_at)} (${s.unit_title})? Không thể hoàn tác.`)) return;
     await fetch(`/api/history/sessions/${s.id}`, { method: "DELETE" });
+    if (s.id === openId) setOpenId(null);
     void load();
   };
 
   const sessions = data?.sessions ?? [];
+  const open = sessions.find((s) => s.id === openId);
   const message = !data
     ? null
     : !data.enabled
@@ -166,7 +190,13 @@ export function HistoryPage() {
                 <LineChart sessions={sessions} field="shadow_accuracy" unit="%" max={100} />
               </figure>
             </section>
-            <SessionsTable sessions={sessions} onDelete={onDelete} />
+            <SessionsTable
+              sessions={sessions}
+              openId={openId}
+              onOpen={(s) => setOpenId((id) => (id === s.id ? null : s.id))}
+              onDelete={onDelete}
+            />
+            {open && <SessionDetail session={open} onClose={() => setOpenId(null)} />}
           </div>
         )}
         <p className="history-foot">

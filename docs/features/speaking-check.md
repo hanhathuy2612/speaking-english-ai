@@ -54,3 +54,7 @@ Mục đích: trả lời câu hỏi "mình đã nói được chưa" bằng s�
 ## Kiểm thử đầu cuối
 
 Không mở được micro trong trình duyệt tự động, nên thay `getUserMedia` và `MediaRecorder` bằng bản giả trả về một file mp3 (edge-tts) rồi bấm nút thật trên trang. Cũng có thể gửi thẳng: `POST /api/check/working-day` với file mp3 làm thân request. Server thử phải dùng `HISTORY_DB` tạm (xem [dev-environment.md](../dev-environment.md)).
+
+## Nghe lại
+
+Kết quả có nút "Nghe lại" để nghe chính bản ghi vừa gửi. Bản ghi chỉ giữ trong trình duyệt tới khi rời trang, không lưu trên server (xem [frontend.md](frontend.md)).

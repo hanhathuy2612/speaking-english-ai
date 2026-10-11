@@ -61,3 +61,7 @@ Thẻ được tạo **khi đọc** (`GET /api/review`, `GET /api/review/count`)
 ## Kiểm thử đầu cuối (11/10/2026)
 
 Trên bản sao lịch sử thật (server thử cổng 8001): tạo 30 thẻ (23 NOTE, 7 mẫu câu); giới hạn 30 từ được thêm sau lần chạy này, nên nay NOTE 38 từ không còn thành thẻ. Đọc đúng NOTE "I wish I could avoid traffic delays so I'm not often late for work." (edge-tts): trùng 93%, gợi ý "Nhớ được"; đọc "I want go to work fast because I late.": 20%, gợi ý "Chưa nhớ". Chấm "Nhớ được" chuyển thẻ sang ngày mai, số thẻ đến hạn giảm 1. Ôn cuối buổi (`?session=1`, 4 thẻ): thẻ "Chưa nhớ" quay lại cuối lượt (4 → 5 thẻ), màn hình kết thúc báo thẻ gần nhất quay lại "ngày mai".
+
+## Nghe lại
+
+Kết quả có nút "Nghe lại" để nghe chính bản ghi vừa gửi. Bản ghi chỉ giữ trong trình duyệt tới khi rời trang, không lưu trên server (xem [frontend.md](frontend.md)).

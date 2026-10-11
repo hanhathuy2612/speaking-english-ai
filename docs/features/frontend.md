@@ -25,12 +25,15 @@ lib/stages.ts               # hàm thuần: requirementText, checkLevelText (+ s
 lib/drills.ts               # hàm thuần: markFocus (+ drills.test.ts)
 lib/fluency.ts              # hàm thuần: roundDelta (+ fluency.test.ts)
 lib/review.ts               # hàm thuần: fmtDue, localDay (+ review.test.ts)
+lib/replay.ts               # một trình phát dùng chung cho "Nghe lại" (playReplay, stopReplay), kiểu WithAudio<T>
 lib/check.ts                # hàm thuần: fmtClock, criterionValue (+ check.test.ts)
 components/                 # dùng chung: AppBar (thanh trên + điều hướng, thu thành menu khi hẹp), Icons, ui (Chip, StatusLine),
-                            #   WordDiff (tô từng từ so với câu mẫu), Recorder (bấm-bấm ghi âm dài, đồng hồ, thanh thời gian)
+                            #   WordDiff (tô từng từ so với câu mẫu), Recorder (bấm-bấm ghi âm dài, đồng hồ, thanh thời gian),
+                            #   ReplayButton ("Nghe lại" giọng của chính bạn)
 hooks/
   useHoldToTalk.ts          # ghi âm giữ để nói (MediaRecorder webm/opus) + giữ phím Space; /check và /fluency gọi start()/stop() để bấm-bấm
   useAudioQueue.ts          # hàng đợi phát MP3, báo khi một câu bắt đầu phát
+  useRecordings.ts          # giữ bản ghi dạng object URL cho "Nghe lại", giải phóng khi rời trang
 features/
   practice/                 # phòng tập
     useInterview.ts         # WebSocket + reducer trạng thái + hành động (gửi chữ, ghi âm, hoàn tác, nói lại)
@@ -54,6 +57,22 @@ styles/                     # base.css (token, component chung, bảng), practic
 - `turnRef` đếm lượt **đồng bộ theo từng tin nhắn**, vì khung âm thanh của một lượt có thể tới trước khi React render lại. Tin `started` đặt lại bộ đếm.
 - Hoàn tác (`undone`) gỡ cả tin nhắn của người học và của AI có cùng `lastMeTurn`, cùng thẻ tổng kết nếu có.
 - Nói lại: `beginShadow` bật `shadow.waiting`; khi có bản ghi, `sendRecording` gửi `{"type":"shadow"}` ngay trước khung âm thanh. Gõ chữ luôn là câu trả lời phỏng vấn (tắt chế độ nói lại).
+
+## Nghe lại giọng của bạn
+
+Mọi chỗ người học nói đều có nút **"Nghe lại"** (`ReplayButton`, `.btn.replay`) để nghe chính bản ghi vừa gửi:
+
+| Trang | Vị trí nút |
+|---|---|
+| Phòng tập | Dưới mỗi tin nhắn của bạn (lượt nói, không có ở lượt gõ chữ), và trong kết quả "Nói lại câu này" |
+| Phát âm | Đầu hàng kết quả của câu vừa đọc |
+| Ôn tập | Cạnh dòng "Máy nghe được" |
+| Kiểm tra | "Nghe lại bài nói", cạnh nút "Làm đề khác" |
+| Nói dài | Cột "Lần" của bảng, mỗi lần một nút |
+| Tiến bộ | Chi tiết buổi tập (nút "Xem"), mỗi lượt nói một nút. Đây là file lưu trên server (`/api/history/audio/...`), nên nghe được cả buổi cũ (xem [session-history.md](session-history.md)) |
+
+- Ngoài trang Tiến bộ, bản ghi chỉ nằm trong trình duyệt (`URL.createObjectURL` của Blob vừa ghi, `useRecordings`). Không gửi thêm, không lưu thêm gì; tải lại trang hay rời trang thì mất. Phòng tập gắn bản ghi vào tin `transcript` hoặc `shadow_result` đến ngay sau nó (`lastRecording` trong `useInterview.ts`).
+- Một trình phát dùng chung (`lib/replay.ts`): bật bản ghi khác thì bản đang phát dừng; bấm micro (`useHoldToTalk`) cũng dừng, để không thu lại tiếng loa.
 
 ## Hệ thiết kế (`src/styles/base.css`)
 

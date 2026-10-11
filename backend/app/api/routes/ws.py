@@ -92,6 +92,7 @@ async def _on_audio(conn: Conn, session: Session, data: bytes) -> None:
     if session.shadow_target:
         await handle_shadow(conn, session, result, round((t_stt - t0) * 1000))
         return
+    result["recording"] = stt.kept_name(path)  # stored with the turn, for "Nghe lại" later
     await handle_user_input(
         conn, session, result["text"], result["words"], t0, t_stt, result
     )

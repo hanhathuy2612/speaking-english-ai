@@ -19,7 +19,7 @@ backend/
     __main__.py          # python -m app: chạy uvicorn với SERVER_*/SSL_* trong .env (run.cmd ở thư mục gốc gọi file này)
     core/                # config.py (đọc .env, đường dẫn), cuda.py (DLL CUDA trên Windows)
     api/routes/          # ws.py (WebSocket /ws), units.py (+ /api/stages), review.py, drills.py, fluency.py, check.py, bench.py, history.py (/api/...)
-    services/            # stt.py (Whisper), tts.py (edge-tts + cache), llm.py (LM Studio), history.py (SQLite)
+    services/            # stt.py (Whisper), tts.py (edge-tts + cache), llm.py (LM Studio), history.py (SQLite), recordings.py (file ghi âm cũ)
     interview/           # session.py (trạng thái, next_step), prompts.py, turn.py (một lượt), shadow.py (nói lại), units.py, review.py (thẻ ôn)
     assessment/          # không dùng LLM: metrics.py (đo), check.py (kiểm tra 2 phút), drills.py (phát âm), fluency.py (4–3–2), stages.py (mở giai đoạn)
     utils/               # parsing.py, compare.py (hàm thuần), ws.py (Conn)

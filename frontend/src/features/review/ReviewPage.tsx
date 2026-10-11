@@ -5,7 +5,10 @@ import { AppBar } from "../../components/AppBar";
 import { CheckIcon, MicIcon, SpeakerIcon, XIcon } from "../../components/Icons";
 import { Chip, type Status, StatusLine } from "../../components/ui";
 import { WordDiff } from "../../components/WordDiff";
+import { ReplayButton } from "../../components/ReplayButton";
 import { useHoldToTalk } from "../../hooks/useHoldToTalk";
+import { useRecordings } from "../../hooks/useRecordings";
+import type { WithAudio } from "../../lib/replay";
 import { fmtDue, localDay } from "../../lib/review";
 import "../../styles/review.css";
 
@@ -55,10 +58,15 @@ function Front({ c }: { c: ReviewCard }) {
 }
 
 /** The back: what was heard, the NOTE (word by word when spoken), and the suggested grade. */
-function Back({ c, a }: { c: ReviewCard; a: ReviewAttempt | null }) {
+function Back({ c, a }: { c: ReviewCard; a: WithAudio<ReviewAttempt> | null }) {
   return (
     <div className="review-back" aria-live="polite">
-      {a && <p className="review-heard">Máy nghe được: {a.heard || "(không nghe thấy gì)"}</p>}
+      {a && (
+        <div className="review-heard">
+          <ReplayButton src={a.audio} />
+          <span>Máy nghe được: {a.heard || "(không nghe thấy gì)"}</span>
+        </div>
+      )}
       {c.kind === "note" ? (
         <div className="review-answer">
           <span className="review-label">Cách nói tốt hơn (NOTE)</span>
@@ -90,7 +98,8 @@ export function ReviewPage() {
   const [data, setData] = useState<ReviewState | null>(null);
   const [queue, setQueue] = useState<ReviewCard[]>([]);
   const [pos, setPos] = useState(0);
-  const [attempt, setAttempt] = useState<ReviewAttempt | null>(null);
+  const [attempt, setAttempt] = useState<WithAudio<ReviewAttempt> | null>(null);
+  const keepRecording = useRecordings();
   const [revealed, setRevealed] = useState(false);
   const [status, setStatus] = useState<Status>({ text: "", state: "" });
   const [busy, setBusy] = useState(false);
@@ -125,7 +134,7 @@ export function ReviewPage() {
     try {
       const res = await fetch(`/api/review/${card.id}/attempt`, { method: "POST", body: blob });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      setAttempt(await res.json());
+      setAttempt({ ...(await res.json()), audio: keepRecording(blob) });
       setRevealed(true);
       setStatus({ text: "", state: "" });
     } catch (e) {

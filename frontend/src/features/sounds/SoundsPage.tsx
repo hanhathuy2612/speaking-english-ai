@@ -5,8 +5,11 @@ import { AppBar } from "../../components/AppBar";
 import { MicIcon, SpeakerIcon } from "../../components/Icons";
 import { Chip, type Status, StatusLine } from "../../components/ui";
 import { WordDiff } from "../../components/WordDiff";
+import { ReplayButton } from "../../components/ReplayButton";
 import { useHoldToTalk } from "../../hooks/useHoldToTalk";
+import { useRecordings } from "../../hooks/useRecordings";
 import { markFocus } from "../../lib/drills";
+import type { WithAudio } from "../../lib/replay";
 import "../../styles/sounds.css";
 
 const accuracyTone = (acc: number | null) => (acc == null ? "" : acc >= 90 ? "success" : "warning");
@@ -27,7 +30,7 @@ function SetCard({ s, active, onPick }: { s: DrillSet; active: boolean; onPick: 
   );
 }
 
-function Result({ r }: { r: DrillResult }) {
+function Result({ r }: { r: WithAudio<DrillResult> }) {
   if (!r.heard) return <p className="drill-empty">Máy không nghe thấy gì. Kiểm tra micro rồi thử lại.</p>;
   const all = r.correct === r.total;
   return (
@@ -35,6 +38,7 @@ function Result({ r }: { r: DrillResult }) {
       <WordDiff items={r.items} />
       <p className="drill-heard">Máy nghe được: {r.heard}</p>
       <div className="drill-meta">
+        <ReplayButton src={r.audio} />
         <Chip tone={r.focus_correct === r.focus_total ? "success" : "warning"}>
           Từ trọng tâm: đúng {r.focus_correct}/{r.focus_total}
         </Chip>
@@ -50,7 +54,8 @@ export function SoundsPage() {
   const [params, setParams] = useSearchParams();
   const [data, setData] = useState<DrillState | null>(null);
   const [index, setIndex] = useState(0);
-  const [result, setResult] = useState<DrillResult | null>(null);
+  const [result, setResult] = useState<WithAudio<DrillResult> | null>(null);
+  const keepRecording = useRecordings();
   const [status, setStatus] = useState<Status>({ text: "", state: "" });
   const [scoring, setScoring] = useState(false);
   const audio = useRef<HTMLAudioElement | null>(null);
@@ -103,7 +108,7 @@ export function SoundsPage() {
     try {
       const res = await fetch(`/api/drills/${set.id}/${sentence.id}`, { method: "POST", body: blob });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      setResult(await res.json());
+      setResult({ ...(await res.json()), audio: keepRecording(blob) });
       setStatus({ text: "", state: "" });
       void load();
     } catch (e) {

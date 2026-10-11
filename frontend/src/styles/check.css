@@ -76,6 +76,10 @@
 }
 .check-actions {
   margin-top: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
 }
 
 /* ----- Past checks ----- */

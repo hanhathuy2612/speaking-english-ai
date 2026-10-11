@@ -41,3 +41,7 @@ Xem [roadmap.md](roadmap.md): làm trọn 2 bài 4–3–2, và một bài kiể
 ## Kiểm thử đầu cuối
 
 Như bài kiểm tra (xem [speaking-check.md](speaking-check.md)): thay `getUserMedia` / `MediaRecorder` bằng bản giả trả về mp3 edge-tts. Thử ngày 11/10/2026 với cùng một đoạn 206 từ, đọc chậm (-25%) ở lần 1 và nhanh hơn (+5%) ở lần 2, 3: tốc độ 160 → 209 → 209 từ/phút, dòng "Thay đổi" hiện +49.
+
+## Nghe lại
+
+Kết quả có nút "Nghe lại" để nghe chính bản ghi vừa gửi. Bản ghi chỉ giữ trong trình duyệt tới khi rời trang, không lưu trên server (xem [frontend.md](frontend.md)).

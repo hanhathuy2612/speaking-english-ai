@@ -4,14 +4,17 @@ import { AppBar } from "../../components/AppBar";
 import { CheckIcon, XIcon } from "../../components/Icons";
 import { Recorder } from "../../components/Recorder";
 import { Chip, type Status } from "../../components/ui";
+import { ReplayButton } from "../../components/ReplayButton";
 import { useHoldToTalk } from "../../hooks/useHoldToTalk";
+import { useRecordings } from "../../hooks/useRecordings";
 import { criterionValue, fmtClock } from "../../lib/check";
+import type { WithAudio } from "../../lib/replay";
 import { fmtDate, fmtNum, latestWithDelta } from "../../lib/format";
 import "../../styles/check.css";
 
 const MAX_SECONDS = 150; // stop automatically a little after the 2-minute target
 
-function Result({ r, onNext }: { r: CheckReport; onNext: () => void }) {
+function Result({ r, onNext }: { r: WithAudio<CheckReport>; onNext: () => void }) {
   const all = r.passed === r.criteria.length;
   return (
     <section className="card check-result" aria-live="polite">
@@ -45,6 +48,7 @@ function Result({ r, onNext }: { r: CheckReport; onNext: () => void }) {
         <p>{r.text || "(không nghe được gì)"}</p>
       </details>
       <div className="check-actions">
+        <ReplayButton src={r.audio} label="Nghe lại bài nói" />
         <button className="btn btn-primary" onClick={onNext}>
           Làm đề khác
         </button>
@@ -116,7 +120,8 @@ function Past({ checks }: { checks: CheckRow[] }) {
 
 export function CheckPage() {
   const [data, setData] = useState<CheckState | null>(null);
-  const [result, setResult] = useState<CheckReport | null>(null);
+  const [result, setResult] = useState<WithAudio<CheckReport> | null>(null);
+  const keepRecording = useRecordings();
   const [scoring, setScoring] = useState(false);
   const [status, setStatus] = useState<Status>({ text: "", state: "" });
   const [elapsed, setElapsed] = useState(0);
@@ -139,7 +144,7 @@ export function CheckPage() {
     try {
       const res = await fetch(`/api/check/${encodeURIComponent(data.prompt.id)}`, { method: "POST", body: blob });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      setResult(await res.json());
+      setResult({ ...(await res.json()), audio: keepRecording(blob) });
       setStatus({ text: "", state: "" });
       // Refresh the list of past checks but keep the current prompt on screen.
       const fresh: CheckState = await (await fetch("/api/check")).json();

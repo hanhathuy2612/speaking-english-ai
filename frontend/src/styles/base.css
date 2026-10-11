@@ -611,3 +611,17 @@ td .btn:hover {
   font-variant-numeric: tabular-nums;
   text-align: right;
 }
+
+/* ----- "Nghe lại": play back your own recording (components/ReplayButton.tsx) ----- */
+.btn.replay {
+  min-height: 28px;
+  padding: 0 10px;
+  gap: 6px;
+  border-color: var(--border);
+  font-size: 12.5px;
+  color: var(--text-2);
+}
+.btn.replay.playing {
+  border-color: var(--primary);
+  color: var(--primary);
+}
