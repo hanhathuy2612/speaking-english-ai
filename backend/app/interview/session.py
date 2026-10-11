@@ -86,4 +86,5 @@ def summary(s: Session) -> dict:
         "wpm_speaking": avg("wpm_speaking"),
         "long_pauses": sum(m["long_pauses"] for m in s.speech),
         "spoken_turns": len(s.speech),
+        "session_id": s.history_id,  # history row, for the end-of-session review (None if history is off)
     }

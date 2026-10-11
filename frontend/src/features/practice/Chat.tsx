@@ -91,9 +91,16 @@ function SummaryCard({ s }: { s: SessionSummary }) {
       </div>
       {row("Đã dùng", s.phrases_used, "success")}
       {row("Chưa dùng", s.phrases_missed, "")}
-      <Link className="btn btn-sm summary-link" to="/history">
-        Xem tiến bộ qua các buổi
-      </Link>
+      <div className="summary-actions">
+        {s.session_id != null && (
+          <Link className="btn btn-sm btn-primary" to={`/review?session=${s.session_id}`}>
+            Ôn lỗi của buổi này
+          </Link>
+        )}
+        <Link className="btn btn-sm" to="/history">
+          Xem tiến bộ qua các buổi
+        </Link>
+      </div>
     </section>
   );
 }

@@ -9,6 +9,7 @@ import { CheckPage } from "./features/check/CheckPage";
 import { FluencyPage } from "./features/fluency/FluencyPage";
 import { HistoryPage } from "./features/history/HistoryPage";
 import { PracticePage } from "./features/practice/PracticePage";
+import { ReviewPage } from "./features/review/ReviewPage";
 import { RoadmapPage } from "./features/roadmap/RoadmapPage";
 import { SoundsPage } from "./features/sounds/SoundsPage";
 
@@ -17,6 +18,7 @@ createRoot(document.getElementById("root")!).render(
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<PracticePage />} />
+        <Route path="/review" element={<ReviewPage />} />
         <Route path="/roadmap" element={<RoadmapPage />} />
         <Route path="/sounds" element={<SoundsPage />} />
         <Route path="/fluency" element={<FluencyPage />} />

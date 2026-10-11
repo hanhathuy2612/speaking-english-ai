@@ -1,0 +1,161 @@
+/* Review page (/review): spaced review of NOTEs and skipped phrases. */
+.review {
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 28px 20px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.review h1 {
+  font-size: 22px;
+  font-weight: 650;
+}
+.review-lead {
+  margin-top: 6px;
+  max-width: 72ch;
+  color: var(--text-2);
+}
+.review-stats {
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.review-note {
+  padding: 12px 16px;
+  color: var(--warning);
+}
+
+/* ----- Card ----- */
+.review-card {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.review-progress {
+  display: flex;
+  justify-content: space-between;
+  color: var(--text-3);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.review-question {
+  font-size: 19px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+.review-label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-3);
+}
+.review-said {
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+.review-said p {
+  font-size: 16px;
+  color: var(--text-2);
+}
+.review-said .review-phrase {
+  font-weight: 650;
+  color: var(--primary);
+}
+.review-ask {
+  display: block;
+  margin-top: 8px;
+  font-size: 13.5px;
+  color: var(--text-2);
+}
+.review-mic {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+.review-mic-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+.review-back {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+.review-heard {
+  font-size: 13.5px;
+  color: var(--text-2);
+}
+.review-answer {
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  border: 1px solid var(--success);
+  background: var(--success-soft);
+}
+.review-answer > p[lang="en"] {
+  font-size: 17px;
+  line-height: 1.45;
+}
+.review-hint {
+  margin-top: 8px;
+  font-size: 12.5px;
+  color: var(--text-2);
+}
+.review-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+}
+.review-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.review-grade {
+  display: flex;
+  gap: 8px;
+}
+.review-grade .btn {
+  flex: 1;
+}
+.review-suspend {
+  align-self: flex-start;
+  color: var(--text-3);
+}
+.review-done {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.review-done h2 {
+  font-size: 17px;
+  font-weight: 650;
+}
+.review-done p {
+  color: var(--text-2);
+}
+
+@media (max-width: 560px) {
+  .review {
+    padding: 20px 16px 40px;
+  }
+  .review-card {
+    padding: 16px;
+  }
+  .review-question {
+    font-size: 17px;
+  }
+}

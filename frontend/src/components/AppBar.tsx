@@ -4,6 +4,7 @@ import { ChatIcon, MenuIcon } from "./Icons";
 
 const NAV = [
   { to: "/", label: "Phòng tập" },
+  { to: "/review", label: "Ôn tập" },
   { to: "/roadmap", label: "Lộ trình" },
   { to: "/sounds", label: "Phát âm" },
   { to: "/fluency", label: "Nói dài" },
@@ -20,6 +21,19 @@ export function AppBar({ children }: { children?: ReactNode }) {
   const { pathname } = useLocation();
   const wrap = useRef<HTMLDivElement>(null);
   const current = NAV.find((n) => n.to === pathname)?.label ?? "Menu";
+  const [due, setDue] = useState(0);
+
+  // Review cards due today, shown as a badge (refreshed on every page change).
+  useEffect(() => {
+    let live = true;
+    fetch("/api/review/count")
+      .then((r) => (r.ok ? r.json() : { due: 0 }))
+      .then((d: { due: number }) => live && setDue(d.due))
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [pathname]);
 
   useEffect(() => setOpen(false), [pathname]);
 
@@ -50,17 +64,23 @@ export function AppBar({ children }: { children?: ReactNode }) {
           className="btn btn-ghost btn-sm nav-toggle"
           aria-expanded={open}
           aria-controls="main-nav"
-          aria-label={`Menu, đang ở: ${current}`}
+          aria-label={`Menu, đang ở: ${current}${due ? `, ${due} thẻ ôn đến hạn` : ""}`}
           onClick={() => setOpen((o) => !o)}
         >
           <MenuIcon />
           <span className="nav-toggle-label">{current}</span>
+          {due > 0 && <span className="nav-badge" aria-hidden>{due}</span>}
         </button>
         <nav id="main-nav" className={`nav${open ? " open" : ""}`} aria-label="Các trang">
           {NAV.map((n) => (
             // NavLink sets aria-current="page" on the active route, which the CSS highlights.
             <NavLink key={n.to} to={n.to} end className="btn btn-ghost btn-sm">
               {n.label}
+              {n.to === "/review" && due > 0 && (
+                <span className="nav-badge" aria-label={`${due} thẻ đến hạn`}>
+                  {due}
+                </span>
+              )}
             </NavLink>
           ))}
         </nav>

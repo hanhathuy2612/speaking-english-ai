@@ -103,6 +103,33 @@ CREATE TABLE IF NOT EXISTS fluency (
     hesitations_per_100 REAL,
     not_english INTEGER NOT NULL
 );
+CREATE TABLE IF NOT EXISTS cards (
+    id INTEGER PRIMARY KEY,
+    created_at TEXT NOT NULL,
+    kind TEXT NOT NULL,                -- 'note' | 'phrase' (docs/features/review.md)
+    session_id INTEGER REFERENCES sessions(id) ON DELETE CASCADE,
+    turn_id INTEGER UNIQUE REFERENCES turns(id) ON DELETE CASCADE,  -- note cards: undo removes them
+    unit_id TEXT NOT NULL,
+    phrase_index INTEGER,              -- phrase cards
+    question TEXT NOT NULL,
+    said TEXT,                         -- note cards: the learner's original answer
+    target TEXT NOT NULL,              -- the NOTE, or the phrase to use
+    box INTEGER NOT NULL DEFAULT 0,    -- Leitner box: 0 = new or forgotten
+    due TEXT NOT NULL,                 -- YYYY-MM-DD
+    reviews INTEGER NOT NULL DEFAULT 0,
+    lapses INTEGER NOT NULL DEFAULT 0,
+    suspended INTEGER NOT NULL DEFAULT 0,
+    UNIQUE (unit_id, phrase_index)
+);
+CREATE TABLE IF NOT EXISTS card_reviews (
+    id INTEGER PRIMARY KEY,
+    card_id INTEGER NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
+    created_at TEXT NOT NULL,
+    heard TEXT,                        -- NULL when the answer was revealed without speaking
+    correct INTEGER,
+    total INTEGER,
+    result TEXT NOT NULL               -- 'good' | 'again' (the learner's own grade)
+);
 """
 
 
@@ -352,3 +379,104 @@ def list_fluency_rounds() -> list[dict]:
     """All 4/3/2 rounds, oldest first."""
     rows = _rows("SELECT * FROM fluency ORDER BY created_at, id")
     return [{**r, "not_english": bool(r["not_english"])} for r in rows]
+
+
+# ----- Review cards (docs/features/review.md) -----
+
+
+def note_turns_without_card() -> list[dict]:
+    """Clear answers that got a NOTE and have no review card yet, oldest first."""
+    return _rows(
+        "SELECT t.id AS turn_id, t.session_id, s.unit_id, t.question, t.answer, t.note, t.created_at "
+        "FROM turns t JOIN sessions s ON s.id = t.session_id "
+        "LEFT JOIN cards c ON c.turn_id = t.id "
+        "WHERE c.id IS NULL AND t.unclear = 0 AND t.note IS NOT NULL AND t.note != '' ORDER BY t.id"
+    )
+
+
+def completed_sessions_used_phrases() -> list[dict]:
+    """Completed sessions with the phrase indices used in any answer: [{session_id, unit_id, used}]."""
+    out: dict[int, dict] = {}
+    for r in _rows(
+        "SELECT s.id, s.unit_id, t.used_phrases FROM sessions s JOIN turns t ON t.session_id = s.id "
+        "WHERE s.completed = 1 AND t.unclear = 0 ORDER BY s.id"
+    ):
+        row = out.setdefault(r["id"], {"session_id": r["id"], "unit_id": r["unit_id"], "used": set()})
+        row["used"] |= set(json.loads(r["used_phrases"]))
+    return list(out.values())
+
+
+def add_card(card: dict) -> int | None:
+    """Insert a card unless one already exists for the same turn or (unit, phrase)."""
+    if not enabled():
+        return None
+    cols = ["created_at", *card]
+    with closing(_connect()) as conn, conn:
+        cur = conn.execute(
+            f"INSERT OR IGNORE INTO cards ({', '.join(cols)}) VALUES ({', '.join('?' * len(cols))})",
+            (_now(), *card.values()),
+        )
+        return cur.lastrowid if cur.rowcount else None
+
+
+def list_cards(due_by: str | None = None, session_id: int | None = None) -> list[dict]:
+    """Active cards, oldest due first: due on or before `due_by`, or all cards of one session."""
+    if not enabled():
+        return []
+    where, args = ["suspended = 0"], []
+    if due_by is not None:
+        where.append("due <= ?")
+        args.append(due_by)
+    if session_id is not None:
+        where.append("session_id = ?")
+        args.append(session_id)
+    with closing(_connect()) as conn:
+        rows = conn.execute(
+            f"SELECT * FROM cards WHERE {' AND '.join(where)} ORDER BY due, id", args
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def get_card(card_id: int) -> dict | None:
+    if not enabled():
+        return None
+    with closing(_connect()) as conn:
+        row = conn.execute("SELECT * FROM cards WHERE id = ?", (card_id,)).fetchone()
+    return dict(row) if row else None
+
+
+def grade_card(card_id: int, box: int, due: str, result: str, attempt: dict) -> None:
+    """Store the learner's grade and the new schedule. `attempt`: heard, correct, total (or empty)."""
+    if not enabled():
+        return
+    with closing(_connect()) as conn, conn:
+        conn.execute(
+            "UPDATE cards SET box = ?, due = ?, reviews = reviews + 1, lapses = lapses + ? WHERE id = ?",
+            (box, due, int(result == "again"), card_id),
+        )
+        conn.execute(
+            "INSERT INTO card_reviews (card_id, created_at, heard, correct, total, result) "
+            "VALUES (?, ?, ?, ?, ?, ?)",
+            (card_id, _now(), attempt.get("heard"), attempt.get("correct"), attempt.get("total"), result),
+        )
+
+
+def suspend_card(card_id: int) -> bool:
+    if not enabled():
+        return False
+    with closing(_connect()) as conn, conn:
+        return conn.execute("UPDATE cards SET suspended = 1 WHERE id = ?", (card_id,)).rowcount > 0
+
+
+def card_stats(today: str, since: str, learned_box: int = 4) -> dict:
+    """Counts for the review page: due today, active, learned (box >= learned_box), reviews since `since`."""
+    if not enabled():
+        return {"due": 0, "active": 0, "learned": 0, "reviews": 0, "good": 0}
+    with closing(_connect()) as conn:
+        c = conn.execute(
+            "SELECT SUM(due <= ?), COUNT(*), SUM(box >= ?) FROM cards WHERE suspended = 0", (today, learned_box)
+        ).fetchone()
+        r = conn.execute(
+            "SELECT COUNT(*), SUM(result = 'good') FROM card_reviews WHERE created_at >= ?", (since,)
+        ).fetchone()
+    return {"due": c[0] or 0, "active": c[1] or 0, "learned": c[2] or 0, "reviews": r[0] or 0, "good": r[1] or 0}

@@ -73,6 +73,7 @@ export type SessionSummary = {
   wpm_speaking: number | null;
   long_pauses: number;
   spoken_turns: number;
+  session_id: number | null; // history row, for the end-of-session review
 };
 
 export type Metrics = {
@@ -294,4 +295,41 @@ export type Stage = {
   topics: Topic[];
   requirements: Requirement[];
   status: StageStatus;
+};
+
+// ----- Review cards (docs/features/review.md) -----
+
+export type ReviewCard = {
+  id: number;
+  kind: "note" | "phrase";
+  unit_id: string;
+  unit_title: string;
+  question: string;
+  said: string | null; // note cards: what you said back then
+  target: string; // the NOTE, or the phrase to use
+  box: number; // Leitner box, 0 = new or forgotten
+  due: string; // YYYY-MM-DD
+  reviews: number;
+  session_id: number | null;
+};
+
+export type ReviewStats = {
+  due: number;
+  active: number;
+  learned: number; // box >= 4
+  reviews: number; // last 30 days
+  good: number;
+  recall: number | null; // % graded "remembered", last 30 days
+};
+
+export type ReviewState = { enabled: boolean; stats: ReviewStats; cards: ReviewCard[] };
+
+export type ReviewAttempt = {
+  heard: string;
+  suggest: "good" | "again";
+  phrase_used?: boolean; // phrase cards
+  items?: CompareItem[]; // note cards: the NOTE word by word against what you said
+  correct?: number;
+  total?: number;
+  accuracy?: number;
 };

@@ -24,6 +24,7 @@ File mặc định: `data/history.db` ở thư mục gốc (biến `HISTORY_DB`,
 - **`checks`:** mỗi lần làm bài kiểm tra nói 2 phút (xem [speaking-check.md](speaking-check.md)): đề, chữ nhận dạng, thời lượng, tốc độ, số lần ngập ngừng giữa câu, số tiêu chí đạt. Không gắn với `sessions`.
 - **`drills`:** mỗi lần đọc một câu luyện phát âm (xem [pronunciation-drills.md](pronunciation-drills.md)): nhóm, câu mẫu, chữ nghe được, số từ đúng / tổng, số từ trọng tâm đúng / tổng. `list_readings()` gộp `shadows` và `drills` (theo thời gian, rồi theo bảng và `id`, vì thời gian chỉ chính xác tới giây) để làm nhóm "Câu bạn từng đọc sai".
 - **`fluency`:** mỗi lần kể trong bài 4–3–2 (xem [fluency-432.md](fluency-432.md)): `run` (id của bài), số lần, giới hạn giây, đề, chữ nhận dạng, thời lượng, tốc độ, ngập ngừng. Một bài gồm 3 dòng cùng `run`.
+- **`cards`, `card_reviews`:** thẻ ôn tập và mỗi lần chấm (xem [review.md](review.md)). Thẻ NOTE gắn với `turns` (`ON DELETE CASCADE`), nên hoàn tác hay xóa buổi cũng xóa thẻ.
 - Tiêu chí mở giai đoạn của lộ trình được tính từ các bảng trên khi đọc (xem [roadmap.md](roadmap.md)), không lưu sẵn.
 - Lượt "máy nghe chưa rõ" hoặc "chưa phải tiếng Anh" cũng được ghi (`unclear` = 1), làm dữ liệu hiệu chỉnh ngưỡng STT.
 - Hoàn tác xóa hẳn dòng của lượt vừa rồi và cập nhật lại `completed`.

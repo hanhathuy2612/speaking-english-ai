@@ -148,6 +148,19 @@ svg {
   position: relative;
   flex: none; /* links cannot shrink: let the page's own appbar items (unit picker...) give way */
 }
+.nav-badge {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  display: inline-grid;
+  place-items: center;
+  background: var(--warning-soft);
+  color: var(--warning);
+  font-size: 12px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
 /* .nav-wrap prefix: .btn (declared later) would otherwise show the toggle on wide screens */
 .nav-wrap .nav-toggle {
   display: none;

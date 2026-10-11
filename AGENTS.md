@@ -2,7 +2,7 @@
 
 Người dùng là lập trình viên Java người Việt, hiểu tiếng Anh tốt nhưng nói chưa trôi chảy.
 App tạo các buổi hội thoại có kịch bản (trò chuyện, tình huống công việc, phỏng vấn): nghe câu hỏi, nói, xem cách nói
-tự nhiên hơn (NOTE), nói lại. Bài kiểm tra nói 2 phút đo tiến bộ bằng số.
+tự nhiên hơn (NOTE), nói lại, rồi ôn lại các NOTE theo lịch ngắt quãng. Bài kiểm tra nói 2 phút đo tiến bộ bằng số.
 Đây là code chính thức của sản phẩm, nhánh `main` trên `hanhathuy2612/speaking-english-ai`.
 App Angular cũ được giữ ở nhánh `old_main` của repo đó, chỉ dùng để tham khảo ý tưởng (topic, roadmap, đóng gói Android
 bằng Capacitor), không ghép code vào. Không đưa lại các cách làm đã bỏ của app đó: LLM tự dẫn dắt buổi nói, LLM chấm điểm, câu mẫu đọc thành tiếng.
@@ -18,9 +18,9 @@ backend/
     main.py              # tạo FastAPI app, nạp Whisper lúc khởi động, gắn router, phục vụ frontend
     __main__.py          # python -m app: chạy uvicorn với SERVER_*/SSL_* trong .env (run.cmd ở thư mục gốc gọi file này)
     core/                # config.py (đọc .env, đường dẫn), cuda.py (DLL CUDA trên Windows)
-    api/routes/          # ws.py (WebSocket /ws), units.py (+ /api/stages), drills.py, fluency.py, check.py, bench.py, history.py (/api/...)
+    api/routes/          # ws.py (WebSocket /ws), units.py (+ /api/stages), review.py, drills.py, fluency.py, check.py, bench.py, history.py (/api/...)
     services/            # stt.py (Whisper), tts.py (edge-tts + cache), llm.py (LM Studio), history.py (SQLite)
-    interview/           # session.py (trạng thái, next_step), prompts.py, turn.py (một lượt), shadow.py (nói lại), units.py
+    interview/           # session.py (trạng thái, next_step), prompts.py, turn.py (một lượt), shadow.py (nói lại), units.py, review.py (thẻ ôn)
     assessment/          # không dùng LLM: metrics.py (đo), check.py (kiểm tra 2 phút), drills.py (phát âm), fluency.py (4–3–2), stages.py (mở giai đoạn)
     utils/               # parsing.py, compare.py (hàm thuần), ws.py (Conn)
     data/                # units.json (chủ đề + bài), stages.json, drills.json, check_prompts.json, fluency_prompts.json, bench_sentences.json
@@ -29,13 +29,13 @@ backend/
   pyproject.toml, requirements*.txt
 frontend/                # React + TypeScript + Vite; build vào frontend/dist (backend phục vụ)
   src/
-    main.tsx             # React Router: / , /roadmap , /sounds , /fluency , /check , /history , /bench
+    main.tsx             # React Router: / , /review , /roadmap , /sounds , /fluency , /check , /history , /bench
     api/types.ts         # kiểu dữ liệu API + giao thức WebSocket
     components/          # AppBar, Icons, ui (Chip, StatusLine), WordDiff, Recorder
     hooks/               # useHoldToTalk (ghi âm), useAudioQueue (phát MP3)
-    features/            # practice/ (useInterview + các component), roadmap/, sounds/, fluency/, check/, history/, bench/
+    features/            # practice/ (useInterview + các component), review/, roadmap/, sounds/, fluency/, check/, history/, bench/
     lib/                 # hàm thuần + test Vitest
-    styles/              # base.css (token, component chung, bảng), practice.css, roadmap.css, sounds.css, fluency.css, check.css, history.css, bench.css
+    styles/              # base.css (token, component chung, bảng), practice.css, review.css, roadmap.css, sounds.css, fluency.css, check.css, history.css, bench.css
 docs/                    # tài liệu theo tính năng (bảng bên dưới)
 recordings/              # giọng nói thật của người dùng, không commit
 data/                    # history.db: lịch sử luyện tập của người dùng, không commit
@@ -80,6 +80,7 @@ npm test           # Vitest
 | Chỉ số nói, mẫu câu đã dùng | [docs/features/speech-metrics.md](docs/features/speech-metrics.md) | `utils/parsing.py`, `interview/session.py` (`summary`) |
 | Nói lại câu mẫu (shadowing): so từng từ, chuẩn hóa số và viết tắt | [docs/features/shadowing.md](docs/features/shadowing.md) | `interview/shadow.py`, `utils/compare.py`, `frontend/src/features/practice/CoachCard.tsx` |
 | Lộ trình: 5 giai đoạn mở khóa theo số đo, 6 chủ đề, 24 bài, bài tiếp theo | [docs/features/roadmap.md](docs/features/roadmap.md) | `data/stages.json`, `assessment/stages.py`, `data/units.json`, `api/routes/units.py`, `frontend/src/features/roadmap/` |
+| Ôn tập: NOTE và mẫu câu bỏ sót thành thẻ, ôn cuối buổi và ôn ngắt quãng (1, 3, 7, 14, 30, 60 ngày) | [docs/features/review.md](docs/features/review.md) | `interview/review.py`, `api/routes/review.py`, `frontend/src/features/review/` |
 | Luyện phát âm theo lỗi đã đo, từ trọng tâm, nhóm câu từng đọc sai | [docs/features/pronunciation-drills.md](docs/features/pronunciation-drills.md) | `data/drills.json`, `assessment/drills.py`, `api/routes/drills.py`, `frontend/src/features/sounds/` |
 | Nói dài 4–3–2: kể một chuyện 3 lần, 4/3/2 phút | [docs/features/fluency-432.md](docs/features/fluency-432.md) | `assessment/fluency.py`, `api/routes/fluency.py`, `frontend/src/features/fluency/` |
 | Chế độ trò chuyện: AI đóng vai đồng nghiệp, trưởng nhóm, khách hàng… (`role`, `partner`) | [docs/features/conversation-mode.md](docs/features/conversation-mode.md) | `interview/prompts.py`, `data/units.json` (chủ đề `daily`, `workplace`) |
@@ -120,7 +121,7 @@ Theo [Conventional Commits 1.0.0](https://www.conventionalcommits.org/en/v1.0.0/
 ```
 
 - **type:** `feat` (tính năng mới), `fix` (sửa lỗi), `refactor` (đổi cấu trúc, không đổi hành vi), `perf`, `test`, `docs`, `style` (định dạng, không đổi logic), `build` (dependency, requirements), `chore` (việc vặt, cấu hình), `revert`.
-- **scope** (không bắt buộc): `backend`, `frontend`, `stt`, `tts`, `llm`, `interview`, `shadowing`, `history`, `bench`, `check`, `drills`, `fluency`, `roadmap`, `config`, `docs`.
+- **scope** (không bắt buộc): `backend`, `frontend`, `stt`, `tts`, `llm`, `interview`, `shadowing`, `history`, `bench`, `check`, `drills`, `fluency`, `roadmap`, `review`, `config`, `docs`.
 - **subject:** câu mệnh lệnh, chữ thường ở đầu, không dấu chấm cuối, tối đa 72 ký tự. Ví dụ: `fix(stt): fall back to cpu when cuda dlls are missing`.
 - **body:** xuống dòng ở khoảng 72 ký tự. Nêu lý do và cách đã kiểm chứng (test, replay, stt_bench).
 - **Thay đổi phá vỡ tương thích** (đổi lệnh chạy, đổi biến `.env`, đổi giao thức WebSocket): thêm `!` sau type (`refactor!: ...`) và footer `BREAKING CHANGE: <mô tả + cách chuyển đổi>`.

@@ -45,7 +45,7 @@ Server gửi:
 | `note` | NOTE và cờ `retry`. |
 | `progress` | `q`/`n`, `done`. |
 | `metrics` | Độ trễ: `stt_ms`, `llm_first_ms`, `first_audio_ms`, `total_ms`. |
-| `summary` | Tổng kết khi hết câu hỏi. |
+| `summary` | Tổng kết khi hết câu hỏi. `session_id` (id buổi trong lịch sử, `null` khi tắt lịch sử) mở trang ôn lỗi của buổi, xem [review.md](features/review.md). |
 | `shadow_result` | Kết quả nói lại: `target`, `heard`, `compare` (từng từ), `speech`, `original`. |
 | `undone` | Đã hoàn tác, kèm `used` mới. |
 | `turn_done` | Kết thúc lượt. `can_undo` cho biết có hiện nút "Máy nghe sai" không. |
@@ -53,10 +53,11 @@ Server gửi:
 
 ## HTTP
 
-- `GET /`, `/roadmap`, `/sounds`, `/fluency`, `/check`, `/history`, `/bench`: `frontend/dist/index.html` (app React một trang; React Router chọn trang). `/assets/...`: JS/CSS đã build. Chưa build thì trả hướng dẫn (503).
+- `GET /`, `/review`, `/roadmap`, `/sounds`, `/fluency`, `/check`, `/history`, `/bench`: `frontend/dist/index.html` (app React một trang; React Router chọn trang). `/assets/...`: JS/CSS đã build. Chưa build thì trả hướng dẫn (503).
 - `/api/history/...`: xem [session-history.md](features/session-history.md).
 - `/api/check`: bài kiểm tra nói, xem [speaking-check.md](features/speaking-check.md).
 - `GET /api/units`, `GET /api/stages`: chủ đề và bài theo thứ tự lộ trình kèm trạng thái đã tập; các giai đoạn kèm tiêu chí và trạng thái mở khóa (`api/routes/units.py`, xem [roadmap.md](features/roadmap.md)).
 - `/api/drills`: luyện phát âm, xem [pronunciation-drills.md](features/pronunciation-drills.md).
 - `/api/fluency`: bài nói dài 4–3–2, xem [fluency-432.md](features/fluency-432.md).
+- `/api/review`: thẻ ôn tập, xem [review.md](features/review.md).
 - `GET /bench`, `GET /api/bench`, `POST /api/bench/{i}`: xem [stt-benchmark.md](features/stt-benchmark.md).
