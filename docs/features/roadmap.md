@@ -22,7 +22,7 @@ Mục đích: người dùng biết nên tập bài nào tiếp theo, thay vì t
 | Tình huống thực tế (STAR) | `solved-a-problem`, `disagreement`, `tight-deadline`, `a-mistake` |
 | Cuối buổi phỏng vấn | `expectations` (lương, ngày bắt đầu, câu hỏi cho nhà tuyển dụng) |
 
-Thứ tự trong file là thứ tự lộ trình. Bài `expectations` có câu "Do you have any questions for us?": `scenario` dặn AI trả lời ngắn, chung chung khi người học hỏi về công ty.
+Thứ tự trong file là thứ tự lộ trình. Các bài STAR có `"followups": 0` (không hỏi câu phụ), vì câu chính đã đi qua từng bước. Bài `expectations` có câu "Do you have any questions for us?": `scenario` dặn AI trả lời ngắn, chung chung khi người học hỏi về công ty.
 
 ## `GET /api/units`
 

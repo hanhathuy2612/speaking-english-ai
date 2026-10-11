@@ -430,6 +430,7 @@
     {
       "id": "solved-a-problem",
       "topic": "behavioral",
+      "followups": 0,
       "title": "A problem you solved (STAR)",
       "scenario": "A behavioural job interview about a difficult problem the candidate solved at work.",
       "goal": "Trả lời theo STAR: Situation (bối cảnh), Task (nhiệm vụ), Action (hành động), Result (kết quả).",
@@ -492,6 +493,7 @@
     {
       "id": "disagreement",
       "topic": "behavioral",
+      "followups": 0,
       "title": "Disagreeing with a teammate (STAR)",
       "scenario": "A behavioural job interview about a disagreement with a colleague.",
       "goal": "Trả lời theo STAR. Nhấn mạnh cách bạn lắng nghe, dùng dữ liệu để thuyết phục, và vẫn giữ quan hệ tốt.",
@@ -553,6 +555,7 @@
     {
       "id": "tight-deadline",
       "topic": "behavioral",
+      "followups": 0,
       "title": "Working under a tight deadline (STAR)",
       "scenario": "A behavioural job interview about working under time pressure.",
       "goal": "Trả lời theo STAR: bạn ưu tiên việc gì, báo cho ai biết sớm, và kết quả có kịp hạn không.",
@@ -611,6 +614,7 @@
     {
       "id": "a-mistake",
       "topic": "behavioral",
+      "followups": 0,
       "title": "A mistake you learned from (STAR)",
       "scenario": "A behavioural job interview about a mistake the candidate made at work.",
       "goal": "Thừa nhận lỗi thẳng thắn, nói nguyên nhân gốc, bạn đã sửa thế nào, và bạn thay đổi gì sau đó. Không đổ lỗi cho người khác.",

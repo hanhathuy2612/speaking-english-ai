@@ -36,6 +36,12 @@ class Session:
             setattr(self, k, v)
 
 
+def followup_limit(unit: dict) -> int:
+    """Follow-ups allowed per main question. STAR units set 0: their main questions already walk
+    through every step, and the model's follow-ups kept asking what the next question would ask."""
+    return unit.get("followups", FOLLOWUPS)
+
+
 def next_step(s: Session, secs: dict[str, str]) -> tuple[str, bool]:
     """Decide what the interviewer says next. Returns (text, use_tts_cache)."""
     retry = secs.get("RETRY", "").lower().startswith("yes")
@@ -48,7 +54,7 @@ def next_step(s: Session, secs: dict[str, str]) -> tuple[str, bool]:
             s.asked = main["simple"]
             return s.asked, True
         return s.asked, False  # on a follow-up: repeat it as is
-    if not retry and is_question(ask) and s.followups < FOLLOWUPS:
+    if not retry and is_question(ask) and s.followups < followup_limit(s.unit):
         s.followups += 1
         s.asked = ask
         return ask, False

@@ -30,6 +30,8 @@ def validate(topics: list[dict], units: list[dict]) -> list[str]:
                 errors.append(f"{uid}: missing {key}")
         if u.get("topic") not in topic_ids:
             errors.append(f"{uid}: unknown topic {u.get('topic')!r}")
+        if not isinstance(u.get("followups", 0), int) or u.get("followups", 0) < 0:
+            errors.append(f"{uid}: followups must be a non-negative integer")
         n = len(u.get("phrases", []))
         for i, q in enumerate(u.get("questions", [])):
             if not (q.get("ask") and q.get("simple") and q.get("phrases")):

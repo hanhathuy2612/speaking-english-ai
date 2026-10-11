@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from app.core.config import FOLLOWUPS, MAX_HISTORY
-from app.interview.session import Session
+from app.core.config import MAX_HISTORY
+from app.interview.session import Session, followup_limit
 from app.utils.parsing import norm
 
 SYSTEM_TEMPLATE = """You play the INTERVIEWER in a job interview. The candidate is a learner practising spoken English. Each user message gives the current question and the candidate's latest answer.
@@ -107,7 +107,7 @@ def build_user_message(s: Session, answer: str) -> str:
     lines += [
         f"Current question: {s.asked}",
         f"Target phrase: {' / '.join(target_phrases(s.unit, s.q))}",
-        f"Follow-up allowed: {'yes' if s.followups < FOLLOWUPS else 'no'}",
+        f"Follow-up allowed: {'yes' if s.followups < followup_limit(s.unit) else 'no'}",
         f"Latest answer: {answer}",
     ]
     return "\n".join(lines)

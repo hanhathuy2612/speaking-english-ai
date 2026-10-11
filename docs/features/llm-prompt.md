@@ -47,6 +47,7 @@ Latest answer: ...                 (luôn để cuối)
 | Câu hỏi lại chép từ ví dụ mẫu | Model tự diễn đạt lại câu hỏi | App dùng `simple` soạn sẵn, LLM viết `ASK: NEXT` khi RETRY |
 | Phản ứng với câu trả lời cũ | Câu trả lời mới bị đặt giữa tin nhắn | `Latest answer` đặt cuối, cộng luật "respond ONLY to the latest answer" |
 | NOTE chép chi tiết từ ví dụ ("logistics coordinator") | Few-shot bị rò | `safe_note()` thay bằng khung mẫu câu nếu NOTE có từ trong `EXAMPLE_WORDS` mà người học chưa nói, hoặc khi RETRY mà chưa biết gì về người học |
+| Câu hỏi phụ trùng câu chính sắp tới ("How did you ensure this wouldn't happen again?" ngay trước câu chính hỏi đúng điều đó) | Bài STAR có sẵn câu chính cho từng bước, model không biết câu nào còn ở sau | Bài STAR đặt `"followups": 0` trong `units.json`. **Đã thử và bỏ:** gửi danh sách "Later questions" kèm luật cấm hỏi trùng; model 7B lại chép nguyên câu trong danh sách làm câu hỏi phụ (cả 6/6 lần chạy) |
 | NOTE bịa thêm chi tiết | Câu nhận dạng sai, vô nghĩa | Luật "ONLY facts the candidate said", dùng "..." khi thiếu. Vẫn còn xảy ra, cần sửa ở phía STT |
 
 ## Khi sửa prompt

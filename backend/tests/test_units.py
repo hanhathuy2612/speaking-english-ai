@@ -33,3 +33,10 @@ def test_content_avoids_few_shot_words():
         texts += [p["say"] for p in u["phrases"]]
         for t in texts:
             assert not any(w in norm(t) for w in EXAMPLE_WORDS), (u["id"], t)
+
+
+def test_star_units_turn_follow_ups_off():
+    # Their main questions already cover Situation, Task, Action, Result (docs/features/roadmap.md).
+    for u in units:
+        if u["topic"] == "behavioral":
+            assert u.get("followups") == 0, u["id"]
