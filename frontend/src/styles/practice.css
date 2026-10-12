@@ -324,9 +324,78 @@
   flex-wrap: wrap;
   gap: 8px;
 }
-.coach.shadowing {
+.coach.shadowing,
+.coach.retelling {
   border-color: var(--primary);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 18%, transparent);
+}
+
+/* ----- Steps for a longer answer, "Trả lời lại dài hơn" ----- */
+.steps {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--border);
+}
+.steps-head {
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--primary);
+}
+.step-list {
+  list-style: none;
+  margin: 8px 0 12px;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.step-list li {
+  display: grid;
+  grid-template-columns: 16px 10.5em 1fr;
+  align-items: baseline;
+  gap: 8px;
+}
+.step-mark {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border-strong);
+  display: grid;
+  place-items: center;
+  align-self: center;
+}
+.step-hint {
+  font-size: 13px;
+  color: var(--text-2);
+}
+.step-say {
+  font-size: 15px;
+  font-weight: 500;
+}
+.step-list li.done .step-mark {
+  background: var(--success);
+  border-color: var(--success);
+  color: var(--surface);
+}
+.step-list li.done .step-hint,
+.step-list li.done .step-say {
+  color: var(--text-3);
+}
+.retell-result {
+  margin: -2px 0 12px;
+  padding: 12px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+.retell-heard {
+  font-size: 15px;
+  line-height: 1.5;
+}
+.retell-result .meta {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
 /* ----- Shadowing result ----- */
@@ -524,6 +593,14 @@
   .shadow-legend,
   .shadow-heard {
     display: none;
+  }
+  .step-list li {
+    grid-template-columns: 16px 1fr;
+    row-gap: 0;
+  }
+  .step-say {
+    grid-column: 2;
+    font-size: 14px;
   }
   .bubble {
     font-size: 15px;

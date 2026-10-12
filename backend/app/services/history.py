@@ -59,6 +59,19 @@ CREATE TABLE IF NOT EXISTS shadows (
     long_pauses INTEGER,
     avg_logprob REAL
 );
+CREATE TABLE IF NOT EXISTS retells (
+    id INTEGER PRIMARY KEY,
+    session_id INTEGER NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+    created_at TEXT NOT NULL,
+    question TEXT NOT NULL,
+    answer TEXT NOT NULL,
+    words INTEGER,
+    original_words INTEGER,            -- words of the first answer to the same question
+    steps_done INTEGER,
+    steps_total INTEGER,
+    wpm_speaking INTEGER,
+    long_pauses INTEGER
+);
 CREATE TABLE IF NOT EXISTS checks (
     id INTEGER PRIMARY KEY,
     created_at TEXT NOT NULL,
@@ -185,6 +198,19 @@ def add_turn(session_id: int | None, turn: dict) -> int | None:
         cur = conn.execute(
             f"INSERT INTO turns ({', '.join(cols)}) VALUES ({', '.join('?' * len(cols))})",
             (session_id, _now(), *row.values()),
+        )
+        return cur.lastrowid
+
+
+def add_retell(session_id: int | None, attempt: dict) -> int | None:
+    """One "Trả lời lại dài hơn" attempt; kept apart from turns like shadowing attempts."""
+    if session_id is None:
+        return None
+    cols = ["session_id", "created_at", *attempt]
+    with closing(_connect()) as conn, conn:
+        cur = conn.execute(
+            f"INSERT INTO retells ({', '.join(cols)}) VALUES ({', '.join('?' * len(cols))})",
+            (session_id, _now(), *attempt.values()),
         )
         return cur.lastrowid
 

@@ -64,6 +64,17 @@ export type ShadowResult = {
   original: Speech | null;
 };
 
+/** One step towards a longer answer, shown under the NOTE (docs/features/answer-steps.md). */
+export type AnswerStep = { hint: string; say: string; done: boolean };
+
+export type RetellResult = {
+  heard: string;
+  speech: Speech;
+  original: Speech | null; // the first answer to the same question (null if it was typed)
+  original_words: number;
+  steps: AnswerStep[];
+};
+
 export type SessionSummary = {
   turns: number;
   questions: number;
@@ -96,8 +107,9 @@ export type ServerMessage =
       conf: number | null;
     }
   | { type: "sentence"; text: string; role: "ai" | "model" }
-  | { type: "note"; text: string; retry: boolean }
+  | { type: "note"; text: string; retry: boolean; steps: AnswerStep[] }
   | ({ type: "shadow_result" } & ShadowResult)
+  | ({ type: "retell_result" } & RetellResult)
   | ({ type: "metrics" } & Metrics)
   | { type: "progress"; q: number; n: number; done: boolean }
   | ({ type: "summary" } & SessionSummary)
@@ -110,6 +122,7 @@ export type ClientMessage =
   | { type: "text"; text: string }
   | { type: "undo" }
   | { type: "shadow"; text: string }
+  | { type: "retell" }
   | { type: "say_it"; text: string };
 
 export type HistorySession = {

@@ -32,6 +32,7 @@ Trình duyệt gửi:
 | `{"type":"text","text":...}` | Câu trả lời gõ chữ (bỏ qua STT, không có chỉ số nói). |
 | `{"type":"undo"}` | "Máy nghe sai": khôi phục `Session.prev`. |
 | `{"type":"shadow","text":...}` | Gửi ngay trước khung âm thanh: bản ghi kế tiếp là lượt nói lại câu NOTE này (xem [shadowing.md](features/shadowing.md)). |
+| `{"type":"retell"}` | Gửi ngay trước khung âm thanh: bản ghi kế tiếp trả lời lại câu hỏi vừa có NOTE, dài hơn (xem [answer-steps.md](features/answer-steps.md)). |
 | `{"type":"say_it","text":...}` | Đọc to NOTE (role `model`, không ghi vào chat). |
 
 Server gửi:
@@ -42,11 +43,12 @@ Server gửi:
 | `status` | `transcribing` hoặc `thinking`. |
 | `transcript` | Chữ nhận dạng, `speech` (chỉ số), `used` (mẫu câu đã dùng), `unclear`, `reason` (`not_english` / `low_confidence` / `null`), `conf`. |
 | `sentence` + khung nhị phân | Một câu AI nói kèm MP3. `role`: `ai` hoặc `model`. |
-| `note` | NOTE và cờ `retry`. |
+| `note` | NOTE, cờ `retry`, và `steps` (các ý để nói dài hơn, xem [answer-steps.md](features/answer-steps.md)). |
 | `progress` | `q`/`n`, `done`. |
 | `metrics` | Độ trễ: `stt_ms`, `llm_first_ms`, `first_audio_ms`, `total_ms`. |
 | `summary` | Tổng kết khi hết câu hỏi. `session_id` (id buổi trong lịch sử, `null` khi tắt lịch sử) mở trang ôn lỗi của buổi, xem [review.md](features/review.md). |
 | `shadow_result` | Kết quả nói lại: `target`, `heard`, `compare` (từng từ), `speech`, `original`. |
+| `retell_result` | Kết quả trả lời lại: `heard`, `speech`, `original`, `original_words`, `steps`. |
 | `undone` | Đã hoàn tác, kèm `used` mới. |
 | `turn_done` | Kết thúc lượt. `can_undo` cho biết có hiện nút "Máy nghe sai" không. |
 | `error` | Thông báo lỗi tiếng Việt. |

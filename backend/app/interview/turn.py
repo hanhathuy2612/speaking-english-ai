@@ -8,7 +8,8 @@ from __future__ import annotations
 import asyncio
 import time
 
-from app.interview.prompts import build_messages, safe_note
+from app.interview.steps import mark_steps, steps_for, trim_invented
+from app.interview.prompts import build_messages, safe_note, target_phrases
 from app.interview.session import Session, next_step, progress, summary
 from app.services import history, llm, stt, tts
 from app.utils.parsing import has_cjk, ready_sentences, speech_metrics, split_sections, used_phrase_indices
@@ -104,6 +105,8 @@ async def run_turn(
     conn: Conn, s: Session, user_text: str, t0: float, t_stt: float | None, record: dict
 ) -> None:
     q_index = s.q  # next_step may advance; the NOTE still belongs to this question
+    main = s.unit["questions"][q_index]
+    on_main = s.asked in (main["ask"], main["simple"])  # the steps are written for the main question
     messages = build_messages(s, user_text)
     s.history.append({"q": s.asked, "a": user_text})
 
@@ -163,7 +166,20 @@ async def run_turn(
 
     retry = secs.get("RETRY", "").lower().startswith("yes")
     note = safe_note(s, q_index, secs.get("NOTE", ""), retry)
-    await conn.json({"type": "note", "text": note, "retry": retry})
+    steps: list[dict] = []
+    s.retell_base = None
+    if not retry:  # a RETRY NOTE is already a model answer to a question the learner did not answer
+        said = " ".join(f"{h['q']} {h['a']}" for h in s.history)
+        note = trim_invented(note, said, " ".join(target_phrases(s.unit, q_index, user_text)))
+        if on_main:
+            steps = mark_steps(steps_for(s.unit, q_index), f"{user_text} {note}")
+            s.retell_base = {
+                "question": main["ask"],
+                "answer": user_text,
+                "speech": s.last_speech,
+                "steps": steps_for(s.unit, q_index),
+            }
+    await conn.json({"type": "note", "text": note, "retry": retry, "steps": steps})
     await conn.json(progress(s))
     now = time.monotonic()
     ms = lambda a, b: round((a - b) * 1000) if a and b else 0  # noqa: E731

@@ -26,6 +26,8 @@ class Session:
     history_id: int | None = None  # sessions row in the history DB (None when history is off)
     last_turn_id: int | None = None  # turns row of the last answered turn, deleted on undo
     shadow_target: str | None = None  # NOTE sentence the next recording is compared against
+    retell: bool = False  # the next recording answers the last question again, longer
+    retell_base: dict | None = None  # that answer: question, answer, speech, steps (set by run_turn)
     last_speech: dict | None = None  # speech metrics of the last spoken answer, shown next to shadowing
 
     def snapshot(self) -> dict:

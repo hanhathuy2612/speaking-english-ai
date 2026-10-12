@@ -70,7 +70,8 @@ FEW_SHOT = [
         "NOTE: One of my main achievements was redesigning our route plan, which cut late deliveries by thirty percent.",
     },
     {
-        # A wrong word is fixed, the correct rest is kept, and no reason is added.
+        # A wrong word is fixed, the correct rest is kept, and no reason is added: the steps under
+        # the NOTE ask for one (interview/steps.py).
         "role": "user",
         "content": "Current question: What do you think about the new scanning app?\n"
         "Target phrase: In my opinion, ...\n"

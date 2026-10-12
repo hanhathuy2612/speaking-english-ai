@@ -8,6 +8,7 @@ import time
 
 from app.core.config import STT_CHECK_LANGUAGE, STT_VOCAB
 from app.interview.session import Session, progress
+from app.interview.retell import handle_retell
 from app.interview.shadow import handle_shadow
 from app.interview.turn import handle_user_input, start_session
 from app.interview.units import units_by_id
@@ -41,6 +42,7 @@ async def _on_text(conn: Conn, session: Session | None, data: dict) -> Session |
     if kind == "start" and data.get("unit") in units_by_id:
         return await start_session(conn, units_by_id[data["unit"]])
     if kind == "text" and session and data.get("text", "").strip():
+        session.retell = False  # a typed message is always an interview answer
         await handle_user_input(
             conn, session, data["text"].strip(), [], time.monotonic(), None
         )
@@ -49,12 +51,15 @@ async def _on_text(conn: Conn, session: Session | None, data: dict) -> Session |
             history.delete_turn(session.last_turn_id)
             session.restore(session.prev)
             session.prev, session.last_turn_id = None, None
+            session.retell_base, session.retell = None, False
             history.set_completed(session.history_id, session.done)
             await conn.json({"type": "undone", "used": sorted(session.used)})
             await conn.json(progress(session))
         await conn.json({"type": "turn_done", "can_undo": False})
     elif kind == "shadow" and session and data.get("text", "").strip():
         session.shadow_target = data["text"].strip()  # the next recording is a shadowing attempt
+    elif kind == "retell" and session and session.retell_base:
+        session.retell = True  # the next recording answers the last question again
     elif kind == "say_it" and data.get("text", "").strip():
         text = data["text"].strip()
         await conn.audio(text, await tts.tts_bytes(text), role="model")
@@ -83,7 +88,7 @@ async def _on_audio(conn: Conn, session: Session, data: bytes) -> None:
         f"lang={result['language']}: {result['text']}"
     )
     if not result["text"]:
-        session.shadow_target = None
+        session.shadow_target, session.retell = None, False
         await conn.json(
             {"type": "error", "msg": "Không nghe rõ, hãy nói lại gần micro hơn."}
         )
@@ -91,6 +96,9 @@ async def _on_audio(conn: Conn, session: Session, data: bytes) -> None:
         return
     if session.shadow_target:
         await handle_shadow(conn, session, result, round((t_stt - t0) * 1000))
+        return
+    if session.retell:
+        await handle_retell(conn, session, result, round((t_stt - t0) * 1000))
         return
     result["recording"] = stt.kept_name(path)  # stored with the turn, for "Nghe lại" later
     await handle_user_input(

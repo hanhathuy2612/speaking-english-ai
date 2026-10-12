@@ -13,7 +13,7 @@ import { useInterview } from "./useInterview";
 export function PracticePage() {
   const [params, setParams] = useSearchParams();
   const { state, actions } = useInterview(params.get("unit"));
-  const { unit, progress, coach, shadow } = state;
+  const { unit, progress, coach, shadow, retell } = state;
 
   useEffect(() => {
     document.title = "Phòng tập nói";
@@ -92,6 +92,9 @@ export function PracticePage() {
                 onPlay={() => actions.playNote(coach.text)}
                 onShadow={actions.beginShadow}
                 onCancelShadow={actions.cancelShadow}
+                retell={retell}
+                onRetell={actions.beginRetell}
+                onCancelRetell={actions.cancelRetell}
               />
             )}
 

@@ -36,6 +36,8 @@ def validate(topics: list[dict], units: list[dict]) -> list[str]:
         for i, q in enumerate(u.get("questions", [])):
             if not (q.get("ask") and q.get("simple") and q.get("phrases")):
                 errors.append(f"{uid}: question {i} needs ask, simple and phrases")
+            if any(not (st.get("hint") and "..." in st.get("say", "")) for st in q.get("steps", [])):
+                errors.append(f"{uid}: question {i} needs steps with hint and a say containing '...'")
             if any(not 0 <= p < n for p in q.get("phrases", [])):
                 errors.append(f"{uid}: question {i} points to a missing phrase")
         for i, p in enumerate(u.get("phrases", [])):

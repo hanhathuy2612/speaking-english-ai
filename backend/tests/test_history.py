@@ -98,6 +98,22 @@ def test_shadow_attempts_are_stored_apart_and_deleted_with_the_session(db):
     assert history.add_shadow(None, {"target": "x", "heard": "x", "correct": 1, "total": 1}) is None
 
 
+def test_retell_attempts_are_stored_apart_and_deleted_with_the_session(db):
+    import sqlite3
+
+    sid = history.start_session(UNIT)
+    history.add_turn(sid, voice(6, None, None, 0))
+    history.add_retell(sid, {"question": "Q?", "answer": "A longer answer", "words": 25,
+                             "original_words": 6, "steps_done": 2, "steps_total": 3})
+    [s] = history.list_sessions()
+    assert s["turns"] == 1 and s["words"] == 6  # a retell never counts as an interview turn
+    count = lambda: sqlite3.connect(db).execute("SELECT COUNT(*) FROM retells").fetchone()[0]  # noqa: E731
+    assert count() == 1
+    history.delete_session(sid)
+    assert count() == 0
+    assert history.add_retell(None, {"question": "Q?", "answer": "A"}) is None
+
+
 def test_shadow_accuracy_pools_attempts(db):
     sid = history.start_session(UNIT)
     history.add_turn(sid, voice(20, 100, 120, 1))

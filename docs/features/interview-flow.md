@@ -22,13 +22,14 @@ File gồm `topics` (chủ đề, theo thứ tự lộ trình) và `units` (bài
   "id": "...", "topic": "(id trong topics)", "title": "...", "scenario": "...", "goal": "(tiếng Việt, hiện cho người học)",
   "greeting": "...", "closing": "...", "vocab": "(gợi ý từ cho Whisper)",
   "followups": 0,                     (không bắt buộc, mặc định INTERVIEW_FOLLOWUPS)
-  "questions": [{ "ask": "...", "phrases": [0], "simple": "(bản dễ hơn để hỏi lại)" }],
+  "questions": [{ "ask": "...", "phrases": [0], "simple": "(bản dễ hơn để hỏi lại)", "steps": [{ "hint": "Vì sao?", "say": "That's because ..." }] }],
   "phrases": [{ "say": "I'm responsible for ...", "match": ["i'm responsible for", "i am responsible for"] }]
 }
 ```
 
 - `questions[i].phrases` là chỉ số vào `phrases`, dùng làm "Target phrase" cho LLM và làm khung NOTE dự phòng.
 - `match` so sau khi `norm()` (chữ thường, bỏ dấu câu, chuẩn hóa dấu nháy).
+- `questions[i].steps`: 2–3 ý để nói dài hơn, hiện dưới NOTE (nhãn tiếng Việt + câu mở đầu có `...`), xem [answer-steps.md](answer-steps.md).
 - `phrases[i].when` (không bắt buộc): mẫu câu chỉ dùng làm Target phrase khi câu trả lời có một trong các cụm này (mẫu phản đối, xem [llm-prompt.md](llm-prompt.md)). Thêm mẫu câu mới thì thêm vào **cuối** `phrases`, vì thẻ ôn tập lưu theo chỉ số.
 - Lời mở đầu là `greeting + questions[0].ask`.
 

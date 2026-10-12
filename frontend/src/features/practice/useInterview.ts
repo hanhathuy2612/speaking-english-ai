@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useReducer, useRef } from "react";
 import type {
+  AnswerStep,
   ClientMessage,
   Metrics,
+  RetellResult,
   ServerMessage,
   SessionSummary,
   ShadowResult,
@@ -37,8 +39,9 @@ export type InterviewState = {
   items: ChatItem[];
   used: number[];
   progress: { q: number; n: number; done: boolean } | null;
-  coach: { text: string; retry: boolean } | null;
+  coach: { text: string; retry: boolean; steps: AnswerStep[] } | null;
   shadow: { waiting: boolean; result: WithAudio<ShadowResult> | null };
+  retell: { waiting: boolean; result: WithAudio<RetellResult> | null }; // "Trả lời lại dài hơn"
   metrics: Metrics;
   conf: number | null;
   status: Status;
@@ -56,6 +59,7 @@ const initial: InterviewState = {
   progress: null,
   coach: null,
   shadow: { waiting: false, result: null },
+  retell: { waiting: false, result: null },
   metrics: {},
   conf: null,
   status: { text: "", state: "" },
@@ -70,10 +74,12 @@ type Action =
   | { type: "server"; msg: ServerMessage; audio?: string }
   | { type: "aiSentence"; turn: number; text: string }
   | { type: "status"; status: Status }
-  | { type: "shadowWaiting"; waiting: boolean };
+  | { type: "shadowWaiting"; waiting: boolean }
+  | { type: "retellWaiting"; waiting: boolean };
 
 let nextId = 1;
 const noShadow = { waiting: false, result: null };
+const noRetell = { waiting: false, result: null };
 
 function reducer(s: InterviewState, a: Action): InterviewState {
   switch (a.type) {
@@ -85,6 +91,8 @@ function reducer(s: InterviewState, a: Action): InterviewState {
       return { ...s, status: a.status };
     case "shadowWaiting":
       return { ...s, shadow: { ...s.shadow, waiting: a.waiting } };
+    case "retellWaiting":
+      return { ...s, retell: { ...s.retell, waiting: a.waiting } };
     case "aiSentence": {
       // The interviewer's text appears sentence by sentence as the audio starts playing.
       const i = s.items.findIndex((it) => it.kind === "ai" && it.turn === a.turn);
@@ -99,7 +107,7 @@ function reducer(s: InterviewState, a: Action): InterviewState {
   }
 }
 
-/** `audio`: object URL of the recording a transcript or shadow_result came from. */
+/** `audio`: object URL of the recording a transcript, shadow_result or retell_result came from. */
 function onServer(s: InterviewState, m: ServerMessage, audio?: string): InterviewState {
   switch (m.type) {
     case "started":
@@ -110,6 +118,7 @@ function onServer(s: InterviewState, m: ServerMessage, audio?: string): Intervie
         used: [],
         coach: null,
         shadow: noShadow,
+        retell: noRetell,
         canUndo: false,
         turn: 0,
         lastMeTurn: null,
@@ -145,6 +154,7 @@ function onServer(s: InterviewState, m: ServerMessage, audio?: string): Intervie
         canUndo: false,
         coach: null,
         shadow: noShadow,
+        retell: noRetell,
       };
     }
     case "undone":
@@ -157,6 +167,7 @@ function onServer(s: InterviewState, m: ServerMessage, audio?: string): Intervie
         used: m.used,
         coach: null,
         shadow: noShadow,
+        retell: noRetell,
         status: { text: "Đã bỏ lượt vừa rồi. Hãy trả lời lại.", state: "ready" },
       };
     case "progress":
@@ -169,10 +180,16 @@ function onServer(s: InterviewState, m: ServerMessage, audio?: string): Intervie
       };
     }
     case "note":
-      return m.text ? { ...s, coach: { text: m.text, retry: m.retry }, shadow: noShadow } : s;
+      return m.text
+        ? { ...s, coach: { text: m.text, retry: m.retry, steps: m.steps ?? [] }, shadow: noShadow, retell: noRetell }
+        : s;
     case "shadow_result": {
       const { type: _type, ...result } = m;
       return { ...s, shadow: { waiting: false, result: { ...result, audio } } };
+    }
+    case "retell_result": {
+      const { type: _type, ...result } = m;
+      return { ...s, retell: { waiting: false, result: { ...result, audio } } };
     }
     case "metrics": {
       const { type: _type, ...metrics } = m;
@@ -247,7 +264,7 @@ export function useInterview(requestedUnit: string | null) {
       }
       if (msg.type === "started") turnRef.current = 0;
       if (msg.type === "transcript") turnRef.current += 1;
-      if (msg.type === "transcript" || msg.type === "shadow_result") {
+      if (msg.type === "transcript" || msg.type === "shadow_result" || msg.type === "retell_result") {
         // The answer to the recording sent last: keep it for "Nghe lại".
         dispatch({ type: "server", msg, audio: lastRecording.current ?? undefined });
         lastRecording.current = null;
@@ -275,22 +292,27 @@ export function useInterview(requestedUnit: string | null) {
     (text: string) => {
       audio.stop();
       dispatch({ type: "shadowWaiting", waiting: false }); // a typed message is always an interview answer
+      dispatch({ type: "retellWaiting", waiting: false });
       lastRecording.current = null;
       send({ type: "text", text });
     },
     [audio, send],
   );
 
-  /** A shadowing attempt is announced right before its audio, so the server compares it with the NOTE. */
+  /** A shadowing or retell attempt is announced right before its audio, so the server neither
+   * treats it as a new answer nor moves on. */
   const sendRecording = useCallback(
     (blob: Blob) => {
       dispatch({ type: "status", status: { text: "Đang gửi…", state: "busy" } });
       lastRecording.current = keepRecording(blob);
       if (state.shadow.waiting && state.coach) send({ type: "shadow", text: state.coach.text });
+      else if (state.retell.waiting) send({ type: "retell" });
       send(blob);
     },
-    [send, state.shadow.waiting, state.coach, keepRecording],
+    [send, state.shadow.waiting, state.retell.waiting, state.coach, keepRecording],
   );
+
+  const ready = () => dispatch({ type: "status", status: { text: "Sẵn sàng, mời bạn trả lời", state: "ready" } });
 
   const actions = {
     startUnit,
@@ -301,12 +323,25 @@ export function useInterview(requestedUnit: string | null) {
     playNote: (text: string) => send({ type: "say_it", text }),
     setStatus: (status: Status) => dispatch({ type: "status", status }),
     beginShadow: () => {
+      dispatch({ type: "retellWaiting", waiting: false });
       dispatch({ type: "shadowWaiting", waiting: true });
       dispatch({ type: "status", status: { text: "Giữ nút micro hoặc phím Space rồi đọc câu mẫu", state: "ready" } });
     },
     cancelShadow: () => {
       dispatch({ type: "shadowWaiting", waiting: false });
-      dispatch({ type: "status", status: { text: "Sẵn sàng, mời bạn trả lời", state: "ready" } });
+      ready();
+    },
+    beginRetell: () => {
+      dispatch({ type: "shadowWaiting", waiting: false });
+      dispatch({ type: "retellWaiting", waiting: true });
+      dispatch({
+        type: "status",
+        status: { text: "Giữ micro hoặc Space rồi trả lời lại câu hỏi, thêm các ý bên dưới", state: "ready" },
+      });
+    },
+    cancelRetell: () => {
+      dispatch({ type: "retellWaiting", waiting: false });
+      ready();
     },
   };
 

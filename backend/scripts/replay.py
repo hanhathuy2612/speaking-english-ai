@@ -33,6 +33,8 @@ async def run_once(url: str, unit: str, answers: list[str]) -> None:
                 elif m["type"] == "note" and show:
                     print(f"   AI:   {' '.join(said)}")
                     print(f"   NOTE: {m['text']}  {'(RETRY)' if m['retry'] else ''}")
+                    for st in m.get("steps", []):
+                        print(f"         {'[x]' if st['done'] else '[ ]'} {st['say']}")
                 elif m["type"] == "progress" and show:
                     where = "done" if m["done"] else f"question {m['q']}/{m['n']}"
                     print(f"   [{where}]")

@@ -20,10 +20,10 @@
       "closing": "Anyway, I should get back to work. Have a good week!",
       "vocab": "weekend, Saturday, Sunday, family, friends, coffee shop, movie, football, gym, relax, trip, cook.",
       "questions": [
-        { "ask": "So, how was your weekend? What did you do?", "phrases": [0], "simple": "Did you go anywhere on Saturday or Sunday?" },
-        { "ask": "What was the best part of it?", "phrases": [1], "simple": "What did you enjoy most?" },
-        { "ask": "Do you usually spend your weekends like that?", "phrases": [2], "simple": "What do you normally do on weekends?" },
-        { "ask": "Any plans for next weekend?", "phrases": [3], "simple": "What will you do next weekend?" }
+        { "ask": "So, how was your weekend? What did you do?", "phrases": [0], "simple": "Did you go anywhere on Saturday or Sunday?", "steps": [{"hint": "Làm gì nữa?", "say": "After that, we ..."}, {"hint": "Cảm giác thế nào?", "say": "It was really ..., because ..."}, {"hint": "Một chi tiết đáng nhớ", "say": "The funny thing was ..."}] },
+        { "ask": "What was the best part of it?", "phrases": [1], "simple": "What did you enjoy most?", "steps": [{"hint": "Vì sao thích nhất?", "say": "I loved it because ..."}, {"hint": "Kể chi tiết", "say": "For example, ..."}] },
+        { "ask": "Do you usually spend your weekends like that?", "phrases": [2], "simple": "What do you normally do on weekends?", "steps": [{"hint": "Thường làm gì?", "say": "Most weekends, I ..."}, {"hint": "Khi nào thì khác?", "say": "But when ..., I ..."}] },
+        { "ask": "Any plans for next weekend?", "phrases": [3], "simple": "What will you do next weekend?", "steps": [{"hint": "Đi với ai, ở đâu?", "say": "I'm going to ... with ..."}, {"hint": "Vì sao mong chờ?", "say": "I'm looking forward to it because ..."}] }
       ],
       "phrases": [
         {
@@ -72,10 +72,10 @@
       "closing": "That sounds lovely. Maybe I'll visit one day!",
       "vocab": "Vietnam, Hanoi, Ho Chi Minh City, Da Nang, Hue, countryside, province, beach, mountain, street food, pho, traffic, motorbike.",
       "questions": [
-        { "ask": "Where are you from originally?", "phrases": [0], "simple": "Which city or town did you grow up in?" },
-        { "ask": "What's it like there?", "phrases": [1], "simple": "Is it a big city or a small town?" },
-        { "ask": "What do you miss most about it?", "phrases": [2], "simple": "What do you like about your hometown?" },
-        { "ask": "If I visited, what should I see or eat there?", "phrases": [3], "simple": "What is one thing a visitor should try there?" }
+        { "ask": "Where are you from originally?", "phrases": [0], "simple": "Which city or town did you grow up in?", "steps": [{"hint": "Ở đâu, cách bao xa?", "say": "It's about ... from ..."}, {"hint": "Bạn sống ở đó bao lâu?", "say": "I lived there until ..., and then I ..."}] },
+        { "ask": "What's it like there?", "phrases": [1], "simple": "Is it a big city or a small town?", "steps": [{"hint": "Con người, không khí", "say": "The people there are ..."}, {"hint": "Điều đặc biệt", "say": "It's famous for ..., so ..."}] },
+        { "ask": "What do you miss most about it?", "phrases": [2], "simple": "What do you like about your hometown?", "steps": [{"hint": "Vì sao nhớ?", "say": "I miss it because ..."}, {"hint": "Mỗi lần về quê", "say": "Every time I go back, I ..."}] },
+        { "ask": "If I visited, what should I see or eat there?", "phrases": [3], "simple": "What is one thing a visitor should try there?", "steps": [{"hint": "Nên đi đâu nữa?", "say": "You should also visit ..."}, {"hint": "Lúc nào đẹp nhất?", "say": "The best time to go is ..., because ..."}] }
       ],
       "phrases": [
         {
@@ -125,10 +125,10 @@
       "closing": "Nice talking to you. I learned something new about you today!",
       "vocab": "hobby, free time, gaming, reading, running, swimming, badminton, guitar, photography, cooking, travel, side project.",
       "questions": [
-        { "ask": "What do you like to do when you're not working?", "phrases": [0], "simple": "What do you do in your free time?" },
-        { "ask": "How did you get into it?", "phrases": [1], "simple": "When did you start doing that?" },
-        { "ask": "Why do you enjoy it so much?", "phrases": [2], "simple": "What do you like about it?" },
-        { "ask": "Is there a new hobby you'd like to try?", "phrases": [3], "simple": "What would you like to learn to do?" }
+        { "ask": "What do you like to do when you're not working?", "phrases": [0], "simple": "What do you do in your free time?", "steps": [{"hint": "Bao lâu một lần?", "say": "I usually do it ... times a week."}, {"hint": "Nó giúp gì cho bạn?", "say": "It helps me ..."}] },
+        { "ask": "How did you get into it?", "phrases": [1], "simple": "When did you start doing that?", "steps": [{"hint": "Bắt đầu thế nào?", "say": "I started because ..."}, {"hint": "Lúc đầu ra sao?", "say": "At first, it was ..., but now ..."}] },
+        { "ask": "Why do you enjoy it so much?", "phrases": [2], "simple": "What do you like about it?", "steps": [{"hint": "Vì sao thích?", "say": "The main reason is that ..."}, {"hint": "Một lần cụ thể", "say": "For example, last ..., I ..."}] },
+        { "ask": "Is there a new hobby you'd like to try?", "phrases": [3], "simple": "What would you like to learn to do?", "steps": [{"hint": "Vì sao muốn thử?", "say": "I've always wanted to try it because ..."}, {"hint": "Khi nào bắt đầu?", "say": "I'm planning to start ..."}] }
       ],
       "phrases": [
         {
@@ -178,10 +178,10 @@
       "closing": "Thanks for sharing. Let's grab lunch together sometime.",
       "vocab": "get up, alarm, breakfast, commute, traffic, bus, motorbike, office, lunch break, meeting, gym, dinner, bedtime.",
       "questions": [
-        { "ask": "What does a normal day look like for you?", "phrases": [0], "simple": "What time do you get up, and what do you do first?" },
-        { "ask": "How do you get to work?", "phrases": [1], "simple": "Do you go to work by bus, car or motorbike?" },
-        { "ask": "What do you usually do after work?", "phrases": [2], "simple": "What do you do in the evening?" },
-        { "ask": "If you could change one thing about your routine, what would it be?", "phrases": [3], "simple": "What would you like to do differently every day?" }
+        { "ask": "What does a normal day look like for you?", "phrases": [0], "simple": "What time do you get up, and what do you do first?", "steps": [{"hint": "Sau đó làm gì?", "say": "After that, I ..."}, {"hint": "Buổi tối", "say": "In the evening, I usually ..."}] },
+        { "ask": "How do you get to work?", "phrases": [1], "simple": "Do you go to work by bus, car or motorbike?", "steps": [{"hint": "Vì sao đi cách đó?", "say": "I go by ... because ..."}, {"hint": "Trên đường đi", "say": "On the way, I ..."}] },
+        { "ask": "What do you usually do after work?", "phrases": [2], "simple": "What do you do in the evening?", "steps": [{"hint": "Việc khác", "say": "Sometimes I also ..."}, {"hint": "Vì sao?", "say": "It helps me ..."}] },
+        { "ask": "If you could change one thing about your routine, what would it be?", "phrases": [3], "simple": "What would you like to do differently every day?", "steps": [{"hint": "Vì sao muốn đổi?", "say": "Right now, the problem is that ..."}, {"hint": "Đổi rồi thì sao?", "say": "That way, I could ..."}] }
       ],
       "phrases": [
         {
@@ -229,10 +229,10 @@
       "closing": "What a great story. Now I want to go there too!",
       "vocab": "trip, holiday, vacation, beach, mountain, flight, hotel, homestay, Da Lat, Phu Quoc, Sapa, Thailand, Japan, Korea, backpack.",
       "questions": [
-        { "ask": "Tell me about a trip you really remember. Where did you go?", "phrases": [0], "simple": "Where did you go on your last holiday?" },
-        { "ask": "Who did you go with, and what did you do there?", "phrases": [1], "simple": "What did you do every day on that trip?" },
-        { "ask": "What was the most memorable moment?", "phrases": [2], "simple": "What do you remember most from it?" },
-        { "ask": "Would you go back? Why or why not?", "phrases": [3], "simple": "Do you want to go there again?" }
+        { "ask": "Tell me about a trip you really remember. Where did you go?", "phrases": [0], "simple": "Where did you go on your last holiday?", "steps": [{"hint": "Vì sao chọn nơi đó?", "say": "We stayed there for ..., because ..."}, {"hint": "Ấn tượng đầu tiên", "say": "When we arrived, ..."}] },
+        { "ask": "Who did you go with, and what did you do there?", "phrases": [1], "simple": "What did you do every day on that trip?", "steps": [{"hint": "Làm gì nữa?", "say": "We also ..."}, {"hint": "Điều thích nhất", "say": "The best thing was ..."}] },
+        { "ask": "What was the most memorable moment?", "phrases": [2], "simple": "What do you remember most from it?", "steps": [{"hint": "Vì sao đáng nhớ?", "say": "It was special because ..."}, {"hint": "Cảm giác lúc đó", "say": "I felt ..."}] },
+        { "ask": "Would you go back? Why or why not?", "phrases": [3], "simple": "Do you want to go there again?", "steps": [{"hint": "Lần sau muốn làm gì?", "say": "Next time, I'd like to ..."}, {"hint": "Lời khuyên", "say": "If you go there, you should ..."}] }
       ],
       "phrases": [
         {
@@ -281,10 +281,10 @@
       "closing": "Interesting, you've given me a lot to think about.",
       "vocab": "opinion, remote work, office, AI tools, ChatGPT, Copilot, social media, learning English, work-life balance, productivity, advantage, disadvantage.",
       "questions": [
-        { "ask": "Do you prefer working from home or in the office?", "phrases": [0, 1], "simple": "Where do you like working more, home or office? Why?" },
-        { "ask": "What do you think about using AI tools for coding?", "phrases": [0, 2], "simple": "Do AI coding tools help you? How?" },
-        { "ask": "Some people say social media wastes too much time. Do you agree?", "phrases": [4, 3], "simple": "Is social media good or bad for you?" },
-        { "ask": "What's the best way to learn to speak English, in your opinion?", "phrases": [0, 1], "simple": "How do you think people learn English best?" }
+        { "ask": "Do you prefer working from home or in the office?", "phrases": [0, 1], "simple": "Where do you like working more, home or office? Why?", "steps": [{"hint": "Vì sao?", "say": "That's because ..."}, {"hint": "Một lần cụ thể", "say": "For example, last week I ..."}, {"hint": "Mặt trái", "say": "The only downside is that ..."}] },
+        { "ask": "What do you think about using AI tools for coding?", "phrases": [0, 2], "simple": "Do AI coding tools help you? How?", "steps": [{"hint": "Vì sao?", "say": "That's because ..."}, {"hint": "Một lần cụ thể", "say": "For example, last week I used it to ..."}, {"hint": "Mặt trái", "say": "But one problem is that ..."}] },
+        { "ask": "Some people say social media wastes too much time. Do you agree?", "phrases": [4, 3], "simple": "Is social media good or bad for you?", "steps": [{"hint": "Vì sao?", "say": "The main reason is that ..."}, {"hint": "Một ví dụ của bạn", "say": "For example, I ..."}, {"hint": "Bạn làm gì với nó?", "say": "So now I try to ..."}] },
+        { "ask": "What's the best way to learn to speak English, in your opinion?", "phrases": [0, 1], "simple": "How do you think people learn English best?", "steps": [{"hint": "Vì sao?", "say": "That's because ..."}, {"hint": "Bạn đã thử thế nào?", "say": "For example, I ..."}, {"hint": "Điều khó nhất", "say": "The hardest part is ..."}] }
       ],
       "phrases": [
         {
@@ -346,10 +346,10 @@
       "closing": "Okay, next person, please.",
       "vocab": "ticket, task, pull request, merge, deploy, staging, production, bug fix, API, endpoint, unit test, blocker, review, sprint, Jira.",
       "questions": [
-        { "ask": "What did you work on yesterday?", "phrases": [0], "simple": "What did you finish yesterday?" },
-        { "ask": "What are you going to work on today?", "phrases": [1], "simple": "What is your task for today?" },
-        { "ask": "Is anything blocking you?", "phrases": [2], "simple": "Do you have any problem that stops your work?" },
-        { "ask": "When do you think it will be ready?", "phrases": [3], "simple": "How long do you need to finish it?" }
+        { "ask": "What did you work on yesterday?", "phrases": [0], "simple": "What did you finish yesterday?", "steps": [{"hint": "Phần khó", "say": "The tricky part was ..."}, {"hint": "Còn lại gì?", "say": "I still need to ..."}] },
+        { "ask": "What are you going to work on today?", "phrases": [1], "simple": "What is your task for today?", "steps": [{"hint": "Làm gì trước, vì sao?", "say": "I'll start with ..., because ..."}, {"hint": "Nếu còn thời gian", "say": "If I have time, I'll also ..."}] },
+        { "ask": "Is anything blocking you?", "phrases": [2], "simple": "Do you have any problem that stops your work?", "steps": [{"hint": "Đã nhờ ai chưa?", "say": "I've already asked ... about it."}, {"hint": "Trong lúc chờ", "say": "In the meantime, I'll ..."}] },
+        { "ask": "When do you think it will be ready?", "phrases": [3], "simple": "How long do you need to finish it?", "steps": [{"hint": "Điều kiện", "say": "If everything goes well, ..."}, {"hint": "Rủi ro", "say": "The only risk is that ..."}] }
       ],
       "phrases": [
         {
@@ -401,11 +401,11 @@
       "closing": "Good, that sounds like a solid plan. Ping me if you get stuck.",
       "vocab": "bug, error, exception, stack trace, log, null pointer, timeout, database, query, cache, deploy, rollback, reproduce, environment, staging, production.",
       "questions": [
-        { "ask": "So what's the problem exactly?", "phrases": [0], "simple": "What is going wrong?" },
-        { "ask": "When did it start, and how many users are affected?", "phrases": [1], "simple": "When did you first see it?" },
-        { "ask": "What have you checked so far?", "phrases": [2], "simple": "What did you already try?" },
-        { "ask": "What do you think is causing it?", "phrases": [3], "simple": "Do you have an idea why it happens?" },
-        { "ask": "What's your next step?", "phrases": [4], "simple": "What will you do now?" }
+        { "ask": "So what's the problem exactly?", "phrases": [0], "simple": "What is going wrong?", "steps": [{"hint": "Cách tái hiện", "say": "For example, when I ..., I get ..."}, {"hint": "Khi nào xảy ra?", "say": "It only happens when ..."}] },
+        { "ask": "When did it start, and how many users are affected?", "phrases": [1], "simple": "When did you first see it?", "steps": [{"hint": "Phát hiện thế nào?", "say": "We found out because ..."}, {"hint": "Ảnh hưởng", "say": "Right now, users can't ..."}] },
+        { "ask": "What have you checked so far?", "phrases": [2], "simple": "What did you already try?", "steps": [{"hint": "Kết quả kiểm tra", "say": "Everything looks fine in ..., but ..."}, {"hint": "Đã thử gì nữa?", "say": "I also tried ..."}] },
+        { "ask": "What do you think is causing it?", "phrases": [3], "simple": "Do you have an idea why it happens?", "steps": [{"hint": "Vì sao nghĩ vậy?", "say": "I think so because ..."}, {"hint": "Cách xác nhận", "say": "To confirm it, I'll ..."}] },
+        { "ask": "What's your next step?", "phrases": [4], "simple": "What will you do now?", "steps": [{"hint": "Nếu không được thì sao?", "say": "If that doesn't work, I'll ..."}, {"hint": "Khi nào báo lại?", "say": "I'll update you by ..."}] }
       ],
       "phrases": [
         {
@@ -464,10 +464,10 @@
       "closing": "Great, thanks. Update it and I'll approve it.",
       "vocab": "pull request, commit, refactor, method, class, interface, naming, null check, exception handling, unit test, edge case, performance, readability, duplicate code.",
       "questions": [
-        { "ask": "Can you give me a quick summary of what this pull request changes?", "phrases": [0], "simple": "What does your change do?" },
-        { "ask": "Why did you choose this approach?", "phrases": [1], "simple": "Why did you write it this way?" },
-        { "ask": "I think this method is a bit long. Could we split it into smaller ones?", "phrases": [2, 4], "simple": "Do you agree to make this method shorter?" },
-        { "ask": "How did you test it?", "phrases": [3], "simple": "What tests did you write for it?" }
+        { "ask": "Can you give me a quick summary of what this pull request changes?", "phrases": [0], "simple": "What does your change do?", "steps": [{"hint": "Trước thay đổi", "say": "Before this change, ..."}, {"hint": "Thay đổi chính ở đâu?", "say": "The main change is in ..."}] },
+        { "ask": "Why did you choose this approach?", "phrases": [1], "simple": "Why did you write it this way?", "steps": [{"hint": "Cách khác đã cân nhắc", "say": "I also considered ..., but ..."}, {"hint": "Lợi ích", "say": "This way, ..."}] },
+        { "ask": "I think this method is a bit long. Could we split it into smaller ones?", "phrases": [2, 4], "simple": "Do you agree to make this method shorter?", "steps": [{"hint": "Vì sao?", "say": "That's because ..."}, {"hint": "Sẽ làm gì?", "say": "So I'll ..."}] },
+        { "ask": "How did you test it?", "phrases": [3], "simple": "What tests did you write for it?", "steps": [{"hint": "Kiểm tra thêm gì?", "say": "I also checked that ..."}, {"hint": "Chưa test gì?", "say": "One case I haven't tested yet is ..."}] }
       ],
       "phrases": [
         {
@@ -524,10 +524,10 @@
       "closing": "Okay, that works for me. Thanks for raising it early.",
       "vocab": "release, deadline, scope, feature, risk, testing, bug, technical debt, estimate, priority, MVP, phase, rollout, user, feedback.",
       "questions": [
-        { "ask": "I'd like to release the new search feature next Friday. Does that work for you?", "phrases": [0], "simple": "Can your team finish the search feature by next Friday?" },
-        { "ask": "What exactly is the risk?", "phrases": [1], "simple": "Why do you think it is a problem?" },
-        { "ask": "So what would you suggest instead?", "phrases": [2], "simple": "What is your idea?" },
-        { "ask": "Okay. Can you summarise what we've agreed?", "phrases": [3], "simple": "So what is the final plan?" }
+        { "ask": "I'd like to release the new search feature next Friday. Does that work for you?", "phrases": [0], "simple": "Can your team finish the search feature by next Friday?", "steps": [{"hint": "Ví dụ rủi ro", "say": "For example, ..."}, {"hint": "Đề xuất", "say": "Could we ... instead?"}] },
+        { "ask": "What exactly is the risk?", "phrases": [1], "simple": "Why do you think it is a problem?", "steps": [{"hint": "Nếu xảy ra thì sao?", "say": "If that happens, ..."}, {"hint": "Từng gặp chưa?", "say": "We had a similar problem when ..."}] },
+        { "ask": "So what would you suggest instead?", "phrases": [2], "simple": "What is your idea?", "steps": [{"hint": "Lợi ích", "say": "This way, ..."}, {"hint": "Mặt trái", "say": "The only downside is ..."}] },
+        { "ask": "Okay. Can you summarise what we've agreed?", "phrases": [3], "simple": "So what is the final plan?", "steps": [{"hint": "Ai làm gì?", "say": "I'll ..., and you'll ..."}, {"hint": "Khi nào xem lại?", "say": "Let's check again on ..."}] }
       ],
       "phrases": [
         {
@@ -577,11 +577,11 @@
       "closing": "Nice work, the team will be happy with that.",
       "vocab": "feature, demo, screen, button, page, dashboard, filter, export, notification, user, admin, mobile, release, feedback, next sprint.",
       "questions": [
-        { "ask": "What are you going to show us today?", "phrases": [0], "simple": "Which feature did you build?" },
-        { "ask": "Who is it for, and what problem does it solve?", "phrases": [1], "simple": "Why do users need this?" },
-        { "ask": "Can you walk us through how it works?", "phrases": [2], "simple": "What does the user do first, and then?" },
-        { "ask": "Is there anything that's not finished yet?", "phrases": [3], "simple": "What is still missing?" },
-        { "ask": "What's next for this feature?", "phrases": [4], "simple": "What will you do next?" }
+        { "ask": "What are you going to show us today?", "phrases": [0], "simple": "Which feature did you build?", "steps": [{"hint": "Giúp người dùng gì?", "say": "It helps users ..."}, {"hint": "Bắt đầu từ đâu?", "say": "I'll start with ..."}] },
+        { "ask": "Who is it for, and what problem does it solve?", "phrases": [1], "simple": "Why do users need this?", "steps": [{"hint": "Trước đây ra sao?", "say": "Before this, they had to ..."}, {"hint": "Giờ thì sao?", "say": "Now they can ..."}] },
+        { "ask": "Can you walk us through how it works?", "phrases": [2], "simple": "What does the user do first, and then?", "steps": [{"hint": "Bước tiếp", "say": "After that, ..."}, {"hint": "Kết thúc", "say": "Finally, ..."}] },
+        { "ask": "Is there anything that's not finished yet?", "phrases": [3], "simple": "What is still missing?", "steps": [{"hint": "Khi nào xong?", "say": "We plan to finish it by ..."}, {"hint": "Tạm thời", "say": "For now, ..."}] },
+        { "ask": "What's next for this feature?", "phrases": [4], "simple": "What will you do next?", "steps": [{"hint": "Còn muốn làm gì?", "say": "We also want to ..."}, {"hint": "Xin góp ý", "say": "If you have any feedback, ..."}] }
       ],
       "phrases": [
         {
@@ -641,10 +641,10 @@
       "closing": "Perfect, it sounds like we're on the same page.",
       "vocab": "requirement, report, page, export, Excel, PDF, filter, deadline, priority, example, user, customer, slow, faster, dashboard.",
       "questions": [
-        { "ask": "We need the report page to be faster. Can you handle that?", "phrases": [0], "simple": "The report page is slow. What do you want to ask me about it?" },
-        { "ask": "Sorry, I mean the monthly sales report. It's really slow, especially in the morning. What else do you need to know?", "phrases": [1, 2], "simple": "Do you want to ask how slow it is, or when we need it?" },
-        { "ask": "It takes about a minute to open, and we need it fixed before the end of the month. Anything else?", "phrases": [1, 2], "simple": "Do you have any other question about the report or the deadline?" },
-        { "ask": "Great. Can you repeat back what you're going to do, so we're on the same page?", "phrases": [3], "simple": "What will you do for us? Please say it in your own words." }
+        { "ask": "We need the report page to be faster. Can you handle that?", "phrases": [0], "simple": "The report page is slow. What do you want to ask me about it?", "steps": [{"hint": "Hỏi phạm vi", "say": "Do you mean ... or ...?"}, {"hint": "Hỏi ai bị ảnh hưởng", "say": "Is it slow for everyone, or only ...?"}] },
+        { "ask": "Sorry, I mean the monthly sales report. It's really slow, especially in the morning. What else do you need to know?", "phrases": [1, 2], "simple": "Do you want to ask how slow it is, or when we need it?", "steps": [{"hint": "Hỏi con số", "say": "How long does it take to ... right now?"}, {"hint": "Hỏi tần suất", "say": "Does it happen every time, or only ...?"}] },
+        { "ask": "It takes about a minute to open, and we need it fixed before the end of the month. Anything else?", "phrases": [1, 2], "simple": "Do you have any other question about the report or the deadline?", "steps": [{"hint": "Hỏi ưu tiên", "say": "Is it okay if I ... first?"}, {"hint": "Hứa cập nhật", "say": "I'll let you know if ..."}] },
+        { "ask": "Great. Can you repeat back what you're going to do, so we're on the same page?", "phrases": [3], "simple": "What will you do for us? Please say it in your own words.", "steps": [{"hint": "Bước đầu tiên", "say": "I'll start by ..."}, {"hint": "Khi nào báo lại?", "say": "I'll update you by ..."}] }
       ],
       "phrases": [
         {
@@ -691,12 +691,12 @@
       "closing": "Thank you, that's all my questions for today. It was nice talking to you.",
       "vocab": "software developer, Java, backend, microservices, payment system, chat application, booking system, achievement, responsible for.",
       "questions": [
-        { "ask": "To start, could you tell me a little about yourself?", "phrases": [0], "simple": "Let's keep it simple. What is your job, and how long have you done it?" },
-        { "ask": "What are you mainly responsible for in your current role?", "phrases": [1], "simple": "What do you do in your job? What are your main tasks?" },
-        { "ask": "What is one achievement you're proud of?", "phrases": [2], "simple": "Tell me about one thing you did at work that went well." },
-        { "ask": "What do you enjoy most about your work?", "phrases": [3], "simple": "What do you like about your job?" },
-        { "ask": "What kind of role are you looking for next?", "phrases": [4], "simple": "What kind of job do you want next?" },
-        { "ask": "And why are you interested in this position?", "phrases": [5], "simple": "Why do you want this job?" }
+        { "ask": "To start, could you tell me a little about yourself?", "phrases": [0], "simple": "Let's keep it simple. What is your job, and how long have you done it?", "steps": [{"hint": "Đang làm gì?", "say": "Right now, I'm working on ..."}, {"hint": "Trước đó", "say": "Before that, I ..."}] },
+        { "ask": "What are you mainly responsible for in your current role?", "phrases": [1], "simple": "What do you do in your job? What are your main tasks?", "steps": [{"hint": "Ví dụ công việc", "say": "For example, I ..."}, {"hint": "Làm với ai?", "say": "I also work closely with ..."}] },
+        { "ask": "What is one achievement you're proud of?", "phrases": [2], "simple": "Tell me about one thing you did at work that went well.", "steps": [{"hint": "Vấn đề lúc đầu", "say": "Before that, ..."}, {"hint": "Bạn đã làm gì?", "say": "I did it by ..."}, {"hint": "Kết quả", "say": "As a result, ..."}] },
+        { "ask": "What do you enjoy most about your work?", "phrases": [3], "simple": "What do you like about your job?", "steps": [{"hint": "Một lần cụ thể", "say": "For example, ..."}, {"hint": "Vì sao thích?", "say": "That's because ..."}] },
+        { "ask": "What kind of role are you looking for next?", "phrases": [4], "simple": "What kind of job do you want next?", "steps": [{"hint": "Muốn học gì?", "say": "I'd also like to ..."}, {"hint": "Vì sao?", "say": "That's because ..."}] },
+        { "ask": "And why are you interested in this position?", "phrases": [5], "simple": "Why do you want this job?", "steps": [{"hint": "Bạn biết gì về công ty?", "say": "I read that your company ..."}, {"hint": "Bạn giúp được gì?", "say": "I think my experience in ... would help ..."}] }
       ],
       "phrases": [
         {
@@ -754,11 +754,11 @@
       "closing": "Thanks, that gives me a good picture of your project.",
       "vocab": "Spring Boot, microservices, REST API, Kafka, PostgreSQL, Redis, Docker, Kubernetes, AWS, users, sprint, feature.",
       "questions": [
-        { "ask": "Can you describe the project you're working on right now?", "phrases": [0], "simple": "What does your current project do?" },
-        { "ask": "How is the system designed? What are the main parts?", "phrases": [1], "simple": "What technologies does the project use?" },
-        { "ask": "Which part of the project are you responsible for?", "phrases": [2], "simple": "What do you build in this project?" },
-        { "ask": "What has been the biggest challenge in this project so far?", "phrases": [3], "simple": "What is difficult in this project?" },
-        { "ask": "What are you most proud of in this project?", "phrases": [4], "simple": "Which part of your work in this project do you like most?" }
+        { "ask": "Can you describe the project you're working on right now?", "phrases": [0], "simple": "What does your current project do?", "steps": [{"hint": "Ai dùng?", "say": "It's used by ..."}, {"hint": "Tham gia từ khi nào?", "say": "I joined the project ... ago."}] },
+        { "ask": "How is the system designed? What are the main parts?", "phrases": [1], "simple": "What technologies does the project use?", "steps": [{"hint": "Ví dụ một phần", "say": "For example, ... handles ..."}, {"hint": "Giao tiếp ra sao?", "say": "They talk to each other through ..."}] },
+        { "ask": "Which part of the project are you responsible for?", "phrases": [2], "simple": "What do you build in this project?", "steps": [{"hint": "Ví dụ việc bạn làm", "say": "For example, last month I ..."}, {"hint": "Làm với ai?", "say": "I also work with ..."}] },
+        { "ask": "What has been the biggest challenge in this project so far?", "phrases": [3], "simple": "What is difficult in this project?", "steps": [{"hint": "Vì sao khó?", "say": "It was hard because ..."}, {"hint": "Giải quyết thế nào?", "say": "In the end, we ..."}] },
+        { "ask": "What are you most proud of in this project?", "phrases": [4], "simple": "Which part of your work in this project do you like most?", "steps": [{"hint": "Vì sao quan trọng?", "say": "It was important because ..."}, {"hint": "Kết quả", "say": "As a result, ..."}] }
       ],
       "phrases": [
         {
@@ -817,11 +817,11 @@
       "closing": "Thank you, it's good to know what you're aiming for.",
       "vocab": "career, senior developer, tech lead, software architect, cloud, mentor, challenge, growth, opportunity, product company, outsourcing.",
       "questions": [
-        { "ask": "Why are you looking for a new job at the moment?", "phrases": [0], "simple": "Why do you want to change jobs?" },
-        { "ask": "What skills would you like to develop in your next role?", "phrases": [1], "simple": "What do you want to learn next?" },
-        { "ask": "Where do you see yourself in five years?", "phrases": [2], "simple": "What job do you want in five years?" },
-        { "ask": "What kind of team do you work best in?", "phrases": [3], "simple": "What kind of team do you like to work in?" },
-        { "ask": "Why should we choose you for this position?", "phrases": [4], "simple": "What makes you a good fit for this job?" }
+        { "ask": "Why are you looking for a new job at the moment?", "phrases": [0], "simple": "Why do you want to change jobs?", "steps": [{"hint": "Hiện tại thế nào?", "say": "In my current job, I ..."}, {"hint": "Muốn gì tiếp?", "say": "Now I'd like to ..."}] },
+        { "ask": "What skills would you like to develop in your next role?", "phrases": [1], "simple": "What do you want to learn next?", "steps": [{"hint": "Vì sao?", "say": "That's because ..."}, {"hint": "Ví dụ", "say": "For example, I'd like to ..."}] },
+        { "ask": "Where do you see yourself in five years?", "phrases": [2], "simple": "What job do you want in five years?", "steps": [{"hint": "Đang chuẩn bị gì?", "say": "To get there, I'm ..."}, {"hint": "Muốn làm thêm gì?", "say": "I'd also like to ..."}] },
+        { "ask": "What kind of team do you work best in?", "phrases": [3], "simple": "What kind of team do you like to work in?", "steps": [{"hint": "Ví dụ đội hiện tại", "say": "For example, in my current team, ..."}, {"hint": "Điều bạn thích", "say": "I also like it when ..."}] },
+        { "ask": "Why should we choose you for this position?", "phrases": [4], "simple": "What makes you a good fit for this job?", "steps": [{"hint": "Bằng chứng", "say": "For example, in my current project, I ..."}, {"hint": "Thêm điểm mạnh", "say": "I can also ..."}] }
       ],
       "phrases": [
         {
@@ -873,11 +873,11 @@
       "closing": "Great, thank you for walking me through your stack.",
       "vocab": "Java, Spring Boot, Spring Security, JPA, Hibernate, REST API, Maven, Gradle, JUnit, dependency injection, annotation, JWT, OAuth2, Java 17, Java 21, virtual threads, records.",
       "questions": [
-        { "ask": "Which technologies do you use most in your daily work?", "phrases": [0], "simple": "What languages and tools do you use every day?" },
-        { "ask": "What have you built with Spring Boot?", "phrases": [1], "simple": "Tell me about one service you made with Spring Boot." },
-        { "ask": "Can you explain dependency injection in simple words?", "phrases": [2], "simple": "Why does Spring create objects for you?" },
-        { "ask": "How do you handle security in your APIs?", "phrases": [3], "simple": "How do you protect your API?" },
-        { "ask": "Is there a newer Java feature you like using?", "phrases": [4], "simple": "What do you like about new Java versions?" }
+        { "ask": "Which technologies do you use most in your daily work?", "phrases": [0], "simple": "What languages and tools do you use every day?", "steps": [{"hint": "Dùng vào việc gì?", "say": "For example, in my current project, I use ... to ..."}, {"hint": "Công cụ khác", "say": "I also use ... for ..."}] },
+        { "ask": "What have you built with Spring Boot?", "phrases": [1], "simple": "Tell me about one service you made with Spring Boot.", "steps": [{"hint": "Hệ thống làm gì?", "say": "It handles ..."}, {"hint": "Phần khó", "say": "The tricky part was ..."}] },
+        { "ask": "Can you explain dependency injection in simple words?", "phrases": [2], "simple": "Why does Spring create objects for you?", "steps": [{"hint": "Ví dụ trong Spring", "say": "For example, in Spring, ..."}, {"hint": "Lợi ích", "say": "This makes ... easier to ..."}] },
+        { "ask": "How do you handle security in your APIs?", "phrases": [3], "simple": "How do you protect your API?", "steps": [{"hint": "Ví dụ", "say": "For example, ..."}, {"hint": "Thêm gì nữa?", "say": "We also ..."}] },
+        { "ask": "Is there a newer Java feature you like using?", "phrases": [4], "simple": "What do you like about new Java versions?", "steps": [{"hint": "Ví dụ code", "say": "For example, ..."}, {"hint": "Lợi ích", "say": "It makes the code ..."}] }
       ],
       "phrases": [
         {
@@ -930,11 +930,11 @@
       "closing": "Thank you, that was a clear explanation of your architecture.",
       "vocab": "microservices, monolith, REST, gRPC, Kafka, RabbitMQ, message queue, API gateway, service discovery, circuit breaker, retry, timeout, eventual consistency, Docker, Kubernetes.",
       "questions": [
-        { "ask": "Have you worked with microservices? How was the system split into services?", "phrases": [0], "simple": "How many services did your system have, and what did each one do?" },
-        { "ask": "How do the services communicate with each other?", "phrases": [1], "simple": "Do your services call each other directly, or send messages?" },
-        { "ask": "What happens when one service goes down?", "phrases": [2], "simple": "What do you do if one service stops working?" },
-        { "ask": "What are the downsides of microservices compared to a monolith?", "phrases": [3], "simple": "What is hard about microservices?" },
-        { "ask": "If you could redesign that system, what would you change?", "phrases": [4], "simple": "What would you do differently next time?" }
+        { "ask": "Have you worked with microservices? How was the system split into services?", "phrases": [0], "simple": "How many services did your system have, and what did each one do?", "steps": [{"hint": "Mỗi service làm gì?", "say": "Each service ..."}, {"hint": "Vì sao chia vậy?", "say": "We split it like that because ..."}] },
+        { "ask": "How do the services communicate with each other?", "phrases": [1], "simple": "Do your services call each other directly, or send messages?", "steps": [{"hint": "Ví dụ một luồng", "say": "For example, when ..., ..."}, {"hint": "Vì sao chọn cách đó?", "say": "We use ... for ... because ..."}] },
+        { "ask": "What happens when one service goes down?", "phrases": [2], "simple": "What do you do if one service stops working?", "steps": [{"hint": "Ví dụ", "say": "For example, ..."}, {"hint": "Theo dõi thế nào?", "say": "We also monitor ..."}] },
+        { "ask": "What are the downsides of microservices compared to a monolith?", "phrases": [3], "simple": "What is hard about microservices?", "steps": [{"hint": "Ví dụ", "say": "For example, ..."}, {"hint": "Kết luận", "say": "So for a small team, ..."}] },
+        { "ask": "If you could redesign that system, what would you change?", "phrases": [4], "simple": "What would you do differently next time?", "steps": [{"hint": "Vì sao?", "say": "That's because ..."}, {"hint": "Kết quả mong đợi", "say": "That would make ..."}] }
       ],
       "phrases": [
         {
@@ -991,11 +991,11 @@
       "closing": "Thanks, it's clear you've dealt with real performance issues.",
       "vocab": "PostgreSQL, MySQL, MongoDB, index, query, slow query, execution plan, N+1 problem, Redis, cache, connection pool, transaction, latency, response time, monitoring, Grafana.",
       "questions": [
-        { "ask": "Which databases have you worked with, and how did you choose between them?", "phrases": [0], "simple": "Which databases do you use?" },
-        { "ask": "Tell me about a slow query or a slow API you had to fix. How did you find the cause?", "phrases": [1], "simple": "How do you find out why something is slow?" },
-        { "ask": "What did you do to make it faster?", "phrases": [2], "simple": "How did you fix it?" },
-        { "ask": "When do you decide to add a cache?", "phrases": [3], "simple": "Why and when do you use a cache like Redis?" },
-        { "ask": "How did you check that the fix really worked?", "phrases": [4], "simple": "How did you know it was faster?" }
+        { "ask": "Which databases have you worked with, and how did you choose between them?", "phrases": [0], "simple": "Which databases do you use?", "steps": [{"hint": "Ví dụ", "say": "For example, ..."}, {"hint": "Khi nào chọn cái khác?", "say": "If I needed ..., I'd choose ..."}] },
+        { "ask": "Tell me about a slow query or a slow API you had to fix. How did you find the cause?", "phrases": [1], "simple": "How do you find out why something is slow?", "steps": [{"hint": "Chậm cỡ nào?", "say": "The API took about ..."}, {"hint": "Tìm ra thế nào?", "say": "Then I ..."}] },
+        { "ask": "What did you do to make it faster?", "phrases": [2], "simple": "How did you fix it?", "steps": [{"hint": "Bước tiếp", "say": "After that, ..."}, {"hint": "Kết quả", "say": "As a result, ..."}] },
+        { "ask": "When do you decide to add a cache?", "phrases": [3], "simple": "Why and when do you use a cache like Redis?", "steps": [{"hint": "Ví dụ", "say": "For example, ..."}, {"hint": "Cần cẩn thận gì?", "say": "But you have to be careful about ..."}] },
+        { "ask": "How did you check that the fix really worked?", "phrases": [4], "simple": "How did you know it was faster?", "steps": [{"hint": "Con số trước/sau", "say": "The response time went from ... to ..."}, {"hint": "Kiểm tra thêm", "say": "We also ..."}] }
       ],
       "phrases": [
         {
@@ -1052,11 +1052,11 @@
       "closing": "Thank you, I like how you think about quality.",
       "vocab": "unit test, integration test, JUnit, Mockito, Testcontainers, code coverage, code review, pull request, SonarQube, CI pipeline, refactoring, clean code, legacy code.",
       "questions": [
-        { "ask": "How do you usually test your code?", "phrases": [0], "simple": "What kinds of tests do you write?" },
-        { "ask": "What makes a good unit test, in your opinion?", "phrases": [1], "simple": "How do you know a test is good?" },
-        { "ask": "How does code review work in your team?", "phrases": [2], "simple": "What do you check when you review code?" },
-        { "ask": "Can you tell me about a time a test caught a serious bug?", "phrases": [3], "simple": "Did a test ever find an important bug for you?" },
-        { "ask": "How do you deal with old code that has no tests?", "phrases": [4], "simple": "What do you do with old code without tests?" }
+        { "ask": "How do you usually test your code?", "phrases": [0], "simple": "What kinds of tests do you write?", "steps": [{"hint": "Ví dụ", "say": "For example, ..."}, {"hint": "Thêm gì nữa?", "say": "I also ..."}] },
+        { "ask": "What makes a good unit test, in your opinion?", "phrases": [1], "simple": "How do you know a test is good?", "steps": [{"hint": "Ví dụ", "say": "For example, ..."}, {"hint": "Test tệ là gì?", "say": "A bad test is one that ..."}] },
+        { "ask": "How does code review work in your team?", "phrases": [2], "simple": "What do you check when you review code?", "steps": [{"hint": "Quy trình", "say": "Usually, ..."}, {"hint": "Thêm gì nữa?", "say": "We also ..."}] },
+        { "ask": "Can you tell me about a time a test caught a serious bug?", "phrases": [3], "simple": "Did a test ever find an important bug for you?", "steps": [{"hint": "Nếu không có test?", "say": "Without that test, ..."}, {"hint": "Sau đó làm gì?", "say": "After that, we ..."}] },
+        { "ask": "How do you deal with old code that has no tests?", "phrases": [4], "simple": "What do you do with old code without tests?", "steps": [{"hint": "Ví dụ", "say": "For example, ..."}, {"hint": "Lợi ích", "say": "That way, ..."}] }
       ],
       "phrases": [
         {
@@ -1113,11 +1113,11 @@
       "closing": "Thank you, that was a clear example. That's all from me.",
       "vocab": "bug, production issue, deadline, performance, database, deployment, customer, as a result, reduced, improved.",
       "questions": [
-        { "ask": "Can you tell me about a difficult problem you solved at work? What was the situation?", "phrases": [0], "simple": "Think of one problem at work. What happened?" },
-        { "ask": "What exactly was your task?", "phrases": [1], "simple": "What did you need to do?" },
-        { "ask": "What did you do to solve it?", "phrases": [2], "simple": "What steps did you take?" },
-        { "ask": "What was the result?", "phrases": [3, 4], "simple": "What happened in the end?" },
-        { "ask": "Looking back, what did you learn from it?", "phrases": [5], "simple": "What did you learn?" }
+        { "ask": "Can you tell me about a difficult problem you solved at work? What was the situation?", "phrases": [0], "simple": "Think of one problem at work. What happened?", "steps": [{"hint": "Vì sao nghiêm trọng?", "say": "It was a big problem because ..."}, {"hint": "Vai trò của bạn", "say": "At that time, I was ..."}] },
+        { "ask": "What exactly was your task?", "phrases": [1], "simple": "What did you need to do?", "steps": [{"hint": "Vì sao gấp?", "say": "It was urgent because ..."}, {"hint": "Hạn chót", "say": "I had to ... by ..."}] },
+        { "ask": "What did you do to solve it?", "phrases": [2], "simple": "What steps did you take?", "steps": [{"hint": "Bước 1", "say": "First, I ..."}, {"hint": "Bước 2", "say": "Then, I ..."}, {"hint": "Bước cuối", "say": "Finally, ..."}] },
+        { "ask": "What was the result?", "phrases": [3, 4], "simple": "What happened in the end?", "steps": [{"hint": "Con số", "say": "It reduced ... from ... to ..."}, {"hint": "Phản hồi", "say": "After that, the team ..."}] },
+        { "ask": "Looking back, what did you learn from it?", "phrases": [5], "simple": "What did you learn?", "steps": [{"hint": "Giờ làm khác gì?", "say": "Now, I always ..."}, {"hint": "Ví dụ", "say": "For example, ..."}] }
       ],
       "phrases": [
         {
@@ -1176,11 +1176,11 @@
       "closing": "Thanks, that's a good example of working with others.",
       "vocab": "teammate, tech lead, product owner, disagreement, opinion, approach, compromise, pros and cons, meeting, decision, proof of concept, benchmark.",
       "questions": [
-        { "ask": "Tell me about a time you disagreed with a teammate. What was it about?", "phrases": [0], "simple": "Did you ever have a different opinion from a teammate? What happened?" },
-        { "ask": "How did you share your opinion with them?", "phrases": [1], "simple": "What did you say to them?" },
-        { "ask": "How did you reach a decision in the end?", "phrases": [2], "simple": "What did you both decide?" },
-        { "ask": "How was your relationship with that person afterwards?", "phrases": [3], "simple": "Were you still on good terms after that?" },
-        { "ask": "What would you do differently next time?", "phrases": [4], "simple": "What did you learn from it?" }
+        { "ask": "Tell me about a time you disagreed with a teammate. What was it about?", "phrases": [0], "simple": "Did you ever have a different opinion from a teammate? What happened?", "steps": [{"hint": "Hai ý kiến", "say": "I wanted to ..., but they wanted to ..."}, {"hint": "Vì sao quan trọng?", "say": "It mattered because ..."}] },
+        { "ask": "How did you share your opinion with them?", "phrases": [1], "simple": "What did you say to them?", "steps": [{"hint": "Bạn đưa bằng chứng gì?", "say": "I showed them ..."}, {"hint": "Bạn hỏi gì?", "say": "I also asked ..."}] },
+        { "ask": "How did you reach a decision in the end?", "phrases": [2], "simple": "What did you both decide?", "steps": [{"hint": "Vì sao chọn vậy?", "say": "We chose it because ..."}, {"hint": "Kết quả", "say": "As a result, ..."}] },
+        { "ask": "How was your relationship with that person afterwards?", "phrases": [3], "simple": "Were you still on good terms after that?", "steps": [{"hint": "Sau đó", "say": "After that, ..."}, {"hint": "Ví dụ", "say": "For example, ..."}] },
+        { "ask": "What would you do differently next time?", "phrases": [4], "simple": "What did you learn from it?", "steps": [{"hint": "Lợi ích", "say": "That way, ..."}, {"hint": "Bài học", "say": "I've learned that ..."}] }
       ],
       "phrases": [
         {
@@ -1238,11 +1238,11 @@
       "closing": "Thank you, that shows how you handle pressure.",
       "vocab": "deadline, release, sprint, scope, priority, stakeholder, manager, client, overtime, hotfix, must-have, nice-to-have, estimate.",
       "questions": [
-        { "ask": "Tell me about a time you had a very tight deadline. What was the situation?", "phrases": [0], "simple": "Did you ever have too little time for a task? What happened?" },
-        { "ask": "How did you decide what to do first?", "phrases": [1], "simple": "Which tasks did you do first, and why?" },
-        { "ask": "Did you talk to your manager or the client about it?", "phrases": [2], "simple": "Who did you tell about the problem?" },
-        { "ask": "Did you finish on time? What was the result?", "phrases": [3], "simple": "What happened in the end?" },
-        { "ask": "What do you do now to avoid that kind of situation?", "phrases": [4], "simple": "What do you do now to have enough time?" }
+        { "ask": "Tell me about a time you had a very tight deadline. What was the situation?", "phrases": [0], "simple": "Did you ever have too little time for a task? What happened?", "steps": [{"hint": "Vì sao gấp?", "say": "The reason was that ..."}, {"hint": "Áp lực", "say": "At that time, ..."}] },
+        { "ask": "How did you decide what to do first?", "phrases": [1], "simple": "Which tasks did you do first, and why?", "steps": [{"hint": "Ví dụ", "say": "For example, ..."}, {"hint": "Bỏ bớt gì?", "say": "We moved ... to the next release."}] },
+        { "ask": "Did you talk to your manager or the client about it?", "phrases": [2], "simple": "Who did you tell about the problem?", "steps": [{"hint": "Bạn nói gì?", "say": "I told them that ..."}, {"hint": "Thống nhất gì?", "say": "Together, we agreed to ..."}] },
+        { "ask": "Did you finish on time? What was the result?", "phrases": [3], "simple": "What happened in the end?", "steps": [{"hint": "Kết quả", "say": "We only ..."}, {"hint": "Sau khi release", "say": "After the release, ..."}] },
+        { "ask": "What do you do now to avoid that kind of situation?", "phrases": [4], "simple": "What do you do now to have enough time?", "steps": [{"hint": "Ví dụ", "say": "For example, ..."}, {"hint": "Lợi ích", "say": "That way, ..."}] }
       ],
       "phrases": [
         {
@@ -1297,10 +1297,10 @@
       "closing": "Thank you for being honest, that's a valuable lesson.",
       "vocab": "mistake, bug, production, rollback, hotfix, root cause, postmortem, checklist, monitoring, alert, responsibility, configuration, migration.",
       "questions": [
-        { "ask": "Can you tell me about a mistake you made at work?", "phrases": [0], "simple": "Think of one mistake at work. What went wrong?" },
-        { "ask": "What was the impact?", "phrases": [1], "simple": "What problem did it cause?" },
-        { "ask": "How did you fix it, and what was the root cause?", "phrases": [2, 3], "simple": "What did you do after you found it?" },
-        { "ask": "What did you change afterwards so it would not happen again?", "phrases": [4], "simple": "What do you do differently now?" }
+        { "ask": "Can you tell me about a mistake you made at work?", "phrases": [0], "simple": "Think of one mistake at work. What went wrong?", "steps": [{"hint": "Vì sao xảy ra?", "say": "It happened because ..."}, {"hint": "Phát hiện thế nào?", "say": "I noticed it when ..."}] },
+        { "ask": "What was the impact?", "phrases": [1], "simple": "What problem did it cause?", "steps": [{"hint": "Ví dụ hậu quả", "say": "For example, ..."}, {"hint": "Mất bao lâu?", "say": "It took us ... to fix."}] },
+        { "ask": "How did you fix it, and what was the root cause?", "phrases": [2, 3], "simple": "What did you do after you found it?", "steps": [{"hint": "Bước 1", "say": "First, I ..."}, {"hint": "Bước 2", "say": "Then, ..."}] },
+        { "ask": "What did you change afterwards so it would not happen again?", "phrases": [4], "simple": "What do you do differently now?", "steps": [{"hint": "Ví dụ", "say": "For example, ..."}, {"hint": "Lợi ích", "say": "That way, ..."}] }
       ],
       "phrases": [
         {
@@ -1350,10 +1350,10 @@
       "closing": "Thank you for your time today. We'll get back to you within a week.",
       "vocab": "salary, expectation, gross, net, notice period, start date, remote, hybrid, onsite, benefits, probation, team size, onboarding, career path.",
       "questions": [
-        { "ask": "What are your salary expectations?", "phrases": [0], "simple": "How much salary do you want?" },
-        { "ask": "When would you be able to start?", "phrases": [1], "simple": "When can you start the new job?" },
-        { "ask": "Would you prefer to work remotely, in the office, or hybrid?", "phrases": [2], "simple": "Do you want to work from home or in the office?" },
-        { "ask": "Do you have any questions for us?", "phrases": [3], "simple": "Is there anything you want to ask me about the job?" }
+        { "ask": "What are your salary expectations?", "phrases": [0], "simple": "How much salary do you want?", "steps": [{"hint": "Dựa vào đâu?", "say": "This is based on ..."}, {"hint": "Linh hoạt", "say": "But I'm open to discussing it, depending on ..."}] },
+        { "ask": "When would you be able to start?", "phrases": [1], "simple": "When can you start the new job?", "steps": [{"hint": "Có thể sớm hơn?", "say": "If needed, I could ..."}, {"hint": "Trước khi bắt đầu", "say": "Before I start, I'd like to ..."}] },
+        { "ask": "Would you prefer to work remotely, in the office, or hybrid?", "phrases": [2], "simple": "Do you want to work from home or in the office?", "steps": [{"hint": "Vì sao?", "say": "That's because ..."}, {"hint": "Linh hoạt", "say": "But I'm also fine with ..."}] },
+        { "ask": "Do you have any questions for us?", "phrases": [3], "simple": "Is there anything you want to ask me about the job?", "steps": [{"hint": "Vì sao hỏi?", "say": "I'm asking because ..."}, {"hint": "Câu hỏi thứ hai", "say": "Also, could you tell me ...?"}] }
       ],
       "phrases": [
         {
