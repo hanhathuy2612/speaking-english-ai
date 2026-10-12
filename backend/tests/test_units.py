@@ -103,3 +103,13 @@ def test_safe_note_rejects_second_person_notes():
     s.history = [{"q": "Q?", "a": "I enjoy most when I solve difficult bug in production."}]
     note = "You enjoy solving difficult bugs in production."
     assert safe_note(s, 3, note, retry=False) == " ".join(target_phrases(u, 3))
+
+
+def test_agree_or_disagree_phrase_follows_the_answer():
+    from app.interview.prompts import target_phrases
+
+    u = next(u for u in units if u["id"] == "opinions")
+    q = next(i for i, q in enumerate(u["questions"]) if "Do you agree" in q["ask"])
+    assert target_phrases(u, q, "Yes, it wastes too much time.") == ["I totally agree, because ..."]
+    assert target_phrases(u, q, "I don't agree, it helps me learn.") == ["I see your point, but I think ..."]
+    assert target_phrases(u, q) == ["I totally agree, because ..."]

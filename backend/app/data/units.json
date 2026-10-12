@@ -283,7 +283,7 @@
       "questions": [
         { "ask": "Do you prefer working from home or in the office?", "phrases": [0, 1], "simple": "Where do you like working more, home or office? Why?" },
         { "ask": "What do you think about using AI tools for coding?", "phrases": [0, 2], "simple": "Do AI coding tools help you? How?" },
-        { "ask": "Some people say social media wastes too much time. Do you agree?", "phrases": [3], "simple": "Is social media good or bad for you?" },
+        { "ask": "Some people say social media wastes too much time. Do you agree?", "phrases": [4, 3], "simple": "Is social media good or bad for you?" },
         { "ask": "What's the best way to learn to speak English, in your opinion?", "phrases": [0, 1], "simple": "How do you think people learn English best?" }
       ],
       "phrases": [
@@ -318,6 +318,18 @@
             "i partly agree",
             "i don't really agree",
             "i do not really agree"
+          ],
+          "when": ["don't agree", "do not agree", "disagree", "not agree", "partly agree", "see your point", "not really", "don't think so", "do not think so", "not true", "not always"]
+        },
+        {
+          "say": "I totally agree, because ...",
+          "match": [
+            "i totally agree",
+            "i completely agree",
+            "i strongly agree",
+            "i agree with",
+            "i agree that",
+            "i agree because"
           ]
         }
       ]
@@ -454,7 +466,7 @@
       "questions": [
         { "ask": "Can you give me a quick summary of what this pull request changes?", "phrases": [0], "simple": "What does your change do?" },
         { "ask": "Why did you choose this approach?", "phrases": [1], "simple": "Why did you write it this way?" },
-        { "ask": "I think this method is a bit long. Could we split it into smaller ones?", "phrases": [2], "simple": "Do you agree to make this method shorter?" },
+        { "ask": "I think this method is a bit long. Could we split it into smaller ones?", "phrases": [2, 4], "simple": "Do you agree to make this method shorter?" },
         { "ask": "How did you test it?", "phrases": [3], "simple": "What tests did you write for it?" }
       ],
       "phrases": [
@@ -475,10 +487,9 @@
           ]
         },
         {
-          "say": "Good point, I'll ... / I see what you mean, but ...",
+          "say": "Good point, I'll ...",
           "match": [
             "good point",
-            "i see what you mean",
             "that makes sense"
           ]
         },
@@ -490,6 +501,14 @@
             "i added tests for",
             "i added unit tests"
           ]
+        },
+        {
+          "say": "I see what you mean, but ...",
+          "match": [
+            "i see what you mean",
+            "i see your point"
+          ],
+          "when": ["but", "not sure", "don't think", "do not think", "rather keep", "prefer to keep", "not really"]
         }
       ]
     },

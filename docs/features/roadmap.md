@@ -78,6 +78,6 @@ GET /api/stages
 
 1. Thêm bài vào `units` trong `units.json`, đặt `topic` là id có trong `topics`, đúng vị trí trong lộ trình.
 2. Mỗi câu hỏi cần `ask`, `simple`, `phrases`; mỗi mẫu câu cần ít nhất một câu hỏi nhắm tới.
-3. Không dùng từ của ví dụ mẫu trong prompt (`EXAMPLE_WORDS`: logistic, deliver, route, coordinator, driver). So khớp là so chuỗi con, nên "delivery", "router", "JDBC driver" cũng bị tính.
+3. Không dùng từ của ví dụ mẫu trong prompt (`EXAMPLE_WORDS`: logistic, deliver, route, coordinator, driver, night shift, warehouse, scanning app). So khớp là so chuỗi con, nên "delivery", "router", "JDBC driver" cũng bị tính.
 4. Chủ đề mới phải được đưa vào `topics` của một giai đoạn trong `stages.json`. Khóa của `gate`: `drill_sets`, `drill_accuracy`, `fluency_runs`, `check` (`seconds`, `wpm_speaking`, `hesitations_per_100`).
 5. `python -m pytest` (test_units và test_stages bắt các lỗi trên), rồi chạy `scripts/replay.py --unit <id>` với vài câu trả lời mẫu để xem AI phản hồi.

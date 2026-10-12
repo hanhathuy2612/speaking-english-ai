@@ -7,7 +7,7 @@ LLM: Qwen2.5-7B-Instruct qua LM Studio, `temperature` 0.35, `max_tokens` 160, c�
 | Phần | Vị trí (trong `backend/app/`) |
 |---|---|
 | System prompt | `SYSTEM_TEMPLATE` (`You play {role}.`), `DEFAULT_ROLE`, `build_messages()` trong `interview/prompts.py`. Vai theo bài: [conversation-mode.md](conversation-mode.md) |
-| Ví dụ mẫu | `FEW_SHOT` (3 cặp user/assistant) trong `interview/prompts.py` |
+| Ví dụ mẫu | `FEW_SHOT` (5 cặp user/assistant) trong `interview/prompts.py` |
 | Tin nhắn mỗi lượt | `build_user_message()` trong `interview/prompts.py` |
 | Gọi LLM | `stream_reply()` trong `services/llm.py` |
 | Xử lý stream | `run_turn()` trong `interview/turn.py`, cùng `split_sections()` / `ready_sentences()` trong `utils/parsing.py` |
@@ -38,6 +38,10 @@ Follow-up allowed: yes|no
 Latest answer: ...                 (luôn để cuối)
 ```
 
+## Mẫu câu theo ý kiến (`phrases[].when`)
+
+Câu "Do you agree?" từng chỉ có mẫu phản đối, model nhét mẫu đó vào nên NOTE đảo ý kiến người học. Đưa cả hai mẫu cho model tự chọn thì nó chọn sai phía (5/5 lần sau khi thêm ví dụ few-shot). Nay mẫu câu có `when` (ví dụ "I see your point, but I think ..." với `don't agree`, `disagree`...) chỉ được gửi làm Target phrase khi câu trả lời có một trong các cụm đó; nếu không thì chỉ gửi các mẫu không có `when` (`target_phrases()` trong `prompts.py`).
+
 ## Các lỗi đã gặp và cách chặn
 
 | Lỗi | Nguyên nhân | Cách chặn |
@@ -52,11 +56,13 @@ Latest answer: ...                 (luôn để cuối)
 | NOTE đổi chi tiết của người học ("if the design come tomorrow" → "comes in on Friday", 2/2 lần ở `standup`) | Model "sửa" cả nội dung | `safe_note()` dùng `invented_facts()`: NOTE có số, thứ, tháng, today/tomorrow/yesterday mà người học chưa nói (và không có trong mẫu câu) thì thay bằng khung mẫu câu. So sau khi chuẩn hóa như shadowing ("2-0" = "two zero"); bỏ qua "one" và "may" |
 | NOTE chuyển sang tiếng Trung giữa câu (2/3 lần ở `microservices`) | Qwen thỉnh thoảng lẫn ngôn ngữ | NOTE có chữ CJK thì thay bằng khung mẫu câu; câu SAY có chữ CJK thì không đọc |
 | NOTE ở ngôi thứ hai ("You enjoy solving…") | Model nói về người học thay vì viết câu cho người học nói | NOTE bắt đầu bằng "You" thì thay bằng khung mẫu câu |
+| NOTE đảo ý kiến của người học (đồng ý "social media wastes too much time" → "I see your point, but… social media can be useful", 3/3 lần ở `opinions`) và bịa thêm lý do | Câu hỏi "Do you agree?" chỉ có mẫu câu phản đối, model cố dùng mẫu câu nên đổi luôn ý kiến | Câu hỏi kiểu đồng ý/phản đối có mẫu câu cho cả hai phía, app chọn theo câu trả lời (`phrases[].when`, mục trên). Prompt có thêm luật "NOTE keeps the candidate's opinion" và ví dụ few-shot "night shift" (giữ ý kiến, không thêm lý do). Replay sau khi sửa: đồng ý 3/3, phản đối 2/2 đúng phía. Model vẫn đôi khi tự thêm lý do người học chưa nói ("it provides real practice") |
+| NOTE bỏ sót lỗi dùng từ ("improve my production" giữ nguyên, trong khi SAY dùng đúng "productivity") và đổi từ đồng nghĩa chỉ để chèn mẫu câu ("I think" → "In my opinion") | Model ưu tiên chèn Target phrase hơn sửa lỗi | Luật "NOTE first fixes every grammar mistake and every wrong word choice... do not swap in synonyms" và ví dụ few-shot "scanning app" (production → productivity). Replay với prompt cuối: sửa đúng 3/4 lần, chưa ổn định hẳn với model 7B |
 | NOTE ở lượt trả lời câu hỏi phụ viết lại câu trả lời **trước đó** | App vẫn gửi mẫu câu của câu chính, model cố nhét mẫu câu đó vào | Ở câu hỏi phụ gửi `Target phrase: none (follow-up question)` |
 
 ## Khi sửa prompt
 
-- Ví dụ few-shot cố ý lấy từ nghề **logistics**, khác nghề của người dùng (Java developer). Đổi nghề trong ví dụ thì phải cập nhật `EXAMPLE_WORDS`.
+- Ví dụ few-shot cố ý lấy từ nghề **logistics** (cả ví dụ "night shift", "scanning app in the warehouse"), khác nghề của người dùng (Java developer). Đổi nghề trong ví dụ thì phải cập nhật `EXAMPLE_WORDS`.
 - Với model 7B, thêm ví dụ hiệu quả hơn thêm luật.
 - Bắt buộc kiểm chứng bằng `scripts/replay.py` trên server thử (cổng 8001), chạy ít nhất 3 lần, từ thư mục `backend/`:
 
