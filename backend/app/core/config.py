@@ -22,7 +22,7 @@ LM_URL = os.getenv("LM_URL", "http://localhost:1234/v1")
 LM_MODEL = os.getenv("LM_MODEL", "qwen2.5-7b-instruct")
 LM_TEMPERATURE = float(os.getenv("LM_TEMPERATURE", "0.35"))
 LM_SEED = os.getenv("LM_SEED")  # set a fixed value when comparing prompts
-MAX_REPLY_TOKENS = int(os.getenv("MAX_REPLY_TOKENS", "160"))
+MAX_REPLY_TOKENS = int(os.getenv("MAX_REPLY_TOKENS", "256"))
 MAX_HISTORY = int(os.getenv("MAX_HISTORY", "3"))  # earlier Q/A pairs sent to the LLM
 
 # ----- Interview flow -----

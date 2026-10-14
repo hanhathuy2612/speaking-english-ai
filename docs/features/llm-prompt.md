@@ -1,6 +1,6 @@
 # Prompt LLM và NOTE
 
-LLM: Qwen2.5-7B-Instruct qua LM Studio, `temperature` 0.35, `max_tokens` 160, có stream.
+LLM: Qwen2.5-7B-Instruct qua LM Studio, `temperature` 0.35, `max_tokens` 256, có stream.
 
 ## Mã nguồn
 
@@ -12,7 +12,7 @@ LLM: Qwen2.5-7B-Instruct qua LM Studio, `temperature` 0.35, `max_tokens` 160, c�
 | Gọi LLM | `stream_reply()` trong `services/llm.py` |
 | Xử lý stream | `run_turn()` trong `interview/turn.py`, cùng `split_sections()` / `ready_sentences()` trong `utils/parsing.py` |
 | Cắt lý do bịa trong NOTE | `trim_invented()` trong `interview/steps.py`, xem [answer-steps.md](answer-steps.md) |
-| Chặn NOTE xấu | `safe_note()`, `EXAMPLE_WORDS` trong `interview/prompts.py`; `invented_facts()` trong `utils/compare.py`; `has_cjk()` trong `utils/parsing.py` |
+| Chặn NOTE xấu | `safe_note()`, `EXAMPLE_WORDS` trong `interview/prompts.py`; `invented_facts()` trong `utils/compare.py`; `has_cjk()` trong `utils/parsing.py`; `drop_earlier()` trong `interview/steps.py` |
 
 ## Định dạng đầu ra (4 dòng)
 
@@ -20,7 +20,7 @@ LLM: Qwen2.5-7B-Instruct qua LM Studio, `temperature` 0.35, `max_tokens` 160, c�
 RETRY: yes|no
 SAY: <phản ứng ngắn, ngôi thứ hai, dưới 15 từ, không phải câu hỏi>
 ASK: <một câu hỏi phụ, hoặc NEXT>
-NOTE: <câu của ứng viên viết lại tự nhiên hơn, ngôi thứ nhất, dưới 25 từ>
+NOTE: <cả câu trả lời mới nhất viết lại đúng và tự nhiên, ngôi thứ nhất>
 ```
 
 - RETRY đứng đầu để không bị cắt mất khi chạm `max_tokens`.
@@ -40,9 +40,22 @@ Follow-up allowed: yes|no
 Latest answer: ...                 (luôn để cuối)
 ```
 
-## NOTE ngắn, các ý để nói dài hơn hiện riêng
+## NOTE viết lại cả câu trả lời
 
-NOTE vẫn là một câu ngắn đã sửa. Lý do người học chưa nói mà model tự thêm vào NOTE bị `trim_invented()` cắt; các ý nên thêm (lý do, ví dụ, mặt trái...) hiện riêng dưới NOTE, viết sẵn cho từng câu hỏi. Xem [answer-steps.md](answer-steps.md).
+Trước ngày 14/10/2026, NOTE là "một câu chính, dưới 25 từ". Với câu trả lời dài, model chọn một câu, nhét mẫu câu vào và bỏ phần còn lại. Ví dụ, câu trả lời 46 từ về mạng xã hội chỉ còn "I totally agree, because social media can waste a lot of time if we're not careful", vừa mất ý, vừa thêm ý người học không nói. Nay NOTE viết lại **toàn bộ câu trả lời mới nhất**: đủ mọi ý, cùng thứ tự, dài gần bằng câu gốc, sửa mọi lỗi ngữ pháp và dùng từ, giữ đúng từng chi tiết. Từ vô nghĩa (thường do nghe nhầm, như "Sotomayor") được thay bằng từ ngữ cảnh chỉ rõ, hoặc "..." nếu không rõ. Mẫu câu chỉ dùng khi hợp, không bắt buộc đứng đầu, và không chồng hai cụm mở đầu ("In my opinion, I love ...").
+
+Đo trên 13 câu trả lời thật của người dùng, mỗi câu 3 lần (gọi thẳng LLM qua `build_messages` + `safe_note` + `trim_invented`, như `run_turn`):
+
+| Trường hợp | Trước | Sau |
+|---|---|---|
+| "A few months ago I went to Da Lat..." giữ "months" | 0/3 (đổi thành "years") | 3/3 |
+| "I went with my girlfriends. We spent..." giữ "I went with my girlfriends" | 0/3 | 3/3 |
+| Câu 46 từ về mạng xã hội: đủ 3 ý | 1/3 | 3/3 (`replay.py`, cả buổi) |
+| "go to work by my motorbike..." giữ "by motorbike" | 0/3 | 2/3 |
+
+Mẫu câu bài chuyến đi đổi từ "A few years ago, ..." thành "A few ... ago, ...": model chép chữ "years" trong mẫu câu đè lên "months" của người học. Câu nói lại dài hơn nên `MAX_REPLY_TOKENS` tăng từ 160 lên 256.
+
+Các ý nên thêm (lý do, ví dụ, mặt trái...) vẫn hiện riêng dưới NOTE, viết sẵn cho từng câu hỏi; lý do người học chưa nói mà model tự thêm vào NOTE bị `trim_invented()` cắt. Xem [answer-steps.md](answer-steps.md).
 
 ## Mẫu câu theo ý kiến (`phrases[].when`)
 
@@ -64,6 +77,8 @@ Câu "Do you agree?" từng chỉ có mẫu phản đối, model nhét mẫu đ�
 | NOTE ở ngôi thứ hai ("You enjoy solving…") | Model nói về người học thay vì viết câu cho người học nói | NOTE bắt đầu bằng "You" thì thay bằng khung mẫu câu |
 | NOTE đảo ý kiến của người học (đồng ý "social media wastes too much time" → "I see your point, but… social media can be useful", 3/3 lần ở `opinions`) và bịa thêm lý do | Câu hỏi "Do you agree?" chỉ có mẫu câu phản đối, model cố dùng mẫu câu nên đổi luôn ý kiến | Câu hỏi kiểu đồng ý/phản đối có mẫu câu cho cả hai phía, app chọn theo câu trả lời (`phrases[].when`, mục trên). Prompt có thêm luật "NOTE keeps the candidate's opinion" và ví dụ few-shot "night shift" (giữ ý kiến, không thêm lý do). Replay sau khi sửa: đồng ý 3/3, phản đối 2/2 đúng phía. Lý do bịa thêm bị `trim_invented()` cắt ([answer-steps.md](answer-steps.md)) |
 | NOTE bỏ sót lỗi dùng từ ("improve my production" giữ nguyên, trong khi SAY dùng đúng "productivity") và đổi từ đồng nghĩa chỉ để chèn mẫu câu ("I think" → "In my opinion") | Model ưu tiên chèn Target phrase hơn sửa lỗi | Luật "NOTE first fixes every grammar mistake and every wrong word choice... do not swap in synonyms" và ví dụ few-shot "scanning app" (production → productivity). Replay với prompt cuối: sửa đúng 3/4 lần, chưa ổn định hẳn với model 7B |
+| NOTE chép lại câu trả lời trước rồi mới tới câu mới nhất ("A few months ago, I went to Da Lat..." lặp lại ở câu sau, 2/3 lần chạy `replay.py`), từ khi NOTE viết lại cả câu trả lời | Model thấy các câu trước trong "Earlier in the interview" và gộp vào. Luật "only the latest answer" và thêm ví dụ few-shot có lịch sử đều không đủ | `drop_earlier()`: câu nào trong NOTE giống một câu trả lời trước (so chuỗi từ, `SequenceMatcher` ≥ 0.5) hơn giống câu mới nhất ít nhất 0.2 thì bị cắt. Đo trên các NOTE lỗi: câu chép lại 0.60–1.00 với câu trước, 0.21–0.27 với câu mới. Còn sót khi model gộp hai câu thành một câu (1/3 lần) |
+| Đổi "a few months" thành "a few years" | Mẫu câu chứa "years" | Mẫu câu đổi thành "A few ... ago"; `invented_facts()` coi minute/hour/week/month/year là chi tiết cần giữ (không tính "day": "every day" là cách nói thường) |
 | NOTE ở lượt trả lời câu hỏi phụ viết lại câu trả lời **trước đó** | App vẫn gửi mẫu câu của câu chính, model cố nhét mẫu câu đó vào | Ở câu hỏi phụ gửi `Target phrase: none (follow-up question)` |
 
 ## Khi sửa prompt

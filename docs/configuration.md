@@ -11,7 +11,7 @@ Server tự nạp `.env` bằng python-dotenv khi khởi động. Biến môi tr
 | `LM_MODEL` | `qwen2.5-7b-instruct` | giống mặc định | |
 | `LM_TEMPERATURE` | `0.35` | `0.35` | |
 | `LM_SEED` | trống | tắt | Bật khi so prompt |
-| `MAX_REPLY_TOKENS` | `160` | `160` | |
+| `MAX_REPLY_TOKENS` | `256` | `256` | NOTE viết lại cả câu trả lời nên dài hơn; 160 có thể cắt mất NOTE |
 | `MAX_HISTORY` | `3` | `3` | Số cặp hỏi/đáp trước đó gửi cho LLM |
 | `INTERVIEW_FOLLOWUPS` | `1` | `1` | `0` để chỉ hỏi câu chính |
 | `STT_MODEL` | `small.en` | `large-v3-turbo` | |

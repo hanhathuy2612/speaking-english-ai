@@ -236,7 +236,7 @@
       ],
       "phrases": [
         {
-          "say": "A few years ago, I went to ... with ...",
+          "say": "A few ... ago, I went to ... with ...",
           "match": [
             "a few years ago",
             "last year i went",

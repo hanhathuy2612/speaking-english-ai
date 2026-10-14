@@ -21,17 +21,20 @@ Reply in EXACTLY this format, four lines, no markdown:
 RETRY: yes or no
 SAY: <one short reaction to the answer, second person, under 15 words, not a question>
 ASK: <one question, or NEXT>
-NOTE: <one improved version of the candidate's key sentence, first person, under 25 words>
+NOTE: <the candidate's whole answer said again in natural, correct English, first person>
 
 Rules:
 - RETRY is yes only if the answer is off-topic, only a few words, not English, or does not make sense (probably misheard). Grammar mistakes do NOT count.
 - SAY and ASK respond ONLY to the latest answer, never to earlier ones.
 - If RETRY is yes: SAY is a polite "sorry, I didn't quite catch that". ASK is NEXT (the app repeats the question).
 - If RETRY is no: ASK is NEXT, unless "Follow-up allowed: yes" and the answer mentions one detail worth asking about. Then ASK is one short follow-up question about that detail.
-- NOTE first fixes every grammar mistake and every wrong word choice (for example "production" when they mean "productivity"). Keep the parts they already said correctly; do not swap in synonyms.
-- NOTE keeps their meaning and uses the target phrase when it fits. It rewrites only what they said and adds no new sentence. If RETRY is yes, NOTE is a short model answer to the current question using the target phrase.
+- NOTE rewrites the WHOLE latest answer, and only the latest answer (never repeat an earlier answer): every point they made, in the same order, about as long as their answer. Never drop a detail (who they were with, where, when, how, what they did, their reasons), even when the target phrase has no slot for it: add it to the sentence.
+- NOTE fixes every grammar mistake and every wrong word choice (for example "production" when they mean "productivity"). Keep the parts they already said correctly and keep every detail exactly ("a few months" stays "a few months"); do not swap in synonyms.
+- A word that makes no sense in the answer was probably misheard: write the word the context clearly means, or "..." if it is not clear.
+- NOTE uses the target phrase where it fits, not necessarily first: it can replace their own opener ("I think ..." becomes "In my opinion, ...") or come after what they said before it. Never stack two openers ("In my opinion, I love ..."): if it does not fit, keep their words.
+- If RETRY is yes, NOTE is a short model answer to the current question using the target phrase.
 - NOTE keeps the candidate's opinion. If they agree, NOTE agrees; if they like something, NOTE likes it. Never switch sides. Only use a target phrase that matches their opinion.
-- NOTE uses ONLY facts the candidate said in this interview. Never invent numbers, names, results, tasks, reasons or examples. If a fact is missing, write "..." in its place.
+- NOTE uses ONLY facts the candidate said in this interview and adds nothing they did not say. Never invent numbers, names, results, tasks, reasons or examples. If a fact is missing, write "..." in its place.
 - Never use Vietnamese.
 
 Phrases the candidate is practising:
@@ -86,20 +89,23 @@ FEW_SHOT = [
         "NOTE: I think the scanning app in the warehouse is a great way to improve my productivity.",
     },
     {
-        # The NOTE keeps the candidate's opinion and adds no reason they did not give. For
-        # agree/disagree questions the app sends only the phrase matching the answer (target_phrases).
+        # The NOTE keeps the candidate's opinion and every point of a long answer, in order, and
+        # adds no reason they did not give. For agree/disagree questions the app sends only the
+        # phrase matching the answer (target_phrases).
         "role": "user",
         "content": "Current question: Some people say night shifts are too hard. Do you agree?\n"
         "Target phrase: I totally agree, because ...\n"
         "Follow-up allowed: no\n"
-        "Latest answer: Yes night shift is very hard, I always tired after night shift.",
+        "Latest answer: Yes night shift is very hard, I always tired after night shift. and in the day I cannot "
+        "sleep well because my street is noise. but when you get used to it the pay is more better",
     },
     {
         "role": "assistant",
         "content": "RETRY: no\n"
         "SAY: Night shifts really can be exhausting.\n"
         "ASK: NEXT\n"
-        "NOTE: I totally agree, because I always feel tired after a night shift.",
+        "NOTE: I totally agree, because I always feel tired after a night shift, and during the day I can't "
+        "sleep well because my street is noisy. But once you get used to it, the pay is better.",
     },
     {
         "role": "user",
@@ -120,7 +126,7 @@ FEW_SHOT = [
 ]
 
 # Words that appear in FEW_SHOT.
-EXAMPLE_WORDS = ("logistic", "deliver", "route", "coordinator", "driver", "night shift", "warehouse", "scanning app")
+EXAMPLE_WORDS = ("logistic", "deliver", "route", "coordinator", "driver", "night shift", "warehouse", "scanning app", "noisy")
 
 
 def target_phrases(unit: dict, q_index: int, answer: str = "") -> list[str]:

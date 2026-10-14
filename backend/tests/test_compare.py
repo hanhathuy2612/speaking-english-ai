@@ -57,6 +57,11 @@ def test_invented_facts_finds_changed_days_and_numbers():
     assert invented_facts("It should be ready by Thursday if the design arrives tomorrow.", said) == []
 
 
+def test_invented_facts_finds_changed_time_units():
+    assert invented_facts("A few years ago, I went to Da Lat.", "a few months ago i went to da lat") == ["years"]
+    assert invented_facts("A few months ago, I went to Da Lat.", "a few months ago i went to da lat") == []
+
+
 def test_invented_facts_matches_digits_and_words():
     assert invented_facts("It cut late requests by 30% in 5 days.", "thirty percent in five days") == []
     assert invented_facts("We have 12 services.", "we have ten services") == ["twelve"]

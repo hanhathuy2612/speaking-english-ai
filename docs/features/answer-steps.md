@@ -2,7 +2,7 @@
 
 Câu trả lời của người dùng trung bình 14 từ (36 câu nói trước ngày 12/10/2026), thường chỉ một câu. NOTE chỉ sửa câu đó cho đúng, nên không giúp nói dài hơn. Thẻ gợi ý vì vậy có hai phần:
 
-1. **Cách nói tự nhiên hơn:** NOTE, một câu ngắn đã sửa lỗi, để nghe và nói lại (shadowing, xem [shadowing.md](shadowing.md)).
+1. **Cách nói tự nhiên hơn:** NOTE, cả câu trả lời vừa nói được viết lại cho đúng và tự nhiên (đủ mọi ý, cùng thứ tự, không thêm ý), để nghe và nói lại (shadowing, xem [shadowing.md](shadowing.md)). Xem [llm-prompt.md](llm-prompt.md).
 2. **Nói dài hơn:** 2–3 ý nên thêm cho câu hỏi này. Mỗi ý có nhãn tiếng Việt cho biết cần nói gì, và câu mở đầu tiếng Anh:
 
 ```
@@ -26,7 +26,7 @@ Nói dài hơn: trả lời lại và thêm các ý này
 | Phần | Vị trí |
 |---|---|
 | Dữ liệu | `questions[].steps` (`hint`, `say`) trong `backend/app/data/units.json`; `validate()` trong `interview/units.py` kiểm tra có `hint` và `say` chứa `...` |
-| Đánh dấu ý đã nói, cắt lý do bịa trong NOTE | `mark_steps()`, `trim_invented()` trong `backend/app/interview/steps.py` |
+| Đánh dấu ý đã nói, cắt lý do bịa trong NOTE, cắt câu chép lại câu trả lời trước | `mark_steps()`, `trim_invented()`, `drop_earlier()` trong `backend/app/interview/steps.py` |
 | Gửi các ý kèm NOTE, lưu câu trả lời đầu | cuối `run_turn()` trong `interview/turn.py` (`Session.retell_base`) |
 | Xử lý lượt trả lời lại | `handle_retell()` trong `interview/retell.py`; tin `retell` trong `_on_text()`, nhánh `session.retell` trong `_on_audio()` (`api/routes/ws.py`) |
 | Lưu | bảng `retells`, `add_retell()` trong `services/history.py` |

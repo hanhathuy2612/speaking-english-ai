@@ -8,7 +8,7 @@ from __future__ import annotations
 import asyncio
 import time
 
-from app.interview.steps import mark_steps, steps_for, trim_invented
+from app.interview.steps import drop_earlier, mark_steps, steps_for, trim_invented
 from app.interview.prompts import build_messages, safe_note, target_phrases
 from app.interview.session import Session, next_step, progress, summary
 from app.services import history, llm, stt, tts
@@ -171,6 +171,7 @@ async def run_turn(
     s.retell_base = None
     if not retry:  # a RETRY NOTE is already a model answer to a question the learner did not answer
         said = " ".join(f"{h['q']} {h['a']}" for h in s.history)
+        note = drop_earlier(note, user_text, [h["a"] for h in s.history[:-1]])
         note = trim_invented(note, said, " ".join(target_phrases(s.unit, q_index, user_text)))
         if on_main:
             steps = mark_steps(steps_for(s.unit, q_index), f"{user_text} {note}")

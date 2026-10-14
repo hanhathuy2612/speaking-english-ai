@@ -6,6 +6,9 @@ English starter ("Vì sao?" / "That's because ..."). See docs/features/answer-st
   that it provides real practice", 3/3 replays). That teaches a made-up answer and hides the
   missing step, so a sentence after the first, or a "because ..." clause, whose content words are
   mostly new is cut. The reason then shows up as an open step instead.
+- drop_earlier(): the NOTE rewrites the whole latest answer, and the model sometimes put an
+  earlier answer in front of it ("A few months ago, I went to Da Lat..." again under the next
+  question, 2/3 replays). A sentence much closer to an earlier answer than to the latest is cut.
 - mark_steps(): a step counts as done when the text says its starter, or the same move in other
   words ("because" gives a reason, "for instance" an example). No LLM involved.
 """
@@ -13,11 +16,14 @@ English starter ("Vì sao?" / "That's because ..."). See docs/features/answer-st
 from __future__ import annotations
 
 import re
+from difflib import SequenceMatcher
 
 from app.utils.parsing import norm
 
 NEW_SHARE = 0.6  # a part is invented when at least this share of its content words is new
 MIN_NEW = 2  # ... and at least this many (one new word is usually just a better word choice)
+EARLIER_SIM = 0.5  # word-sequence similarity from which a NOTE sentence repeats an earlier answer
+EARLIER_MARGIN = 0.2  # ... and it must be this much closer to it than to the latest answer
 MIN_LEAD_WORDS = 2  # a shorter starter ("I'll ...") is too common to prove the step was said
 
 # Words of 4+ letters that carry no content; shorter words are ignored anyway.
@@ -72,6 +78,30 @@ def _invented(part: str, known: set[str], given: set[str]) -> bool:
     words = [w for w in _content(part) if w not in given]
     new = [w for w in words if w not in known]
     return len(new) >= MIN_NEW and len(new) >= NEW_SHARE * len(words)
+
+
+def _sentences(text: str) -> list[str]:
+    return [x for x in re.split(r"(?<=[.!?])\s+", text.strip()) if norm(x)]
+
+
+def _closest(sentence: str, text: str) -> float:
+    words = norm(sentence).split()
+    return max((SequenceMatcher(None, words, norm(x).split()).ratio() for x in _sentences(text)), default=0.0)
+
+
+def drop_earlier(note: str, latest: str, earlier: list[str]) -> str:
+    """Cut NOTE sentences that rewrite an earlier answer instead of the latest one. Keeps at least
+    the sentence closest to the latest answer."""
+    sentences = _sentences(note)
+    if not earlier or len(sentences) < 2:
+        return note
+    kept = []
+    for sentence in sentences:
+        mine = _closest(sentence, latest)
+        before = max(_closest(sentence, e) for e in earlier)
+        if not (before >= EARLIER_SIM and before > mine + EARLIER_MARGIN):
+            kept.append(sentence)
+    return " ".join(kept or [max(sentences, key=lambda x: _closest(x, latest))])
 
 
 def trim_invented(note: str, said: str, given: str) -> str:

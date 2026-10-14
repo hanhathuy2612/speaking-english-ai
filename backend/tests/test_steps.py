@@ -4,7 +4,7 @@ import asyncio
 
 from app.interview import retell
 from app.interview.session import Session
-from app.interview.steps import mark_steps, steps_for, trim_invented
+from app.interview.steps import drop_earlier, mark_steps, steps_for, trim_invented
 from app.interview.units import units, units_by_id
 
 STEPS = [
@@ -96,3 +96,22 @@ def test_retell_compares_the_new_answer_with_the_first_one(monkeypatch):
     assert [st["done"] for st in result["steps"]] == [True, False, True]
     assert s.retell is False  # one attempt per request
     assert saved[0][0] == 7 and saved[0][1]["steps_done"] == 2 and saved[0][1]["steps_total"] == 3
+
+
+def test_drop_earlier_cuts_a_repeated_earlier_answer():
+    earlier = ["A few months ago I went to Da Lat with my girlfriend."]
+    latest = "I went there with my girlfriend, we spent lots of time to see the landscape and the sea."
+    note = (
+        "A few months ago, I went to Da Lat with my girlfriend. "
+        "We spent most of the time seeing the landscape and the sea."
+    )
+    assert drop_earlier(note, latest, earlier) == "We spent most of the time seeing the landscape and the sea."
+
+
+def test_drop_earlier_keeps_the_latest_answer_and_single_sentences():
+    earlier = ["A few months ago I went to Da Lat with my girlfriend."]
+    latest = "I went with my girlfriends. We spent most of the time to relax and enjoy the food."
+    note = "I went with my girlfriends, and we spent most of the time relaxing and enjoying the food."
+    assert drop_earlier(note, latest, earlier) == note
+    assert drop_earlier(earlier[0], "It was cold.", earlier) == earlier[0]  # never empty
+    assert drop_earlier(note, latest, []) == note
