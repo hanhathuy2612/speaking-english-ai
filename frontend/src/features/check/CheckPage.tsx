@@ -74,8 +74,8 @@ function Past({ checks }: { checks: CheckRow[] }) {
     <section className="card table-card check-past">
       <h2>Các lần kiểm tra</h2>
       <p className="check-trend">
-        Tốc độ khi nói gần nhất: <strong>{fmtNum(speed.value)} từ/phút</strong> ({speed.delta.text}). Ngập ngừng giữa câu / 100
-        từ: <strong>{fmtNum(pauses.value)}</strong> ({pauses.delta.text}).
+        Tốc độ khi nói gần nhất: <strong>{fmtNum(speed.value)} từ/phút</strong> ({speed.delta.text}). Ngập ngừng giữa
+        câu / 100 từ: <strong>{fmtNum(pauses.value)}</strong> ({pauses.delta.text}).
       </p>
       <div className="table-wrap">
         <table>
@@ -190,8 +190,9 @@ export function CheckPage() {
         <div className="check-head">
           <h1>Kiểm tra nói</h1>
           <Lead className="check-lead" summary="Nói liền 2 phút về một đề chưa chuẩn bị. App chỉ đo bằng số.">
-            Nói liền 2 phút về một đề bạn chưa chuẩn bị. App chỉ đo bằng số (thời lượng, tốc độ, số lần ngập ngừng giữa câu,
-            có nói toàn tiếng Anh không), không dùng AI chấm. Lần đầu là bài đầu vào; làm lại sau mỗi giai đoạn để xem tiến bộ.
+            Nói liền 2 phút về một đề bạn chưa chuẩn bị. App chỉ đo bằng số (thời lượng, tốc độ, số lần ngập ngừng giữa
+            câu, có nói toàn tiếng Anh không), không dùng AI chấm. Lần đầu là bài đầu vào; làm lại sau mỗi giai đoạn để
+            xem tiến bộ.
           </Lead>
         </div>
 

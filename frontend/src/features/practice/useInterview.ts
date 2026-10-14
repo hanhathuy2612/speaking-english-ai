@@ -248,7 +248,10 @@ export function useInterview(requestedUnit: string | null) {
     };
     sock.onclose = () => {
       if (!closedByUs)
-        dispatch({ type: "status", status: { text: "Mất kết nối với máy chủ. Tải lại trang để thử lại.", state: "error" } });
+        dispatch({
+          type: "status",
+          status: { text: "Mất kết nối với máy chủ. Tải lại trang để thử lại.", state: "error" },
+        });
     };
     sock.onmessage = (e) => {
       if (typeof e.data !== "string") {

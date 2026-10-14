@@ -146,7 +146,10 @@ export function FluencyPage() {
     setStatus({ text: "Đang nhận dạng và đo…", state: "busy" });
     try {
       const q = run ? `?run=${run}` : "";
-      const res = await fetch(`/api/fluency/${encodeURIComponent(data.prompt.id)}/${round}${q}`, { method: "POST", body: blob });
+      const res = await fetch(`/api/fluency/${encodeURIComponent(data.prompt.id)}/${round}${q}`, {
+        method: "POST",
+        body: blob,
+      });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const r: FluencyResult = await res.json();
       setRun(r.run);
@@ -154,7 +157,10 @@ export function FluencyPage() {
       setStatus(
         r.measurable
           ? { text: "", state: "" }
-          : { text: "Lần này chưa đủ 30 giây tiếng Anh nên chưa tính tốc độ. Bạn có thể thử lại lần này.", state: "warn" },
+          : {
+              text: "Lần này chưa đủ 30 giây tiếng Anh nên chưa tính tốc độ. Bạn có thể thử lại lần này.",
+              state: "warn",
+            },
       );
       if (results.length + 1 >= limits.length) {
         const fresh: FluencyState = await (await fetch("/api/fluency")).json();
@@ -198,9 +204,9 @@ export function FluencyPage() {
         <div className="fluency-head">
           <h1>Nói dài 4–3–2</h1>
           <Lead className="fluency-lead" summary="Kể một chuyện ba lần: 4 phút, 3 phút, rồi 2 phút.">
-            Kể cùng một chuyện ba lần, thời gian giảm dần: 4 phút, 3 phút, rồi 2 phút. Lần sau bạn đã có sẵn ý và từ, nên
-            sẽ nói nhanh hơn và ít ngập ngừng hơn. App đo từng lần bằng số, không dùng AI chấm. Đề ở đây khác đề của bài kiểm
-            tra, để bài kiểm tra luôn là đề bạn chưa luyện.
+            Kể cùng một chuyện ba lần, thời gian giảm dần: 4 phút, 3 phút, rồi 2 phút. Lần sau bạn đã có sẵn ý và từ,
+            nên sẽ nói nhanh hơn và ít ngập ngừng hơn. App đo từng lần bằng số, không dùng AI chấm. Đề ở đây khác đề của
+            bài kiểm tra, để bài kiểm tra luôn là đề bạn chưa luyện.
           </Lead>
         </div>
 
@@ -241,8 +247,8 @@ export function FluencyPage() {
             {finished ? (
               <div className="fluency-done">
                 <p>
-                  Xong cả ba lần. So lần 3 với lần 1: tốc độ nên tăng, ngập ngừng nên giảm. Làm thêm vài đề nữa, rồi làm bài
-                  kiểm tra nói để xem phản xạ có chuyển sang đề mới không.
+                  Xong cả ba lần. So lần 3 với lần 1: tốc độ nên tăng, ngập ngừng nên giảm. Làm thêm vài đề nữa, rồi làm
+                  bài kiểm tra nói để xem phản xạ có chuyển sang đề mới không.
                 </p>
                 <button className="btn btn-primary" onClick={() => reset(data.prompt.id)}>
                   Làm đề khác
@@ -259,7 +265,9 @@ export function FluencyPage() {
                   elapsed={elapsed}
                   goal={limit}
                   goalLabel={`tối đa ${fmtClock(limit)}, tự dừng khi hết giờ`}
-                  status={status.text ? status : { text: "Bấm nút micro để bắt đầu kể, bấm lần nữa khi xong.", state: "" }}
+                  status={
+                    status.text ? status : { text: "Bấm nút micro để bắt đầu kể, bấm lần nữa khi xong.", state: "" }
+                  }
                   onToggle={mic.toggle}
                 />
               </>

@@ -100,7 +100,8 @@ export function PracticePage() {
         )}
         <div className={`progress${progress?.done ? " done" : ""}`}>
           <span className="progress-text" aria-live="polite">
-            {progress && (progress.done ? `Hoàn thành ${progress.n}/${progress.n}` : `Câu hỏi ${progress.q}/${progress.n}`)}
+            {progress &&
+              (progress.done ? `Hoàn thành ${progress.n}/${progress.n}` : `Câu hỏi ${progress.q}/${progress.n}`)}
           </span>
           <div className="progress-bar" aria-hidden>
             <span style={{ width: progress ? `${(done / progress.n) * 100}%` : 0 }} />

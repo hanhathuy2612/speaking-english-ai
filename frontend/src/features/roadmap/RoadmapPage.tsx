@@ -53,10 +53,7 @@ function UnitCard({ u, next, locked }: { u: UnitStatus; next: boolean; locked: b
           {u.lesson ? `Bài giảng + ${u.questions} câu hỏi` : `${u.questions} câu hỏi`}
           {u.sessions > 0 && ` · đã tập ${u.sessions} lần · gần nhất ${fmtDate(u.last_at!, false)}`}
         </span>
-        <Link
-          className={`btn btn-sm${next ? " btn-primary" : locked ? " btn-ghost" : ""}`}
-          to={unitLink(u)}
-        >
+        <Link className={`btn btn-sm${next ? " btn-primary" : locked ? " btn-ghost" : ""}`} to={unitLink(u)}>
           {locked ? "Tập trước" : st === "new" ? "Bắt đầu" : "Luyện lại"}
         </Link>
       </div>
@@ -222,7 +219,8 @@ export function RoadmapPage() {
           <Lead className="roadmap-lead" summary="Năm giai đoạn, đi lần lượt. Đạt đủ tiêu chí thì mở giai đoạn sau.">
             Năm giai đoạn, đi lần lượt. Một giai đoạn chỉ mở khi giai đoạn trước đạt đủ tiêu chí, và tiêu chí là số đo:
             bài đã hoàn thành, độ chính xác khi đọc, kết quả bài kiểm tra nói. Mức kiểm tra tăng dần qua từng giai đoạn,
-            tới mức đích ở giai đoạn 4. Cần luyện gấp một bài chưa mở (ví dụ sắp phỏng vấn) thì vẫn chọn được ở Phòng tập.
+            tới mức đích ở giai đoạn 4. Cần luyện gấp một bài chưa mở (ví dụ sắp phỏng vấn) thì vẫn chọn được ở Phòng
+            tập.
           </Lead>
           {stages && (
             <div className="roadmap-progress">
@@ -236,7 +234,9 @@ export function RoadmapPage() {
           )}
         </div>
         {checks && <CheckCard checks={checks} />}
-        {stages?.map((s, i) => <StageSection key={s.id} s={s} index={i} nextId={nextId} />)}
+        {stages?.map((s, i) => (
+          <StageSection key={s.id} s={s} index={i} nextId={nextId} />
+        ))}
       </main>
     </>
   );

@@ -84,7 +84,11 @@ export function AppBar({ children }: { children?: ReactNode }) {
         >
           <MenuIcon />
           <span className="nav-toggle-label">{current}</span>
-          {due > 0 && <span className="nav-badge" aria-hidden>{due}</span>}
+          {due > 0 && (
+            <span className="nav-badge" aria-hidden>
+              {due}
+            </span>
+          )}
         </button>
         <nav id="main-nav" className={`nav${open ? " open" : ""}`} aria-label="Các trang">
           {NAV.map((n) => (

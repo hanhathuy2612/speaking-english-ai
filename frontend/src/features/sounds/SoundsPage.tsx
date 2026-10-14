@@ -33,7 +33,10 @@ function SetCard({ s, active, onPick }: { s: DrillSet; active: boolean; onPick: 
             <Chip tone={passed === s.sentences.length ? "success" : ""}>
               Đạt {passed}/{s.sentences.length} câu
             </Chip>
-            <Chip tone={accuracyTone(s.accuracy)} title={`Từ trọng tâm đúng trong ${s.attempts} lần đọc gần nhất của nhóm`}>
+            <Chip
+              tone={accuracyTone(s.accuracy)}
+              title={`Từ trọng tâm đúng trong ${s.attempts} lần đọc gần nhất của nhóm`}
+            >
               Gần đây đúng {s.accuracy}%
             </Chip>
           </span>
@@ -85,7 +88,13 @@ export function SoundsPage() {
     // position in it should not jump while you practise. Only the stats are refreshed.
     setData((old) =>
       old
-        ? { ...fresh, sets: fresh.sets.map((s) => ({ ...s, sentences: old.sets.find((o) => o.id === s.id)?.sentences ?? s.sentences })) }
+        ? {
+            ...fresh,
+            sets: fresh.sets.map((s) => ({
+              ...s,
+              sentences: old.sets.find((o) => o.id === s.id)?.sentences ?? s.sentences,
+            })),
+          }
         : fresh,
     );
   }, []);
@@ -160,10 +169,14 @@ export function SoundsPage() {
       <main className="sounds">
         <div className="sounds-head">
           <h1>Luyện phát âm</h1>
-          <Lead className="sounds-lead" summary="Nghe câu mẫu, bấm micro và đọc to. App chấm các từ trọng tâm (in đậm).">
-            Mỗi nhóm nhắm vào một lỗi máy đã đo được trên giọng bạn. Nghe câu mẫu, bấm micro (hoặc giữ phím Space) và đọc to.
-            App so từng từ với câu mẫu và chấm riêng các <strong>từ trọng tâm</strong> (in đậm). Máy nhận dạng đôi khi tự
-            &quot;sửa&quot; từ gần đúng, nên đạt 100% chưa chắc là phát âm chuẩn, nhưng sai thì gần như chắc chắn là chưa rõ.
+          <Lead
+            className="sounds-lead"
+            summary="Nghe câu mẫu, bấm micro và đọc to. App chấm các từ trọng tâm (in đậm)."
+          >
+            Mỗi nhóm nhắm vào một lỗi máy đã đo được trên giọng bạn. Nghe câu mẫu, bấm micro (hoặc giữ phím Space) và
+            đọc to. App so từng từ với câu mẫu và chấm riêng các <strong>từ trọng tâm</strong> (in đậm). Máy nhận dạng
+            đôi khi tự &quot;sửa&quot; từ gần đúng, nên đạt 100% chưa chắc là phát âm chuẩn, nhưng sai thì gần như chắc
+            chắn là chưa rõ.
           </Lead>
           {data && (
             <p className="sounds-recent">
@@ -259,7 +272,9 @@ export function SoundsPage() {
                     r={result}
                     head={
                       result.newBest ? (
-                        <Chip tone="success">{result.first ? "Lần đọc đầu tiên của câu này" : "Kết quả tốt nhất mới"}</Chip>
+                        <Chip tone="success">
+                          {result.first ? "Lần đọc đầu tiên của câu này" : "Kết quả tốt nhất mới"}
+                        </Chip>
                       ) : (
                         best && (
                           <span className="drill-best-note">
@@ -287,7 +302,11 @@ export function SoundsPage() {
                 )}
 
                 <div className="drill-nav">
-                  <button className="btn btn-sm" onClick={() => go(-1)} disabled={mic.recording || set.sentences.length < 2}>
+                  <button
+                    className="btn btn-sm"
+                    onClick={() => go(-1)}
+                    disabled={mic.recording || set.sentences.length < 2}
+                  >
                     Câu trước
                   </button>
                   <button
@@ -301,8 +320,8 @@ export function SoundsPage() {
               </>
             ) : (
               <p className="drill-empty">
-                Chưa có câu nào. Khi bạn đọc sai một câu ở phòng tập (nói lại câu mẫu) hoặc ở các nhóm trên, câu đó sẽ hiện ở
-                đây.
+                Chưa có câu nào. Khi bạn đọc sai một câu ở phòng tập (nói lại câu mẫu) hoặc ở các nhóm trên, câu đó sẽ
+                hiện ở đây.
               </p>
             )}
           </section>

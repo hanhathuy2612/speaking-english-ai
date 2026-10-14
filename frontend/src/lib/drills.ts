@@ -4,7 +4,10 @@ const key = (w: string) => w.toLowerCase().replace(/[^a-z0-9']/g, "");
  * punctuation ignored). */
 export function markFocus(text: string, focus: string[]): { text: string; focus: boolean }[] {
   const keys = new Set(focus.map(key));
-  return text.split(/\s+/).filter(Boolean).map((w) => ({ text: w, focus: keys.has(key(w)) }));
+  return text
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((w) => ({ text: w, focus: keys.has(key(w)) }));
 }
 
 type Scored = { focus_correct: number; focus_total: number; correct: number; total: number };

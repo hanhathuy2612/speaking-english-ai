@@ -11,6 +11,8 @@ React 19 + TypeScript + Vite, định tuyến bằng React Router 7. Không có 
 | `npm run build` | Kiểm tra kiểu (`tsc -b`) rồi build vào `frontend/dist/`. Backend phục vụ thư mục này |
 | `npm run typecheck` | Chỉ kiểm tra kiểu |
 | `npm test` | Vitest (hàm thuần trong `src/lib/`) |
+| `npm run format` | Prettier định dạng lại toàn bộ `frontend/` (TS, TSX, CSS, JSON) |
+| `npm run format:check` | Chỉ kiểm tra, báo file chưa đúng định dạng, không sửa |
 
 Backend phục vụ bản build: `/`, `/lesson/<id>`, `/review`, `/roadmap`, `/sounds`, `/fluency`, `/check`, `/history`, `/bench` đều trả `dist/index.html`, React Router chọn trang; JS/CSS nằm dưới `/assets`; manifest và icon PWA (từ `public/`) nằm ở gốc. Chưa build thì các trang này trả hướng dẫn build (HTTP 503). Xem `backend/app/main.py`.
 
@@ -125,6 +127,7 @@ Mọi chỗ người học nói đều có nút **"Nghe lại"** (`ReplayButton`
 - Không dùng `dangerouslySetInnerHTML`. Dữ liệu từ server luôn render qua JSX (React tự escape).
 - Nút chỉ có icon phải có `aria-label`. Vùng nội dung thay đổi dùng `aria-live` hoặc `role="status"`.
 - Thêm dependency phải ghim phiên bản cụ thể và `npm audit` không còn lỗ hổng.
+- Định dạng code bằng Prettier (`.prettierrc.json`): dòng tối đa 120 ký tự (gần với cách viết sẵn có nhất), `endOfLine: "auto"` vì git trên Windows để `core.autocrlf=true` nên file trên máy dùng CRLF. Sửa frontend xong thì chạy `npm run format`.
 - Sửa giao diện thì kiểm tra cả chế độ sáng, tối, màn hình 375px, trang không cuộn ngang, và `npm run build` không lỗi.
 
 ## Cài lên điện thoại (PWA)

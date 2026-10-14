@@ -9,5 +9,8 @@ export function roundDelta(rounds: FluencyRound[], key: "wpm_speaking" | "hesita
   const diff = Math.round((vals[vals.length - 1] - vals[0]) * 10) / 10;
   const better = key === "wpm_speaking" ? diff > 0 : diff < 0;
   const sign = diff > 0 ? "+" : diff < 0 ? "−" : "±";
-  return { text: `${sign}${fmtNum(Math.abs(diff))} so với lần 1`, tone: diff === 0 ? undefined : better ? "good" : "bad" };
+  return {
+    text: `${sign}${fmtNum(Math.abs(diff))} so với lần 1`,
+    tone: diff === 0 ? undefined : better ? "good" : "bad",
+  };
 }

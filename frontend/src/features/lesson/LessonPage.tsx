@@ -438,8 +438,7 @@ function Overview({
         </ol>
       </section>
       <p className="lesson-foot">
-        Sau phần bài học, {data.partner.toLowerCase()} sẽ hỏi bạn các câu liên quan. Hãy dùng lại những câu vừa
-        học.
+        Sau phần bài học, {data.partner.toLowerCase()} sẽ hỏi bạn các câu liên quan. Hãy dùng lại những câu vừa học.
       </p>
     </main>
   );

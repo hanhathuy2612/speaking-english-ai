@@ -26,9 +26,18 @@ function Tiles({ sessions }: { sessions: HistorySession[] }) {
   const completed = sessions.filter((s) => s.completed).length;
   const spoken = sessions.reduce((a, s) => a + s.spoken_turns, 0);
   const words = sessions.reduce((a, s) => a + s.words, 0);
-  const speed = latestWithDelta(sessions.map((s) => s.wpm_speaking), false);
-  const pauses = latestWithDelta(sessions.map((s) => s.pauses_per_100_words), true);
-  const shadow = latestWithDelta(sessions.map((s) => s.shadow_accuracy), false);
+  const speed = latestWithDelta(
+    sessions.map((s) => s.wpm_speaking),
+    false,
+  );
+  const pauses = latestWithDelta(
+    sessions.map((s) => s.pauses_per_100_words),
+    true,
+  );
+  const shadow = latestWithDelta(
+    sessions.map((s) => s.shadow_accuracy),
+    false,
+  );
   return (
     <section className="tiles" aria-label="Tóm tắt">
       <Tile label="Buổi tập" value={`${sessions.length}`} delta={{ text: `${completed} buổi hoàn thành đủ câu hỏi` }} />
@@ -62,11 +71,21 @@ function SessionsTable({ sessions, openId, onOpen, onDelete }: TableProps) {
             <tr>
               <th scope="col">Thời gian</th>
               <th scope="col">Bài</th>
-              <th scope="col" className="num">Lượt nói</th>
-              <th scope="col" className="num">Từ/phút khi nói</th>
-              <th scope="col" className="num">Ngắt / 100 từ</th>
-              <th scope="col" className="num">Mẫu câu</th>
-              <th scope="col" className="num">Nói lại</th>
+              <th scope="col" className="num">
+                Lượt nói
+              </th>
+              <th scope="col" className="num">
+                Từ/phút khi nói
+              </th>
+              <th scope="col" className="num">
+                Ngắt / 100 từ
+              </th>
+              <th scope="col" className="num">
+                Mẫu câu
+              </th>
+              <th scope="col" className="num">
+                Nói lại
+              </th>
               <th scope="col">Trạng thái</th>
               <th scope="col">
                 <span className="sr-only">Câu trả lời và ghi âm</span>
@@ -159,7 +178,9 @@ export function HistoryPage() {
       <main className="page">
         <div className="page-head">
           <h1>Tiến bộ luyện nói</h1>
-          <p className="lead">Tính trên các lượt trả lời bằng giọng nói, máy nghe rõ. Tốc độ chỉ tính câu từ 10 từ trở lên.</p>
+          <p className="lead">
+            Tính trên các lượt trả lời bằng giọng nói, máy nghe rõ. Tốc độ chỉ tính câu từ 10 từ trở lên.
+          </p>
         </div>
 
         {message && <p className="card empty">{message}</p>}

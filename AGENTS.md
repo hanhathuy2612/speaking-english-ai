@@ -65,6 +65,7 @@ npm install
 npm run dev        # http://localhost:5173, proxy /api và /ws sang backend (BACKEND_URL, mặc định :8000)
 npm run build      # tsc + build vào dist/, backend phục vụ bản này ở :8000
 npm test           # Vitest
+npm run format     # Prettier; npm run format:check chỉ kiểm tra
 ```
 
 ## Bản đồ tài liệu
@@ -107,7 +108,7 @@ npm test           # Vitest
   - **Tài liệu (`docs/`, `AGENTS.md`, `README.md`) bằng tiếng Việt.**
 - Không chấm điểm bằng LLM. Chỉ dùng chỉ số khách quan.
 - Giữ code đơn giản. Frontend dùng React + TypeScript, không thêm thư viện UI hay state manager khi chưa thật cần; dependency mới phải ghim phiên bản và `npm audit` sạch. Giữ hướng phụ thuộc giữa các lớp backend như trên.
-- Đổi prompt thì kiểm chứng bằng `scripts/replay.py`. Đổi STT thì đo bằng `scripts/stt_bench.py`. Đổi frontend thì `npm run build` + `npm test` phải qua. Không đoán.
+- Đổi prompt thì kiểm chứng bằng `scripts/replay.py`. Đổi STT thì đo bằng `scripts/stt_bench.py`. Đổi frontend thì `npm run format`, rồi `npm run build` + `npm test` phải qua. Không đoán.
 - **Cổng 8000 là server của người dùng.** Thử nghiệm ở cổng 8001 với `HISTORY_DB` trỏ sang file tạm (không ghi lẫn vào lịch sử thật), không tắt `python.exe` theo tên, không xóa `recordings/` hay `data/`.
 - **Sửa tính năng nào thì cập nhật file docs tương ứng trong cùng commit.** Thêm tính năng mới thì thêm file trong `docs/features/` và một dòng vào bảng trên.
 

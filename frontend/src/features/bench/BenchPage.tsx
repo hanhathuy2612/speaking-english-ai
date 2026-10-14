@@ -52,8 +52,8 @@ export function BenchPage() {
         <div className="bench-head">
           <h1>Đọc theo câu mẫu</h1>
           <p className="lead">
-            Đọc tự nhiên như khi nói chuyện, không cần chậm hay cố phát âm chuẩn. Kết quả dùng để đo độ chính xác
-            nhận dạng giọng nói.
+            Đọc tự nhiên như khi nói chuyện, không cần chậm hay cố phát âm chuẩn. Kết quả dùng để đo độ chính xác nhận
+            dạng giọng nói.
           </p>
         </div>
 
@@ -74,7 +74,9 @@ export function BenchPage() {
               <MicIcon />
             </button>
             <div>
-              <p className="talk-label">{mic.recording ? "Đang thu… bấm lần nữa để lưu" : "Bấm nút (hoặc giữ phím Space) để đọc"}</p>
+              <p className="talk-label">
+                {mic.recording ? "Đang thu… bấm lần nữa để lưu" : "Bấm nút (hoặc giữ phím Space) để đọc"}
+              </p>
               <StatusLine status={status} />
             </div>
           </div>

@@ -96,7 +96,9 @@ export function LineChart({
               <path className="line" d={line} />
             </>
           )}
-          {hover && <line className="crosshair" x1={coords[hover.i][0]} x2={coords[hover.i][0]} y1={M.top} y2={M.top + ih} />}
+          {hover && (
+            <line className="crosshair" x1={coords[hover.i][0]} x2={coords[hover.i][0]} y1={M.top} y2={M.top + ih} />
+          )}
           {coords.map(([cx, cy], i) => (
             <circle key={pts[i].id} className={`point${hover?.i === i ? " active" : ""}`} cx={cx} cy={cy} r={4} />
           ))}

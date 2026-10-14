@@ -37,8 +37,7 @@ function ShadowResult({ r }: { r: Result }) {
         </Chip>
       </div>
       <p className="shadow-legend">
-        Gạch chân cam: máy nghe thành từ khác (chữ nhỏ bên dưới). Gạch ngang: máy không nghe thấy. Dấu +: bạn
-        nói thêm.
+        Gạch chân cam: máy nghe thành từ khác (chữ nhỏ bên dưới). Gạch ngang: máy không nghe thấy. Dấu +: bạn nói thêm.
       </p>
     </div>
   );
@@ -125,9 +124,7 @@ export function CoachCard({
         <span className="coach-icon" aria-hidden>
           <BulbIcon />
         </span>
-        <span className="coach-label">
-          {coach.retry ? "Câu mẫu để bạn nói theo" : "Cách nói tự nhiên hơn"}
-        </span>
+        <span className="coach-label">{coach.retry ? "Câu mẫu để bạn nói theo" : "Cách nói tự nhiên hơn"}</span>
         {coach.retry && <Chip tone="warning">Chưa đủ ý, hãy trả lời lại</Chip>}
       </div>
       <p className="coach-text">{coach.text}</p>
@@ -138,7 +135,11 @@ export function CoachCard({
           Nghe câu này
         </button>
         {/* With steps below, "Trả lời lại dài hơn" is the main action. */}
-        <button className={`btn btn-sm${steps.length ? "" : " btn-primary"}`} onClick={onShadow} disabled={shadow.waiting}>
+        <button
+          className={`btn btn-sm${steps.length ? "" : " btn-primary"}`}
+          onClick={onShadow}
+          disabled={shadow.waiting}
+        >
           <MicIcon size={14} />
           {shadow.waiting ? "Đang chờ bạn đọc…" : shadow.result ? "Thử lại" : "Nói lại câu này"}
         </button>

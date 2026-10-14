@@ -18,7 +18,9 @@ type Tally = { good: number; again: number; nextDue: string[] };
 function Stats({ s }: { s: ReviewState["stats"] }) {
   return (
     <div className="review-stats">
-      <Chip tone={s.due ? "warning" : "success"}>{s.due ? `${s.due} thẻ đến hạn hôm nay` : "Không còn thẻ đến hạn"}</Chip>
+      <Chip tone={s.due ? "warning" : "success"}>
+        {s.due ? `${s.due} thẻ đến hạn hôm nay` : "Không còn thẻ đến hạn"}
+      </Chip>
       <Chip>{s.active} thẻ đang ôn</Chip>
       <Chip tone={s.learned ? "success" : ""}>{s.learned} thẻ đã thuộc</Chip>
       {s.recall != null && (
@@ -109,7 +111,9 @@ export function ReviewPage() {
   const audio = useRef<HTMLAudioElement | null>(null);
 
   const load = useCallback(async () => {
-    const res: ReviewState = await (await fetch(`/api/review${session ? `?session=${encodeURIComponent(session)}` : ""}`)).json();
+    const res: ReviewState = await (
+      await fetch(`/api/review${session ? `?session=${encodeURIComponent(session)}` : ""}`)
+    ).json();
     setData(res);
     setQueue(res.cards);
     setPos(0);
@@ -164,7 +168,12 @@ export function ReviewPage() {
     if (!card) return;
     setBusy(true);
     try {
-      const body = { result, heard: attempt?.heard ?? null, correct: attempt?.correct ?? null, total: attempt?.total ?? null };
+      const body = {
+        result,
+        heard: attempt?.heard ?? null,
+        correct: attempt?.correct ?? null,
+        total: attempt?.total ?? null,
+      };
       const res = await fetch(`/api/review/${card.id}/grade`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -209,9 +218,9 @@ export function ReviewPage() {
         <div className="review-head">
           <h1>{session ? "Ôn lỗi của buổi này" : "Ôn tập hôm nay"}</h1>
           <Lead className="review-lead" summary="Nói lại theo trí nhớ trước, rồi mới xem đáp án.">
-            Mỗi câu bạn được sửa (NOTE) và mỗi mẫu câu bạn bỏ sót thành một thẻ. Hãy nói lại theo trí nhớ trước, rồi mới xem
-            đáp án, vì nhớ ra được mới là học thật. Nhớ được thì thẻ quay lại sau 1, 3, 7, 14, 30 ngày; chưa nhớ thì ôn lại
-            ngày mai. Bạn tự chấm; app chỉ gợi ý bằng mức trùng từ với NOTE, không dùng AI chấm.
+            Mỗi câu bạn được sửa (NOTE) và mỗi mẫu câu bạn bỏ sót thành một thẻ. Hãy nói lại theo trí nhớ trước, rồi mới
+            xem đáp án, vì nhớ ra được mới là học thật. Nhớ được thì thẻ quay lại sau 1, 3, 7, 14, 30 ngày; chưa nhớ thì
+            ôn lại ngày mai. Bạn tự chấm; app chỉ gợi ý bằng mức trùng từ với NOTE, không dùng AI chấm.
           </Lead>
           {data && <Stats s={data.stats} />}
         </div>
@@ -241,8 +250,14 @@ export function ReviewPage() {
                   <MicIcon />
                 </button>
                 <div className="review-mic-text">
-                  <StatusLine status={status.text ? status : { text: "Bấm micro để nói, bấm lần nữa khi xong.", state: "" }} />
-                  <button className="btn btn-ghost btn-sm" onClick={() => setRevealed(true)} disabled={busy || mic.recording}>
+                  <StatusLine
+                    status={status.text ? status : { text: "Bấm micro để nói, bấm lần nữa khi xong.", state: "" }}
+                  />
+                  <button
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => setRevealed(true)}
+                    disabled={busy || mic.recording}
+                  >
                     Không nhớ, xem đáp án
                   </button>
                 </div>
@@ -303,8 +318,7 @@ export function ReviewPage() {
                 <h2>Xong lượt ôn</h2>
                 <p>
                   Nhớ được {tally.good} lần, cần ôn lại {tally.again} lần.
-                  {tally.nextDue.length > 0 &&
-                    ` Thẻ gần nhất quay lại ${fmtDue([...tally.nextDue].sort()[0], today)}.`}
+                  {tally.nextDue.length > 0 && ` Thẻ gần nhất quay lại ${fmtDue([...tally.nextDue].sort()[0], today)}.`}
                 </p>
               </>
             )}

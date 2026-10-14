@@ -78,7 +78,8 @@
 .stt-chip:empty {
   display: none;
 }
-@media (max-width: 1500px) { /* leaves room for the navigation links */
+@media (max-width: 1500px) {
+  /* leaves room for the navigation links */
   .stt-chip {
     display: none;
   }

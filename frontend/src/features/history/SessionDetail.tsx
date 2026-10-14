@@ -44,8 +44,8 @@ export function SessionDetail({ session, onClose }: { session: HistorySession; o
       </div>
       {turns && spoken > recorded && (
         <p className="session-detail-note">
-          {recorded ? `Còn ${spoken - recorded} lượt nói` : "Các lượt nói của buổi này"} không còn file ghi âm (chỉ lưu khi
-          SAVE_AUDIO_DIR được đặt trong .env).
+          {recorded ? `Còn ${spoken - recorded} lượt nói` : "Các lượt nói của buổi này"} không còn file ghi âm (chỉ lưu
+          khi SAVE_AUDIO_DIR được đặt trong .env).
         </p>
       )}
       {turns === null && <p className="session-detail-note">Đang tải…</p>}
