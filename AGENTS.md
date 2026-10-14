@@ -120,13 +120,14 @@ Theo [Conventional Commits 1.0.0](https://www.conventionalcommits.org/en/v1.0.0/
 
 <body: vì sao thay đổi, không chỉ thay đổi gì>
 
-<footer: BREAKING CHANGE: ..., Refs: ..., Co-Authored-By: ...>
+<footer: BREAKING CHANGE: ..., Refs: ...>
 ```
 
 - **type:** `feat` (tính năng mới), `fix` (sửa lỗi), `refactor` (đổi cấu trúc, không đổi hành vi), `perf`, `test`, `docs`, `style` (định dạng, không đổi logic), `build` (dependency, requirements), `chore` (việc vặt, cấu hình), `revert`.
 - **scope** (không bắt buộc): `backend`, `frontend`, `stt`, `tts`, `llm`, `interview`, `shadowing`, `history`, `bench`, `check`, `drills`, `fluency`, `roadmap`, `review`, `config`, `docs`.
 - **subject:** câu mệnh lệnh, chữ thường ở đầu, không dấu chấm cuối, tối đa 72 ký tự. Ví dụ: `fix(stt): fall back to cpu when cuda dlls are missing`.
 - **body:** xuống dòng ở khoảng 72 ký tự. Nêu lý do và cách đã kiểm chứng (test, replay, stt_bench).
+- **Không thêm dòng `Co-Authored-By`** (hay bất kỳ dòng ghi công AI nào) vào commit message, kể cả khi công cụ tự gợi ý. Lịch sử đã được viết lại để bỏ các dòng này.
 - **Thay đổi phá vỡ tương thích** (đổi lệnh chạy, đổi biến `.env`, đổi giao thức WebSocket): thêm `!` sau type (`refactor!: ...`) và footer `BREAKING CHANGE: <mô tả + cách chuyển đổi>`.
 - Mỗi commit là một thay đổi logic trọn vẹn. Không gộp việc không liên quan vào một commit.
 - Trước khi commit: `python -m pytest` phải qua. Đổi prompt hoặc STT thì ghi kết quả `replay.py` / `stt_bench.py` vào body.
