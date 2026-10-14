@@ -2,10 +2,15 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { stopReplay } from "../lib/replay";
 
 const MIN_BYTES = 3000; // shorter recordings are almost always an accidental tap
+/** Keep recording a little after the stop tap: people tap while still saying the last word. */
+const TAIL_MS = 350;
 
 type Options = {
   onRecorded: (blob: Blob) => void;
+  /** Right at the tap, before the microphone is ready: stop playback, clear the last result. */
   onStart?: () => void;
+  /** The recorder really runs: only now say "recording" and start a clock. */
+  onRecording?: () => void;
   onTooShort?: () => void;
   onError?: (message: string) => void;
   /** Hold Space to talk (ignored while typing in a form field). */
@@ -18,14 +23,30 @@ const buzz = (ms: number) => navigator.vibrate?.(ms);
 /**
  * Microphone recording with MediaRecorder (webm/opus).
  * The button is tap to start, tap again to send (easier than holding on a phone); Space is still held to talk.
+ *
+ * The microphone stays open while the page is visible: opening it takes a few hundred ms on a phone, and
+ * words said in that time were lost (measured on drill recordings: the first words of a sentence missing).
+ * `recording` only turns true once the recorder really runs, so the red button means "speak now".
  */
-export function useMic({ onRecorded, onStart, onTooShort, onError, spaceKey = true }: Options) {
+export function useMic({ onRecorded, onStart, onRecording, onTooShort, onError, spaceKey = true }: Options) {
   const [recording, setRecording] = useState(false);
   const holding = useRef(false);
   const recorder = useRef<MediaRecorder | null>(null);
+  const stream = useRef<MediaStream | null>(null);
   // Keep the latest callbacks without re-binding listeners on every render.
-  const cb = useRef({ onRecorded, onStart, onTooShort, onError });
-  cb.current = { onRecorded, onStart, onTooShort, onError };
+  const cb = useRef({ onRecorded, onStart, onRecording, onTooShort, onError });
+  cb.current = { onRecorded, onStart, onRecording, onTooShort, onError };
+
+  const release = useCallback(() => {
+    stream.current?.getTracks().forEach((t) => t.stop());
+    stream.current = null;
+  }, []);
+
+  const openStream = useCallback(async () => {
+    const live = stream.current?.getAudioTracks().some((t) => t.readyState === "live");
+    if (!live) stream.current = await navigator.mediaDevices.getUserMedia({ audio: true });
+    return stream.current!;
+  }, []);
 
   const start = useCallback(async () => {
     if (holding.current) return;
@@ -33,39 +54,51 @@ export function useMic({ onRecorded, onStart, onTooShort, onError, spaceKey = tr
     stopReplay(); // do not record your own playback
     cb.current.onStart?.();
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      if (!holding.current) {
-        stream.getTracks().forEach((t) => t.stop());
-        return;
-      }
+      const s = await openStream();
+      if (!holding.current) return; // stopped while the microphone was opening
       const mime = MediaRecorder.isTypeSupported("audio/webm;codecs=opus") ? "audio/webm;codecs=opus" : "";
-      const rec = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+      const rec = new MediaRecorder(s, mime ? { mimeType: mime } : undefined);
       const chunks: Blob[] = [];
       rec.ondataavailable = (e) => chunks.push(e.data);
+      rec.onstart = () => {
+        setRecording(true);
+        buzz(30);
+        cb.current.onRecording?.();
+      };
       rec.onstop = () => {
-        stream.getTracks().forEach((t) => t.stop());
         const blob = new Blob(chunks, { type: rec.mimeType });
         if (blob.size < MIN_BYTES) cb.current.onTooShort?.();
         else cb.current.onRecorded(blob);
       };
       rec.start();
       recorder.current = rec;
-      setRecording(true);
-      buzz(30);
     } catch (err) {
       holding.current = false;
       cb.current.onError?.(err instanceof Error ? err.message : String(err));
     }
-  }, []);
+  }, [openStream]);
 
   const stop = useCallback(() => {
     holding.current = false;
-    if (!recorder.current) return;
-    buzz(15);
-    recorder.current.stop();
+    const rec = recorder.current;
+    if (!rec) return;
     recorder.current = null;
     setRecording(false);
+    buzz(15);
+    setTimeout(() => rec.state !== "inactive" && rec.stop(), TAIL_MS);
   }, []);
+
+  // Close the microphone when the page is hidden (phone locked, another app) or left.
+  useEffect(() => {
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden" && !holding.current) release();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibility);
+      release();
+    };
+  }, [release]);
 
   useEffect(() => {
     if (!spaceKey) return;

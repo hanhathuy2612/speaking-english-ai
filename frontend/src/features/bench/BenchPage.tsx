@@ -42,7 +42,7 @@ export function BenchPage() {
     },
     onTooShort: () => setStatus({ text: "Thu quá ngắn, hãy đọc hết câu rồi mới bấm dừng.", state: "warn" }),
     onError: (msg) => setStatus({ text: `Không mở được micro: ${msg}`, state: "error" }),
-    onStart: () => setStatus({ text: "Đang ghi âm", state: "recording" }),
+    onRecording: () => setStatus({ text: "Đang ghi âm", state: "recording" }),
   });
 
   return (

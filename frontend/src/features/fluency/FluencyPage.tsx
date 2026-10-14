@@ -169,7 +169,7 @@ export function FluencyPage() {
 
   const mic = useMic({
     spaceKey: false,
-    onStart: () => {
+    onRecording: () => {
       startedAt.current = Date.now();
       setElapsed(0);
       setStatus({ text: "Đang ghi âm… bấm lần nữa khi kể xong", state: "recording" });
@@ -260,7 +260,7 @@ export function FluencyPage() {
                   goal={limit}
                   goalLabel={`tối đa ${fmtClock(limit)}, tự dừng khi hết giờ`}
                   status={status.text ? status : { text: "Bấm nút micro để bắt đầu kể, bấm lần nữa khi xong.", state: "" }}
-                  onToggle={() => (mic.recording ? mic.stop() : void mic.start())}
+                  onToggle={mic.toggle}
                 />
               </>
             )}

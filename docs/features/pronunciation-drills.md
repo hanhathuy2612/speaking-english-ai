@@ -58,6 +58,15 @@ Xem [roadmap.md](roadmap.md): tập đủ 5 nhóm, và trong **20 câu gần nh�
 
 Thêm vào `drills.json`. Mỗi từ trong `focus` phải là một từ của câu (so không phân biệt hoa thường và dấu câu); `validate()` chặn lúc khởi động và test bắt lỗi này. Id `mine` là id dành riêng. Ưu tiên lỗi đo được: chạy `stt_bench.py --show` trên bản thu âm mới để xem từ nào bị nghe sai.
 
+## Vì sao cùng một câu lúc đạt lúc không (đo 14/10/2026)
+
+Người dùng báo đọc chuẩn mà kết quả lúc được lúc không. Đã ghép 54 lần đọc (trang Phát âm + bài giảng) với file ghi âm trong `recordings/` và nhận dạng lại:
+
+- **Mất đầu câu do micro mở chậm.** Mỗi lần bấm, trình duyệt mở micro mất vài trăm ms trên điện thoại, nhưng trang đã hiện "Đang ghi âm" ngay lúc bấm. Bằng chứng: 4/5 bản ghi của câu "Our customers book tickets on their phones." có tiếng nói ngay từ 0,1 giây đầu (tức đã nói trước khi thu), một bản chỉ còn "Tickets on their phones". Từ đầu câu bị cắt nên bị chấm sai dù đọc đúng. Cuối câu cũng hay bị cắt (tiếng nói kéo tới tận cuối file).
+  - Sửa (`useMic`): micro **mở một lần và giữ mở** khi trang còn hiện (đóng khi ẩn trang hoặc rời trang), nên các lần sau thu ngay lập tức. Chữ "Đang ghi âm" và nút đỏ chỉ hiện khi máy **thật sự** đang thu (`onRecording`, sự kiện `start` của MediaRecorder); trước đó là "Đang mở micro…". Sau khi bấm dừng vẫn thu thêm 350 ms (`TAIL_MS`) để không mất từ cuối.
+- **Bản ghi nhỏ tiếng** (đỉnh khoảng −18 đến −27 dBFS). Nên cầm điện thoại gần miệng hơn.
+- **Whisper không ổn định với câu phát âm "gần đúng".** Cùng một file, chỉ đổi nhẹ cách xử lý (thêm 0,5 giây im lặng, tắt VAD) là kết quả đổi: có câu từ 71% lên 100%, có câu từ 100% xuống 71%. Trung bình gần như không đổi (79,2% hiện tại; 79,6% khi tắt VAD và thêm im lặng; 80,6% khi giữ VAD và thêm im lặng), nên **không đổi cấu hình STT**. Một lần đọc là một phép đo có nhiễu: tiêu chí giai đoạn dùng trung bình 20 câu gần nhất là vì vậy. Từ bị nghe sai lặp lại qua nhiều lần đọc mới đáng tin là lỗi phát âm.
+
 ## Nghe lại
 
 Kết quả có nút "Nghe lại" để nghe chính bản ghi vừa gửi. Bản ghi chỉ giữ trong trình duyệt tới khi rời trang, không lưu trên server (xem [frontend.md](frontend.md)).

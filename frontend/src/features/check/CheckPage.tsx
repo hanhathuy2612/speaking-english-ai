@@ -159,10 +159,10 @@ export function CheckPage() {
 
   const mic = useMic({
     spaceKey: false,
-    onStart: () => {
+    onStart: () => setResult(null),
+    onRecording: () => {
       startedAt.current = Date.now();
       setElapsed(0);
-      setResult(null);
       setStatus({ text: "Đang ghi âm… bấm lần nữa khi nói xong", state: "recording" });
     },
     onRecorded: (blob) => void submit(blob),
@@ -219,7 +219,7 @@ export function CheckPage() {
               goal={target}
               goalLabel={`mục tiêu ${fmtClock(target)}`}
               status={status.text ? status : { text: "Bấm nút micro để bắt đầu, bấm lần nữa khi nói xong.", state: "" }}
-              onToggle={() => (mic.recording ? mic.stop() : void mic.start())}
+              onToggle={mic.toggle}
             />
           </section>
         )}

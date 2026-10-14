@@ -33,7 +33,8 @@ components/                 # dùng chung: AppBar (thanh trên + điều hướn
                             #   thanh thời gian), ReplayButton ("Nghe lại" giọng của chính bạn), Sheet (bảng trượt từ đáy, thẻ <dialog>),
                             #   Lead (giới thiệu trang: một dòng + "Chi tiết")
 hooks/
-  useMic.ts                 # ghi âm (MediaRecorder webm/opus): bấm nút để bắt đầu, bấm lần nữa để gửi (toggle), rung nhẹ trên điện thoại; trên máy tính giữ phím Space để nói
+  useMic.ts                 # ghi âm (MediaRecorder webm/opus): bấm nút để bắt đầu, bấm lần nữa để gửi (toggle), rung nhẹ trên điện thoại; trên máy tính giữ phím Space để nói.
+                            #   Micro mở một lần và giữ mở khi trang còn hiện; onRecording báo lúc máy thật sự thu; thu thêm 350 ms sau khi bấm dừng (xem pronunciation-drills.md)
   useAudioQueue.ts          # hàng đợi phát MP3, báo khi một câu bắt đầu phát
   useTeacherVoice.ts        # phát lần lượt các câu của giáo viên ở bài giảng (một thẻ <audio> dùng lại, xem lesson.md)
   useRecordings.ts          # giữ bản ghi dạng object URL cho "Nghe lại", giải phóng khi rời trang

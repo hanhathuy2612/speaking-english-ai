@@ -146,10 +146,8 @@ export function ReviewPage() {
   };
 
   const mic = useMic({
-    onStart: () => {
-      audio.current?.pause();
-      setStatus({ text: "Đang ghi âm… bấm lần nữa khi nói xong", state: "recording" });
-    },
+    onStart: () => audio.current?.pause(),
+    onRecording: () => setStatus({ text: "Đang ghi âm… bấm lần nữa khi nói xong", state: "recording" }),
     onRecorded: (blob) => void submit(blob),
     onTooShort: () => setStatus({ text: "Ghi âm quá ngắn, hãy nói hết rồi mới bấm dừng.", state: "warn" }),
     onError: (msg) => setStatus({ text: `Không mở được micro: ${msg}`, state: "error" }),

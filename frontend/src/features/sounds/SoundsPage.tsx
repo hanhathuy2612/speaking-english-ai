@@ -123,8 +123,9 @@ export function SoundsPage() {
     onStart: () => {
       audio.current?.pause();
       setResult(null);
-      setStatus({ text: "Đang ghi âm… bấm lần nữa khi đọc xong", state: "recording" });
+      setStatus({ text: "Đang mở micro…", state: "busy" });
     },
+    onRecording: () => setStatus({ text: "Đang ghi âm… bấm lần nữa khi đọc xong", state: "recording" }),
     onRecorded: (blob) => void submit(blob),
     onTooShort: () => setStatus({ text: "Ghi âm quá ngắn, hãy đọc hết rồi mới bấm dừng.", state: "warn" }),
     onError: (msg) => setStatus({ text: `Không mở được micro: ${msg}`, state: "error" }),
