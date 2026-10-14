@@ -40,6 +40,20 @@ powershell -NoProfile -Command "Get-NetTCPConnection -LocalPort 8001 -State List
 - `recordings/` (giọng nói) và `data/` (lịch sử luyện tập) là dữ liệu thật của người dùng. Không xóa, không ghi đè. File tạo ra khi thử thì tự dọn.
 - Editor của người dùng tự định dạng file Python khi lưu (kiểu Black, 88 ký tự, sắp xếp lại import). Đọc lại file trước khi sửa nếu công cụ báo file đã thay đổi.
 
+## Làm việc theo nhóm agent (Claude Code)
+
+Gõ `/team <việc cần làm>` trong Claude Code: khung chat chính thành người điều phối. Nó đọc tài liệu, đưa kế hoạch (chia file cho từng agent, hợp đồng API/WebSocket) và **chờ người dùng đồng ý**, rồi giao việc cho các agent con và tổng hợp kết quả. Không tự commit.
+
+| Agent | Việc | Sửa file |
+|---|---|---|
+| `backend-dev` | Làm phần `backend/` theo kế hoạch, chạy `pytest` | `backend/` |
+| `frontend-dev` | Làm phần `frontend/`, chạy `format`, `build`, `test` | `frontend/` |
+| `prompt-tester` | Đổi prompt hoặc parse thì chạy `replay.py` trên server thử cổng 8001, DB tạm | Không (chỉ file tạm) |
+| `rules-reviewer` | Soát diff theo quy tắc của repo: lọc `user_id`, ngôn ngữ, hướng phụ thuộc, không chấm điểm bằng LLM | Không |
+| `docs-sync` | Cập nhật `docs/` và `AGENTS.md` theo thay đổi | Chỉ tài liệu |
+
+Định nghĩa nằm ở `.claude/skills/team/SKILL.md` và `.claude/agents/*.md`. Agent con không thấy cuộc trò chuyện, nên người điều phối phải giao việc đầy đủ (mục tiêu, file, hợp đồng, tiêu chí xong). Cách này tốn token hơn làm một mình nhiều lần, chỉ nên dùng cho việc lớn đụng cả backend lẫn frontend.
+
 ## Dùng từ thiết bị khác trong mạng LAN (điện thoại, máy khác)
 
 Mặc định uvicorn chỉ nghe ở `127.0.0.1`, nên chỉ chính máy này vào được. Muốn mở từ thiết bị cùng mạng:
