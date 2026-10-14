@@ -13,7 +13,7 @@ const NAV = [
   { to: "/check", label: "Kiểm tra" },
   { to: "/history", label: "Tiến bộ" },
 ];
-const ADMIN = { to: "/admin/users", label: "Quản trị" }; // only for the admin role
+const ADMIN = { to: "/admin", label: "Quản trị" }; // only for the admin role; active on every /admin page
 
 /** Bottom tab bar on phones (styles/base.css, .tabbar): the four daily pages, the rest under "Thêm". */
 const TABS = [
@@ -35,7 +35,8 @@ export function AppBar({ children }: { children?: ReactNode }) {
   const nav = user?.role === "admin" ? [...NAV, ADMIN] : NAV;
   const more = [...nav.filter((n) => !TABS.some((t) => t.to === n.to)), { to: "/account", label: "Tài khoản" }];
   const wrap = useRef<HTMLDivElement>(null);
-  const current = nav.find((n) => n.to === pathname)?.label ?? "Menu";
+  const current =
+    nav.find((n) => n.to === pathname || (n.to === "/admin" && pathname.startsWith("/admin/")))?.label ?? "Menu";
   const [due, setDue] = useState(0);
   const [moreOpen, setMoreOpen] = useState(false);
 
@@ -97,7 +98,7 @@ export function AppBar({ children }: { children?: ReactNode }) {
         <nav id="main-nav" className={`nav${open ? " open" : ""}`} aria-label="Các trang">
           {nav.map((n) => (
             // NavLink sets aria-current="page" on the active route, which the CSS highlights.
-            <NavLink key={n.to} to={n.to} end className="btn btn-ghost btn-sm">
+            <NavLink key={n.to} to={n.to} end={n.to !== "/admin"} className="btn btn-ghost btn-sm">
               {n.label}
               {n.to === "/review" && due > 0 && (
                 <span className="nav-badge" aria-label={`${due} thẻ đến hạn`}>
@@ -128,7 +129,7 @@ export function AppBar({ children }: { children?: ReactNode }) {
           </NavLink>
         ))}
         <button
-          className={`tab${more.some((n) => n.to === pathname) ? " on" : ""}`}
+          className={`tab${more.some((n) => n.to === pathname) || pathname.startsWith("/admin/") ? " on" : ""}`}
           aria-haspopup="dialog"
           onClick={() => setMoreOpen(true)}
         >
@@ -139,7 +140,7 @@ export function AppBar({ children }: { children?: ReactNode }) {
       <Sheet open={moreOpen} onClose={() => setMoreOpen(false)} title="Thêm">
         <nav className="more-nav" aria-label="Các trang khác">
           {more.map((n) => (
-            <NavLink key={n.to} to={n.to} end className="btn">
+            <NavLink key={n.to} to={n.to} end={n.to !== "/admin"} className="btn">
               {n.label}
             </NavLink>
           ))}

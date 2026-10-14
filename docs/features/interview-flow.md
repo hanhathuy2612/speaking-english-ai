@@ -6,7 +6,7 @@
 
 | Phần | Vị trí |
 |---|---|
-| Dữ liệu bài | `backend/app/data/units.json`, nạp bởi `interview/units.py` |
+| Dữ liệu bài | `backend/app/data/units.json` (nội dung gốc), chép vào DB lúc khởi động; admin sửa trên web ([content-admin.md](content-admin.md)). Nạp bởi `interview/units.py` |
 | Trạng thái phiên | `Session`, `STATE_FIELDS` trong `interview/session.py` |
 | Chọn câu tiếp theo | `next_step()` trong `interview/session.py` |
 | Bắt đầu bài, lời chào | `start_session()` trong `interview/turn.py` |
@@ -15,7 +15,7 @@
 
 ## `data/units.json`
 
-File gồm `topics` (chủ đề, theo thứ tự lộ trình) và `units` (bài, theo thứ tự nên tập). `interview/units.py` kiểm tra dữ liệu khi nạp (`validate()`), `tests/test_units.py` kiểm tra thêm: mỗi mẫu câu có câu hỏi nhắm tới, đọc nguyên mẫu câu thì được tính là đã dùng, không dùng từ của ví dụ mẫu (`EXAMPLE_WORDS`: logistic, deliver, route, coordinator, driver, night shift, warehouse, scanning app).
+File gồm `topics` (chủ đề, theo thứ tự lộ trình) và `units` (bài, theo thứ tự nên tập). Đây là nội dung gốc: lúc khởi động nó được chép vào DB, và app đọc từ DB, nơi admin sửa và thêm bài ([content-admin.md](content-admin.md)). `interview/units.py` kiểm tra dữ liệu khi nạp và mỗi lần admin lưu (`validate()`), `tests/test_units.py` kiểm tra thêm: mỗi mẫu câu có câu hỏi nhắm tới, đọc nguyên mẫu câu thì được tính là đã dùng, không dùng từ của ví dụ mẫu (`EXAMPLE_WORDS`: logistic, deliver, route, coordinator, driver, night shift, warehouse, scanning app).
 
 ```json
 {

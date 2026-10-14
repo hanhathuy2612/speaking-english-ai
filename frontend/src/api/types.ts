@@ -405,3 +405,49 @@ export type User = {
   disabled: boolean;
   created_at: string;
 };
+
+// ----- Content editing for admins (docs/features/content-admin.md) -----
+
+/** A unit as stored (data/units.json schema, docs/features/interview-flow.md). */
+export type UnitData = {
+  id: string;
+  topic: string;
+  title: string;
+  role?: string; // conversation units: who the AI plays
+  partner?: string;
+  scenario: string;
+  goal: string;
+  greeting: string;
+  closing: string;
+  vocab?: string;
+  followups?: number;
+  phrases: { say: string; match: string[]; when?: string[] }[];
+  questions: { ask: string; simple: string; phrases: number[]; steps: { hint: string; say: string }[] }[];
+  lesson?: {
+    intro: string;
+    intro_vi: string;
+    vocab: { word: string; vi: string }[];
+    sentences: { phrase: number; say: string; use: string; use_vi: string }[];
+  };
+};
+
+export type ContentTopic = { id: string; title: string; description: string };
+
+export type ContentUnitRow = {
+  id: string;
+  topic: string;
+  title: string;
+  questions: number;
+  lesson: boolean;
+  source: "file" | "admin"; // admin: edited on the web, no longer follows units.json
+  deleted: boolean;
+  invalid: boolean; // fails a newer content rule: left out of the app until fixed
+  updated_at: string | null;
+  updated_by: string | null;
+};
+
+export type ContentList = {
+  topics: ContentTopic[];
+  stages: { id: string; title: string; topics: string[] }[];
+  units: ContentUnitRow[];
+};

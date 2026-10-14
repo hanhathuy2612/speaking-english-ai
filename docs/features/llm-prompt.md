@@ -2,6 +2,8 @@
 
 LLM: Qwen2.5-7B-Instruct qua LM Studio, `temperature` 0.35, `max_tokens` 256, có stream.
 
+LLM còn một việc khác, tách hẳn khỏi buổi nói: soạn nháp bài học cho admin (`interview/drafts.py`, structured output). Xem [content-admin.md](content-admin.md).
+
 ## Mã nguồn
 
 | Phần | Vị trí (trong `backend/app/`) |

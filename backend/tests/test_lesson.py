@@ -75,3 +75,16 @@ def test_a_unit_with_a_lesson_is_done_only_after_both_parts(monkeypatch):
     assert stats["current-project"]["done"] is False and stats["current-project"]["lesson"] is True
     monkeypatch.setattr(history, "lesson_counts", lambda uid: {"tell-me-about-yourself": 1})
     assert route._stats(1)["tell-me-about-yourself"]["done"] is True
+
+
+def test_what_the_teacher_speaks_must_be_english():
+    from app.interview import lesson
+    from app.interview.units import units_by_id
+
+    unit = units_by_id["tell-me-about-yourself"]
+    bad = {**unit, "lesson": {**unit["lesson"], "intro": "Chào bạn!"}}
+    bad["lesson"]["sentences"] = [{**bad["lesson"]["sentences"][0], "use": "Dùng câu này."}]
+    errors = lesson.validate(bad)
+    assert any("lesson intro must be in English" in e for e in errors)
+    assert any("lesson sentence 0 say and use must be in English" in e for e in errors)
+    assert lesson.validate(unit) == []

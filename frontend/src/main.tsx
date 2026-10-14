@@ -7,6 +7,8 @@ import "./styles/base.css";
 import { watchExpiredLogin } from "./api/http";
 import { AuthProvider, useAuth } from "./auth/AuthContext";
 import { AccountPage } from "./features/account/AccountPage";
+import { ContentPage } from "./features/admin/ContentPage";
+import { UnitEditor } from "./features/admin/UnitEditor";
 import { UsersPage } from "./features/admin/UsersPage";
 import { ForgotPage, ResetPage, SignupPage, VerifyPage } from "./features/auth/EmailPages";
 import { LoginPage, nextPath } from "./features/auth/LoginPage";
@@ -68,6 +70,8 @@ function AppRoutes() {
       {admin && <Route path="/bench" element={<BenchPage />} />}
       {admin && <Route path="/admin" element={<Navigate to="/admin/users" replace />} />}
       {admin && <Route path="/admin/users" element={<UsersPage />} />}
+      {admin && <Route path="/admin/content" element={<ContentPage />} />}
+      {admin && <Route path="/admin/units/:unitId" element={<UnitEditor />} />}
       <Route path="/login" element={<AfterLogin />} />
       <Route path="/signup" element={<AfterLogin />} />
       <Route path="*" element={<Navigate to="/" replace />} />

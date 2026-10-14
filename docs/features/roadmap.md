@@ -79,6 +79,8 @@ GET /api/stages
 
 ## Thêm bài hoặc giai đoạn
 
+Cách nhanh nhất là **Quản trị → Nội dung bài học** trên web (có AI soạn nháp, kiểm tra ngay khi lưu), xem [content-admin.md](content-admin.md). Bài thêm như vậy nằm trong DB, không vào `units.json`. Để bài đi kèm mã nguồn (cho mọi máy), thêm vào file:
+
 1. Thêm bài vào `units` trong `units.json`, đặt `topic` là id có trong `topics`, đúng vị trí trong lộ trình.
 2. Mỗi câu hỏi cần `ask`, `simple`, `phrases`; mỗi mẫu câu cần ít nhất một câu hỏi nhắm tới.
 3. Không dùng từ của ví dụ mẫu trong prompt (`EXAMPLE_WORDS`: logistic, deliver, route, coordinator, driver, night shift, warehouse, scanning app). So khớp là so chuỗi con, nên "delivery", "router", "JDBC driver" cũng bị tính.

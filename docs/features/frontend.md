@@ -33,6 +33,7 @@ lib/fluency.ts              # hàm thuần: roundDelta (+ fluency.test.ts)
 lib/review.ts               # hàm thuần: fmtDue, localDay (+ review.test.ts)
 lib/replay.ts               # một trình phát dùng chung cho "Nghe lại" (playReplay, stopReplay), kiểu WithAudio<T>
 lib/check.ts                # hàm thuần: fmtClock, criterionValue (+ check.test.ts)
+lib/content.ts              # hàm thuần của form sửa bài: slugify, splitList, moved, shiftPhrase (+ content.test.ts)
 components/                 # dùng chung: AppBar (thanh trên + điều hướng: menu khi hẹp, thanh tab dưới đáy trên điện thoại), Icons,
                             #   ui (Chip, StatusLine), WordDiff (tô từng từ so với câu mẫu), Recorder (bấm-bấm ghi âm dài, đồng hồ,
                             #   thanh thời gian), ReplayButton ("Nghe lại" giọng của chính bạn), Sheet (bảng trượt từ đáy, thẻ <dialog>),
@@ -58,7 +59,8 @@ features/
   bench/                    # BenchPage.tsx (chỉ admin)
   auth/                     # LoginPage.tsx, EmailPages.tsx (đăng ký, xác nhận email, quên/đặt lại mật khẩu), AuthLayout.tsx (khung + ô nhập dùng chung)
   account/                  # AccountPage.tsx: thông tin, đổi mật khẩu, đăng xuất
-  admin/                    # UsersPage.tsx (người dùng), AdminNav.tsx (xem accounts.md)
+  admin/                    # UsersPage.tsx (người dùng), ContentPage.tsx (chủ đề và bài), UnitEditor.tsx (form sửa bài + AI soạn nháp), AdminNav.tsx
+                            #   (xem accounts.md, content-admin.md)
 styles/                     # base.css (token, component chung, bảng), practice.css, lesson.css, review.css, roadmap.css, sounds.css, fluency.css, check.css, history.css, bench.css,
                             #   auth.css (trang đăng nhập, ô nhập .field dùng chung), admin.css
 ```

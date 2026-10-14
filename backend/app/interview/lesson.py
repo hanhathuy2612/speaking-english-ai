@@ -7,6 +7,8 @@ only by word comparison (utils/compare.py). Content lives in the unit's `lesson`
 
 from __future__ import annotations
 
+from app.utils.parsing import has_vietnamese
+
 # Fixed teacher lines shared by every lesson: English is spoken, Vietnamese is the on-screen translation.
 TEACHER: dict[str, tuple[str, str]] = {
     "vocab": (
@@ -58,13 +60,19 @@ def validate(unit: dict) -> list[str]:
         return []
     uid = unit.get("id", "?")
     errors = [f"{uid}: lesson needs {k}" for k in ("intro", "intro_vi", "vocab", "sentences") if not lesson.get(k)]
+    if has_vietnamese(lesson.get("intro", "")):
+        errors.append(f"{uid}: lesson intro must be in English (the teacher speaks it; intro_vi is the translation)")
     for i, w in enumerate(lesson.get("vocab", [])):
         if not (w.get("word") and w.get("vi")):
             errors.append(f"{uid}: lesson word {i} needs word and vi")
+        if has_vietnamese(w.get("word", "")):
+            errors.append(f"{uid}: lesson word {i} must be English (vi is the meaning)")
     n = len(unit.get("phrases", []))
     for i, s in enumerate(lesson.get("sentences", [])):
         if not (s.get("say") and s.get("use") and s.get("use_vi")):
             errors.append(f"{uid}: lesson sentence {i} needs say, use and use_vi")
+        if has_vietnamese(f"{s.get('say', '')} {s.get('use', '')}"):
+            errors.append(f"{uid}: lesson sentence {i} say and use must be in English (use_vi is the translation)")
         if "..." in s.get("say", ""):
             errors.append(f"{uid}: lesson sentence {i} must be a full sentence, not a template")
         if not (isinstance(s.get("phrase"), int) and 0 <= s["phrase"] < n):

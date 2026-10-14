@@ -206,11 +206,6 @@ svg {
     display: none; /* the icon is enough next to the menu button */
   }
 }
-@media (max-width: 760px) {
-  .account-link {
-    display: none; /* on phones "Tài khoản" is under the tab bar's "Thêm" */
-  }
-}
 @media (max-width: 560px) {
   .nav-toggle-label {
     display: none;

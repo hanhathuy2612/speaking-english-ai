@@ -18,7 +18,7 @@ Hiện có bài giảng cho 3 bài của chủ đề "Giới thiệu bản thân
 
 | Phần | Vị trí |
 |---|---|
-| Nội dung | trường `lesson` của bài trong `backend/app/data/units.json` |
+| Nội dung | trường `lesson` của bài trong `backend/app/data/units.json`, hoặc soạn trên web ở phần "Bài giảng" của form sửa bài ([content-admin.md](content-admin.md)) |
 | Câu cố định của giáo viên, ghép các câu nói, kiểm tra dữ liệu | `backend/app/interview/lesson.py` (`TEACHER`, `lines()`, `validate()`, `public()`) |
 | API | `backend/app/api/routes/lessons.py` |
 | Trạng thái "xong bài" | `_stats()` trong `backend/app/api/routes/units.py` |
@@ -48,7 +48,7 @@ Hiện có bài giảng cho 3 bài của chủ đề "Giới thiệu bản thân
 - `sentences[i].phrase`: chỉ số mẫu câu trong `phrases` mà câu này dạy. Test kiểm tra: đọc nguyên câu `say` thì được tính là đã dùng mẫu câu đó, và mỗi mẫu câu được dạy đúng một lần. Nhờ vậy, dùng lại câu vừa học ở phần đóng vai thì được đánh ✓ ở cột "Mẫu câu cần dùng".
 - `say` là câu đầy đủ, không có `...`. Ví dụ hợp với một lập trình viên Java/backend.
 - Không dùng từ của ví dụ mẫu trong prompt (`EXAMPLE_WORDS`), giống phần còn lại của bài.
-- `validate()` chạy lúc nạp `units.json` (cùng `interview/units.py`).
+- `validate()` chạy lúc nạp `units.json` và mỗi lần admin lưu bài (cùng `interview/units.py`). Lời giáo viên (`intro`, `use`), câu đọc theo (`say`) và từ (`word`) phải là tiếng Anh vì được đọc to; `intro_vi`, `use_vi`, `vi` là tiếng Việt.
 
 ## Các câu giáo viên nói
 

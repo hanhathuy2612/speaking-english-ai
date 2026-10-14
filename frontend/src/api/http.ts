@@ -5,18 +5,19 @@ export class ApiError extends Error {
     readonly status: number,
     message: string,
     readonly code?: string,
+    readonly errors: string[] = [], // itemized problems, e.g. an invalid unit (code "invalid")
   ) {
     super(message);
   }
 }
 
-/** FastAPI errors: {"detail": "text"} or {"detail": {"code", "msg"}} (validation errors are a list). */
+/** FastAPI errors: {"detail": "text"} or {"detail": {"code", "msg", "errors"?}} (validation errors are a list). */
 function errorOf(status: number, body: unknown): ApiError {
   const detail = (body as { detail?: unknown } | null)?.detail;
   if (typeof detail === "string") return new ApiError(status, detail);
   if (detail && typeof detail === "object" && "msg" in detail) {
-    const d = detail as { msg: string; code?: string };
-    return new ApiError(status, d.msg, d.code);
+    const d = detail as { msg: string; code?: string; errors?: string[] };
+    return new ApiError(status, d.msg, d.code, d.errors);
   }
   return new ApiError(status, status === 422 ? "Dữ liệu chưa hợp lệ." : `Lỗi máy chủ (${status}).`);
 }

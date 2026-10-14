@@ -18,8 +18,9 @@ from fastapi.responses import FileResponse, HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from app.api.deps import current_user, require_admin
-from app.api.routes import admin_users, auth, bench, check, drills, fluency, history, lessons, review, units, ws
+from app.api.routes import admin_content, admin_users, auth, bench, check, drills, fluency, history, lessons, review, units, ws
 from app.core.config import FRONTEND_DIST
+from app.interview import units as catalog
 from app.services import accounts, db
 from app.services import history as history_store
 from app.services import stt
@@ -34,6 +35,7 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
         raise SystemExit("HISTORY_DB is empty: accounts are stored there, set it to a file (see .env.example).")
     accounts.init()  # create the SQLite tables if needed
     history_store.init()
+    catalog.load_content()  # lesson content from the database, where admins edit it
     stt.load()  # load Whisper once at startup
     yield
 
@@ -43,7 +45,7 @@ app = FastAPI(title="Speaking demo", lifespan=lifespan)
 app.include_router(auth.router)
 for _router in (units.router, check.router, drills.router, fluency.router, review.router, lessons.router, history.router):
     app.include_router(_router, dependencies=[Depends(current_user)])
-for _router in (admin_users.router, bench.router):
+for _router in (admin_users.router, admin_content.router, bench.router):
     app.include_router(_router, dependencies=[Depends(require_admin)])
 app.include_router(ws.router)
 # The React app (frontend/, built into frontend/dist) is a single page: every page route returns
