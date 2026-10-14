@@ -215,3 +215,9 @@
     grid-column: 2;
   }
 }
+.check-unsure {
+  background: var(--warning-soft);
+  color: inherit;
+  border-radius: 3px;
+  padding: 0 2px;
+}

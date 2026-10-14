@@ -26,6 +26,7 @@ Mục đích: lỗi được sửa một lần rồi thôi thì vài ngày sau s
 |---|---|---|---|---|
 | `note` | Lượt trả lời rõ (không `unclear`) có NOTE | Câu hỏi + câu bạn đã nói. Bạn nói lại cho đúng **theo trí nhớ** | NOTE, tô từng từ so với câu vừa nói (`WordDiff`) | "Nhớ được" khi nói trùng ≥ 80% từ của NOTE (`GOOD_OVERLAP`) |
 | `phrase` | Mẫu câu không dùng trong một buổi **đã hoàn thành** | Câu hỏi chính nhắm tới mẫu câu + mẫu câu. Bạn trả lời có dùng nó | Có / chưa nghe thấy mẫu câu | "Nhớ được" khi `used_phrase_indices()` tìm thấy mẫu câu |
+| `talk` | Cụm từ người học chọn sau bài kiểm tra nói ([talk-lessons.md](talk-lessons.md)), `unit_id = "check:<đề>"`, nguồn hiện là "Kiểm tra nói" | Đề kiểm tra + nghĩa tiếng Việt của cụm (`said`). Bạn nói cụm đó trong một câu về đề | Cụm, tô từng từ so với câu vừa nói | Như thẻ `note`: trùng ≥ 80% từ của cụm (từ thêm vào không bị trừ) |
 
 - Nói khác NOTE chưa chắc là sai (diễn đạt khác vẫn đúng). Vì vậy app chỉ gợi ý, người học quyết định; trang ghi rõ điều này.
 - Không tạo thẻ khi NOTE **trùng từng từ** với câu đã nói, hoặc NOTE **dài hơn 30 từ** (`MAX_NOTE_WORDS`): một đoạn dài không thể nói lại theo trí nhớ. Đo ngày 11/10/2026 trên lịch sử thật: 23 NOTE dài 5–19 từ, chỉ một NOTE 38 từ.

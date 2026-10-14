@@ -194,6 +194,7 @@ export type StuckPoint = { before: string; after: string; pause_s: number; say?:
 /** The AI review of a check, asked for after it was scored (docs/features/talk-lessons.md). */
 export type CheckReviewData = {
   better: string;
+  unsure?: string[]; // sentences of `better` the AI probably added (not in reviews cached before 15/10/2026)
   stuck: StuckPoint[]; // say: how the sentence could have gone on
   phrases: { say: string; vi: string }[];
   added_facts: string[]; // details the rewrite added that you never said
@@ -408,11 +409,11 @@ export type Stage = {
 
 export type ReviewCard = {
   id: number;
-  kind: "note" | "phrase";
+  kind: "note" | "phrase" | "talk"; // talk: a phrase picked after a speaking check
   unit_id: string;
   unit_title: string;
   question: string;
-  said: string | null; // note cards: what you said back then
+  said: string | null; // note cards: what you said back then; talk cards: the phrase's meaning in Vietnamese
   target: string; // the NOTE, or the phrase to use
   box: number; // Leitner box, 0 = new or forgotten
   due: string; // YYYY-MM-DD

@@ -6,6 +6,7 @@ import { ReplayButton } from "../../components/ReplayButton";
 import type { Status } from "../../components/ui";
 import { useRecordings } from "../../hooks/useRecordings";
 import { fmtClock } from "../../lib/check";
+import { splitUnsure } from "../../lib/talks";
 import type { WithAudio } from "../../lib/replay";
 import { CompareRows, StuckList, useTalkRecorder } from "../talk/TalkParts";
 
@@ -54,8 +55,22 @@ export function CheckLearn({ report }: { report: CheckReport }) {
       <section className="card check-learn" aria-live="polite">
         <h2>Cách nói tự nhiên hơn</h2>
         <p className="check-better" lang="en">
-          {review.better}
+          {splitUnsure(review.better, review.unsure ?? []).map((part, i) =>
+            part.unsure ? (
+              <mark key={i} className="check-unsure" title="Có vẻ AI tự thêm ý này">
+                {part.text}
+              </mark>
+            ) : (
+              <span key={i}>{part.text}</span>
+            ),
+          )}
         </p>
+        {!!review.unsure?.length && (
+          <p className="check-warn">
+            Phần tô vàng có vẻ là ý AI tự thêm, không có trong bài nói của bạn. Đừng học thuộc phần đó, chỉ học cách nối
+            câu.
+          </p>
+        )}
         {review.added_facts.length > 0 && (
           <p className="check-warn">
             AI có thêm chi tiết bạn không nói ({review.added_facts.join(", ")}). Khi nói lại, hãy dùng chi tiết thật của

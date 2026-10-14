@@ -141,7 +141,9 @@ export function TalkPracticePage() {
               </Chip>
             </div>
             {!result.measurable && (
-              <p className="check-warn">Cần nói ít nhất 30 giây bằng tiếng Anh thì app mới tính tốc độ và ngập ngừng.</p>
+              <p className="check-warn">
+                Cần nói ít nhất 30 giây bằng tiếng Anh thì app mới tính tốc độ và ngập ngừng.
+              </p>
             )}
             <CompareRows now={result} before={result.previous} beforeLabel="lần trước" />
             <h3 className="talk-h3">Chỗ bạn ngập ngừng giữa câu</h3>
@@ -201,4 +203,3 @@ export function TalkPracticePage() {
     </>
   );
 }
-

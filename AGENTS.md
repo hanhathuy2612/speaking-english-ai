@@ -21,29 +21,29 @@ backend/
     __main__.py          # python -m app: chạy uvicorn với SERVER_*/SSL_* trong .env (run.cmd ở thư mục gốc gọi file này)
     core/                # config.py (đọc .env, đường dẫn), cuda.py (DLL CUDA trên Windows)
     api/deps.py          # current_user, require_admin, ws_user: đăng nhập và vai trò
-    api/routes/          # ws.py (WebSocket /ws), units.py (+ /api/stages), lessons.py (bài giảng), review.py, drills.py, fluency.py, check.py, bench.py, history.py (/api/...),
+    api/routes/          # ws.py (WebSocket /ws), units.py (+ /api/stages), lessons.py (bài giảng), review.py, drills.py, fluency.py, check.py, talks.py, bench.py, history.py (/api/...),
                          #   auth.py (đăng nhập, đăng ký, email), admin_users.py (quản lý người dùng), admin_content.py (sửa bài học)
     services/            # stt.py (Whisper), tts.py (edge-tts + cache), llm.py (LM Studio), db.py (file SQLite), accounts.py (tài khoản, phiên),
                          #   history.py (lịch sử theo user_id), content.py (bài học trong DB), mailer.py (SMTP), recordings.py (file ghi âm cũ)
-    interview/           # session.py (trạng thái, next_step), prompts.py, steps.py (ý để nói dài hơn), turn.py (một lượt), shadow.py (nói lại), retell.py (trả lời lại), units.py (nội dung đang dùng + validate), lesson.py (bài giảng), review.py (thẻ ôn), drafts.py (AI soạn nháp bài)
+    interview/           # session.py (trạng thái, next_step), prompts.py, steps.py (ý để nói dài hơn), turn.py (một lượt), shadow.py (nói lại), retell.py (trả lời lại), units.py (nội dung đang dùng + validate), lesson.py (bài giảng), talks.py (bài giảng nói 2 phút), check_review.py (AI viết lại bài kiểm tra), review.py (thẻ ôn), drafts.py (AI soạn nháp bài)
     assessment/          # không dùng LLM: metrics.py (đo), check.py (kiểm tra 2 phút), drills.py (phát âm), fluency.py (4–3–2), stages.py (mở giai đoạn)
     utils/               # parsing.py, compare.py (hàm thuần), ws.py (Conn)
-    data/                # units.json (chủ đề + bài gốc, chép vào DB lúc khởi động), stages.json, drills.json, check_prompts.json, fluency_prompts.json, bench_sentences.json
+    data/                # units.json (chủ đề + bài gốc, chép vào DB lúc khởi động), stages.json, drills.json, check_prompts.json, talks.json, fluency_prompts.json, bench_sentences.json
   scripts/               # replay.py (so prompt), stt_bench.py (đo STT), make_cert.py (HTTPS cho LAN), create_user.py (tạo tài khoản, admin đầu tiên)
   tests/                 # pytest
   pyproject.toml, requirements*.txt
 frontend/                # React + TypeScript + Vite; build vào frontend/dist (backend phục vụ)
   src/
-    main.tsx             # React Router: / , /lesson/:unitId , /review , /roadmap , /sounds , /fluency , /check , /history , /account ; admin: /bench , /admin/... ;
+    main.tsx             # React Router: / , /lesson/:unitId , /talk/:talkId[/practice] , /review , /roadmap , /sounds , /fluency , /check , /history , /account ; admin: /bench , /admin/... ;
                          #   chưa đăng nhập: /login , /signup , /forgot , /verify , /reset
     api/                 # types.ts (kiểu dữ liệu API + giao thức WebSocket), http.ts (gọi JSON, 401 thì về trang đăng nhập)
     auth/                # AuthContext (người đang đăng nhập)
     components/          # AppBar (+ thanh tab trên điện thoại), Icons, ui (Chip, StatusLine), WordDiff, Recorder, Sheet, Lead
     hooks/               # useMic (ghi âm bấm-bấm), useAudioQueue (phát MP3), useTeacherVoice (giọng giáo viên)
-    features/            # practice/ (useInterview + các component), lesson/ (bài giảng), review/, roadmap/, sounds/, fluency/, check/, history/, bench/,
+    features/            # practice/ (useInterview + các component), lesson/ (bài giảng), review/, roadmap/, sounds/, fluency/, check/, talk/, history/, bench/,
                          #   auth/ (đăng nhập, đăng ký), account/, admin/
     lib/                 # hàm thuần + test Vitest
-    styles/              # base.css (token, component chung, bảng), practice.css, lesson.css, review.css, roadmap.css, sounds.css, fluency.css, check.css, history.css, bench.css,
+    styles/              # base.css (token, component chung, bảng), practice.css, lesson.css, review.css, roadmap.css, sounds.css, fluency.css, check.css, talk.css, history.css, bench.css,
                          #   auth.css, admin.css
 docs/                    # tài liệu theo tính năng (bảng bên dưới)
 recordings/              # giọng nói thật của người dùng, không commit
@@ -98,6 +98,7 @@ npm run format     # Prettier; npm run format:check chỉ kiểm tra
 | Nói dài 4–3–2: kể một chuyện 3 lần, 4/3/2 phút | [docs/features/fluency-432.md](docs/features/fluency-432.md) | `assessment/fluency.py`, `api/routes/fluency.py`, `frontend/src/features/fluency/` |
 | Chế độ trò chuyện: AI đóng vai đồng nghiệp, trưởng nhóm, khách hàng… (`role`, `partner`) | [docs/features/conversation-mode.md](docs/features/conversation-mode.md) | `interview/prompts.py`, `data/units.json` (chủ đề `daily`, `workplace`) |
 | Bài kiểm tra nói 2 phút: tiêu chí, ngập ngừng giữa câu, trang `/check` | [docs/features/speaking-check.md](docs/features/speaking-check.md) | `assessment/check.py`, `api/routes/check.py`, `frontend/src/features/check/` |
+| Bài giảng nói 2 phút theo dạng đề (ý kiến, kể chuyện, giải thích, miêu tả) + luyện đề riêng; học sau bài kiểm tra: chỗ bí, AI viết lại (đánh dấu ý tự thêm), cụm từ thành thẻ ôn, nói lại; đề đã ôn không ra lại | [docs/features/talk-lessons.md](docs/features/talk-lessons.md) | `data/talks.json`, `interview/talks.py`, `interview/check_review.py`, `api/routes/talks.py`, `api/routes/check.py`, `frontend/src/features/talk/`, `frontend/src/features/check/CheckLearn.tsx` |
 | Tài khoản: đăng nhập (cookie), vai trò user/admin, đăng ký + xác nhận email, quên mật khẩu, dữ liệu theo từng người, quản lý người dùng | [docs/features/accounts.md](docs/features/accounts.md) | `services/accounts.py`, `api/deps.py`, `api/routes/auth.py`, `api/routes/admin_users.py`, `services/mailer.py`, `frontend/src/auth/`, `frontend/src/features/auth/`, `frontend/src/features/admin/` |
 | Quản trị nội dung: sửa/thêm/ẩn bài và chủ đề trên web, AI soạn nháp, nội dung trong DB đồng bộ với `units.json` | [docs/features/content-admin.md](docs/features/content-admin.md) | `services/content.py`, `interview/units.py`, `interview/drafts.py`, `api/routes/admin_content.py`, `frontend/src/features/admin/` |
 | Lịch sử luyện tập, trang Tiến bộ, biểu đồ xu hướng | [docs/features/session-history.md](docs/features/session-history.md) | `services/history.py`, `api/routes/history.py`, `frontend/src/features/history/` |

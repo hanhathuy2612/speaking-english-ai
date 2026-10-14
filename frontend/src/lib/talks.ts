@@ -15,7 +15,13 @@ type Measured = { duration_s: number; wpm_speaking: number | null; hesitations_p
 
 /** Rows comparing a talk with an earlier one; `better` tells which way is an improvement. */
 export function compareTalks(now: Measured, before: Measured | null) {
-  const row = (label: string, a: number | null, b: number | null | undefined, fmt: (v: number) => string, up: boolean) => ({
+  const row = (
+    label: string,
+    a: number | null,
+    b: number | null | undefined,
+    fmt: (v: number) => string,
+    up: boolean,
+  ) => ({
     label,
     now: a == null ? "–" : fmt(a),
     before: b == null ? null : fmt(b),
@@ -26,4 +32,19 @@ export function compareTalks(now: Measured, before: Measured | null) {
     row("Từ/phút khi nói", now.wpm_speaking, before?.wpm_speaking, (v) => fmtNum(v), true),
     row("Ngập ngừng / 100 từ", now.hesitations_per_100, before?.hesitations_per_100, (v) => fmtNum(v), false),
   ];
+}
+
+/** Cut `text` into parts so that each of the `unsure` sentences (found as written) can be marked. */
+export function splitUnsure(text: string, unsure: string[]): { text: string; unsure: boolean }[] {
+  const parts: { text: string; unsure: boolean }[] = [];
+  let rest = text;
+  for (const u of unsure) {
+    const i = rest.indexOf(u);
+    if (!u || i < 0) continue;
+    if (i > 0) parts.push({ text: rest.slice(0, i), unsure: false });
+    parts.push({ text: u, unsure: true });
+    rest = rest.slice(i + u.length);
+  }
+  if (rest) parts.push({ text: rest, unsure: false });
+  return parts;
 }

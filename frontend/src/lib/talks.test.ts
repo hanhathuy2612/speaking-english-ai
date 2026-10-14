@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { compareTalks, nextPrompt } from "./talks";
+import { compareTalks, nextPrompt, splitUnsure } from "./talks";
 
 const prompts = [{ id: "a" }, { id: "b" }, { id: "c" }];
 
@@ -29,5 +29,18 @@ describe("compareTalks", () => {
       ["–", null, null],
       ["–", null, null],
     ]);
+  });
+});
+
+describe("splitUnsure", () => {
+  it("marks the unsure sentences and keeps the rest", () => {
+    expect(splitUnsure("A b. C d. E f.", ["C d."])).toEqual([
+      { text: "A b. ", unsure: false },
+      { text: "C d.", unsure: true },
+      { text: " E f.", unsure: false },
+    ]);
+  });
+  it("ignores sentences it cannot find", () => {
+    expect(splitUnsure("A b.", ["X y."])).toEqual([{ text: "A b.", unsure: false }]);
   });
 });

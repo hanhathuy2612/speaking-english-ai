@@ -96,3 +96,9 @@ def test_attempt_checks_suggest_a_grade():
     phrase = {"kind": "phrase", "unit_id": "weekend", "phrase_index": 1, "target": "The best part was ..."}
     assert review.check_attempt(phrase, "The best part was the food.")["phrase_used"] is True
     assert review.check_attempt(phrase, "It was good.")["suggest"] == "again"
+
+
+def test_a_talk_card_counts_the_phrase_inside_your_own_sentence():
+    card = {"kind": "talk", "target": "On the other hand, ..."}
+    assert review.check_attempt(card, "On the other hand, it makes us lazy.")["suggest"] == "good"
+    assert review.check_attempt(card, "But it makes us lazy.")["suggest"] == "again"

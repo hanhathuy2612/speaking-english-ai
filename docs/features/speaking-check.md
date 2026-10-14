@@ -2,16 +2,16 @@
 
 Mục đích: trả lời câu hỏi "mình đã nói được chưa" bằng số đo, không bằng cảm giác. Người học nói liền 2 phút về một đề quen thuộc nhưng **chưa chuẩn bị**, app đo và so với mức mục tiêu. Lần đầu là bài đầu vào; làm lại sau mỗi chủ đề của lộ trình để xem tiến bộ.
 
-**Không dùng LLM.** Chỉ có Whisper (nhận dạng) và các phép đo khách quan, đúng quy tắc "không chấm điểm bằng LLM".
+**Không dùng LLM để chấm.** Chỉ có Whisper (nhận dạng) và các phép đo khách quan, đúng quy tắc "không chấm điểm bằng LLM". Sau khi đã chấm, người học có thể nhờ AI viết lại bài nói để học (không đổi kết quả), xem [talk-lessons.md](talk-lessons.md).
 
 ## Mã nguồn
 
 | Phần | Vị trí |
 |---|---|
-| Đề bài | `backend/app/data/check_prompts.json` (`id`, `text` tiếng Anh, `hint` tiếng Việt) |
-| Chọn đề, so mục tiêu | `backend/app/assessment/check.py` (`pick_prompt()`, `evaluate()`, các hằng `TARGET_*`) |
+| Đề bài | `backend/app/data/check_prompts.json`: 20 đề, 5 đề cho mỗi dạng (`id`, `kind`: `opinion`/`story`/`explain`/`describe`, `text` tiếng Anh, `hint` tiếng Việt) |
+| Chọn đề, so mục tiêu, chỗ bí | `backend/app/assessment/check.py` (`pick_prompt()`, `evaluate()`, `stuck_points()`, các hằng `TARGET_*`) |
 | Đo (dùng chung với bài 4–3–2) | `measure()`, `pick_least_used()`, `MIN_MEASURED_SECONDS` trong `backend/app/assessment/metrics.py` |
-| Đếm ngập ngừng giữa câu | `hesitation_pauses()` trong `backend/app/utils/parsing.py` |
+| Đếm ngập ngừng giữa câu | `hesitation_points()`, `hesitation_pauses()` trong `backend/app/utils/parsing.py` |
 | API | `backend/app/api/routes/check.py` |
 | Lưu kết quả | bảng `checks`, `add_check()`, `list_checks()` trong `backend/app/services/history.py` |
 | Trang | `frontend/src/features/check/CheckPage.tsx`, `frontend/src/styles/check.css`, hàm thuần `frontend/src/lib/check.ts`; khối ghi âm `frontend/src/components/Recorder.tsx` |
@@ -33,14 +33,15 @@ Mục đích: trả lời câu hỏi "mình đã nói được chưa" bằng s�
 
 ## Chọn đề
 
-`pick_prompt()` lấy ngẫu nhiên trong các đề **ít được làm nhất** (đếm từ bảng `checks`), bỏ đề đang hiện khi bấm "Đổi đề". Mục đích: mỗi lần kiểm tra là một đề chưa luyện trước.
+`pick_prompt()` lấy ngẫu nhiên trong các đề **ít được làm nhất** (đếm từ bảng `checks`), bỏ đề đang hiện khi bấm "Đổi đề" và bỏ các **đề đã ôn** (đã xem bản ôn của AI hoặc đã nói lại sau bài kiểm tra, `studied_check_prompts()`). Chỉ khi mọi đề đều đã ôn thì mới chọn lại trong tất cả. Mục đích: mỗi lần kiểm tra là một đề chưa luyện trước.
 
 ## API
 
 | Route | Việc |
 |---|---|
-| `GET /api/check?exclude=<id>` | `{enabled, prompt, targets, checks}`: một đề mới, mục tiêu, các lần kiểm tra cũ (cũ trước mới sau) |
-| `POST /api/check/{prompt_id}` | Thân request là âm thanh thô (webm từ MediaRecorder, mp3 cũng được). Trả `{prompt, text, words, duration_s, wpm, wpm_speaking, hesitations, hesitations_per_100, not_english, measurable, criteria, passed}` |
+| `GET /api/check?exclude=<id>` | `{enabled, prompt, targets, checks, talks}`: một đề mới, mục tiêu, các lần kiểm tra cũ (cũ trước mới sau, mỗi lần kèm `review` nếu đã ôn), các bài giảng nói 2 phút |
+| `POST /api/check/{prompt_id}` | Thân request là âm thanh thô (webm từ MediaRecorder, mp3 cũng được). Trả `{id, prompt, text, words, duration_s, wpm, wpm_speaking, hesitations, hesitations_per_100, not_english, measurable, criteria, passed, stuck, talk}` |
+| `POST /api/check/{id}/review`, `/cards`, `/retry` | Học sau bài kiểm tra, xem [talk-lessons.md](talk-lessons.md) |
 
 Âm thanh gửi dạng byte thô như trang đo STT, nên không cần `python-multipart`. Nhận dạng dùng `STT_VOCAB` (tên người dùng), không dùng từ vựng bài.
 
@@ -49,6 +50,8 @@ Mục đích: trả lời câu hỏi "mình đã nói được chưa" bằng s�
 - Bấm nút micro để bắt đầu, bấm lần nữa để dừng (`useMic` gọi `start()`/`stop()`, tắt phím Space). Mọi trang khác cũng bấm-bấm như vậy.
 - Đồng hồ và thanh tiến độ tới 2:00 (chuyển xanh khi đạt), tự dừng ở 2:30.
 - Kết quả: từng tiêu chí có dấu ✓/✗ kèm chữ (không chỉ dựa vào màu), giá trị đo, chữ máy nghe được.
+- Kết quả còn có danh sách **chỗ bạn ngập ngừng giữa câu** (vài từ trước và sau mỗi khoảng nghỉ, kèm số giây) và gợi ý bài giảng của đúng dạng đề.
+- Dưới kết quả là khối "Học từ bài nói này" và "Nói lại đề này"; cuối trang có mục "Học cách nói 2 phút" (xem [talk-lessons.md](talk-lessons.md)).
 - Bảng các lần kiểm tra và dòng xu hướng "so với lần đầu" (`latestWithDelta(..., "lần đầu")`).
 
 ## Kiểm thử đầu cuối

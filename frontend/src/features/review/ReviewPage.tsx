@@ -32,17 +32,29 @@ function Stats({ s }: { s: ReviewState["stats"] }) {
   );
 }
 
+const KIND_LABEL: Record<ReviewCard["kind"], string> = {
+  note: "Sửa câu đã nói",
+  phrase: "Mẫu câu chưa dùng",
+  talk: "Cụm từ nên học",
+};
+
 /** The front of a card: what to say. The NOTE stays hidden until revealed. */
 function Front({ c }: { c: ReviewCard }) {
   return (
     <>
       <p className="eyebrow">
-        {c.unit_title} · {c.kind === "note" ? "Sửa câu đã nói" : "Mẫu câu chưa dùng"}
+        {c.unit_title} · {KIND_LABEL[c.kind]}
       </p>
       <p className="review-question" lang="en">
         {c.question}
       </p>
-      {c.kind === "note" ? (
+      {c.kind === "talk" ? (
+        <div className="review-said">
+          <span className="review-label">Cụm tiếng Anh có nghĩa</span>
+          <p>{c.said}</p>
+          <span className="review-ask">Nói cụm đó theo trí nhớ, trong một câu về đề trên.</span>
+        </div>
+      ) : c.kind === "note" ? (
         <div className="review-said">
           <span className="review-label">Lần trước bạn nói</span>
           <p lang="en">{c.said}</p>
@@ -70,14 +82,14 @@ function Back({ c, a }: { c: ReviewCard; a: WithAudio<ReviewAttempt> | null }) {
           <span>Máy nghe được: {a.heard || "(không nghe thấy gì)"}</span>
         </div>
       )}
-      {c.kind === "note" ? (
+      {c.kind !== "phrase" ? (
         <div className="review-answer">
-          <span className="review-label">Cách nói tốt hơn (NOTE)</span>
+          <span className="review-label">{c.kind === "talk" ? "Cụm cần nhớ" : "Cách nói tốt hơn (NOTE)"}</span>
           {a?.items ? <WordDiff items={a.items} /> : <p lang="en">{c.target}</p>}
           {a?.items && (
             <p className="review-hint">
-              Từ gạch chân là chỗ bạn nói khác NOTE. Nói khác chưa chắc là sai: nếu đúng ý và đúng ngữ pháp thì cứ chấm
-              &quot;Nhớ được&quot;.
+              Từ gạch chân là chỗ bạn nói khác {c.kind === "talk" ? "cụm cần nhớ" : "NOTE"}. Nói khác chưa chắc là sai:
+              nếu đúng ý và đúng ngữ pháp thì cứ chấm &quot;Nhớ được&quot;.
             </p>
           )}
         </div>

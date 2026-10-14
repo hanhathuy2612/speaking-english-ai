@@ -40,7 +40,15 @@ export function useTalkRecorder(onRecorded: (blob: Blob) => void, setStatus: (s:
 type Measured = Parameters<typeof compareTalks>[0];
 
 /** Speed, length and hesitation next to an earlier talk ("lần đầu", "lần trước"). */
-export function CompareRows({ now, before, beforeLabel }: { now: Measured; before: Measured | null; beforeLabel: string }) {
+export function CompareRows({
+  now,
+  before,
+  beforeLabel,
+}: {
+  now: Measured;
+  before: Measured | null;
+  beforeLabel: string;
+}) {
   return (
     <ul className="talk-compare">
       {compareTalks(now, before).map((r) => (
@@ -66,8 +74,8 @@ export function StuckList({ points }: { points: StuckPoint[] }) {
       {points.map((p, i) => (
         <li key={i}>
           <p className="stuck-said" lang="en">
-            …{p.before} <span className="stuck-pause">⏸ {p.pause_s.toString().replace(".", ",")} giây</span>{" "}
-            {p.after}…
+            …{p.before} <span className="stuck-pause">⏸ {p.pause_s.toString().replace(".", ",")} giây</span> {p.after}
+            {/[.?!]$/.test(p.after) ? "" : "…"}
           </p>
           {p.say && (
             <p className="stuck-say" lang="en">

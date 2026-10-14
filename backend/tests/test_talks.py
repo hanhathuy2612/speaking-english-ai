@@ -63,16 +63,24 @@ def test_studied_prompts_are_not_given_while_others_remain():
     assert check.pick_prompt({}, None, ids)["id"] in ids  # everything studied: any prompt rather than none
 
 
-def test_review_fix_keeps_real_stuck_places_and_reports_added_facts():
+def test_review_fix_keeps_real_stuck_places_and_marks_added_ideas():
     stuck = [{"before": "not a side,", "after": "it makes", "pause_s": 1.5}]
     raw = {
-        "better": "AI tools help us a lot. Five years ago, things were slower.",
-        "stuck": [{"n": 1, "say": "On the other hand, it makes developers lazy."}, {"n": 7, "say": "x"}],
-        "phrases": [{"say": "On the other hand, ...", "vi": "mặt khác"}, {"say": "mặt trái", "vi": "x"}],
+        "sentences": [
+            {"say": "AI tools help us a lot.", "from": "AI tools help a lot"},
+            {"say": "Five years ago, things were slower.", "from": "Things were slow"},
+            {"say": "AI can generate code quickly, which saves time.", "from": "AI tools help a lot"},
+            {"say": "Teams ship faster now.", "from": "teams ship faster"},
+        ],
+        "stuck": [{"n": 1, "say": "...On the other hand, it makes developers lazy."}, {"n": 7, "say": "x"}],
+        "phrases": [{"say": "On the other hand,...", "vi": "mặt khác,…"}, {"say": "mặt trái", "vi": "x"}],
     }
     out = check_review.fix(raw, "AI tools help a lot. Things were slow.", stuck)
+    assert out["better"].startswith("AI tools help us a lot. Five years ago")
+    # the third shares no word with its quote, the fourth quotes words never said
+    assert out["unsure"] == ["AI can generate code quickly, which saves time.", "Teams ship faster now."]
     assert out["stuck"] == [{**stuck[0], "say": "On the other hand, it makes developers lazy."}]
-    assert out["phrases"] == [{"say": "On the other hand, ...", "vi": "mặt khác"}]
+    assert out["phrases"] == [{"say": "On the other hand, ...", "vi": "mặt khác, ..."}]
     assert out["added_facts"] == ["five", "years"]
 
 
@@ -109,7 +117,7 @@ def test_learning_after_a_check_never_changes_or_adds_checks(client, monkeypatch
     async def fake_llm(messages, schema, max_tokens, temperature=0.6):
         calls.append(messages)
         return json.dumps({
-            "better": "AI tools change how developers work. On the other hand, they can make us lazy.",
+            "sentences": [{"say": "AI tools change how developers work.", "from": "AI tools change how developers work"}],
             "stuck": [{"n": 1, "say": "On the other hand, it makes developers lazy."}],
             "phrases": [{"say": "On the other hand, ...", "vi": "mặt khác"}, {"say": "rely on", "vi": "phụ thuộc vào"},
                         {"say": "There are two sides to this.", "vi": "Chuyện này có hai mặt."}],
