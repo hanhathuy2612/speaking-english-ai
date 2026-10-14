@@ -110,3 +110,108 @@
     text-align: left;
   }
 }
+
+/* ----- Learning after a check (docs/features/talk-lessons.md) ----- */
+.check-learn,
+.talk-lessons {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.check-learn h2,
+.talk-lessons h2 {
+  font-size: 16px;
+  font-weight: 650;
+}
+.check-learn-hint {
+  color: var(--text-2);
+  font-size: 14px;
+}
+.check-talk-tip {
+  font-size: 14px;
+  color: var(--text-2);
+}
+.check-talk-tip a,
+.check-lead a {
+  color: var(--primary);
+}
+.check-better {
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  background: var(--primary-soft);
+  line-height: 1.65;
+}
+.check-phrases {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+}
+.check-phrases .check-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, max-content) minmax(0, 1fr);
+  gap: 10px;
+  align-items: baseline;
+  font-size: 15px;
+}
+.check-phrase-say {
+  font-weight: 600;
+}
+.check-phrase-vi {
+  color: var(--text-2);
+  font-size: 14px;
+}
+.check-retry {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-start;
+}
+.talk-cards {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 10px;
+}
+.talk-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+.talk-card-title {
+  font-weight: 650;
+}
+.talk-card-goal {
+  margin-top: 4px;
+  font-size: 13.5px;
+  color: var(--text-2);
+}
+.talk-card-meta {
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--text-3);
+}
+.talk-card-actions {
+  display: flex;
+  gap: 6px;
+}
+.talk-card-actions a.btn {
+  text-decoration: none;
+}
+@media (max-width: 560px) {
+  .check-phrases .check-row {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .check-phrase-vi {
+    grid-column: 2;
+  }
+}

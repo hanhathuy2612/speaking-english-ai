@@ -1,0 +1,113 @@
+/* Shared by talk practice and learning after a check (features/talk/TalkParts.tsx). */
+.talk-h3 {
+  font-size: 14px;
+  font-weight: 650;
+  color: var(--text-2);
+}
+.talk-empty {
+  color: var(--text-2);
+  font-size: 14px;
+}
+.talk-compare {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 8px;
+  align-self: stretch;
+}
+.talk-compare li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.talk-compare-label {
+  font-size: 12.5px;
+  color: var(--text-3);
+}
+.talk-compare-now {
+  font-size: 20px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+.talk-compare-before {
+  font-size: 13px;
+  color: var(--text-2);
+}
+.talk-compare li.up .talk-compare-before::after {
+  content: " · tốt hơn";
+  color: var(--success);
+}
+.talk-compare li.down .talk-compare-before::after {
+  content: " · kém hơn";
+  color: var(--warning);
+}
+.stuck-list {
+  margin: 0;
+  padding-left: 22px;
+  display: grid;
+  gap: 8px;
+  font-size: 15px;
+}
+.stuck-pause {
+  display: inline-block;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--warning-soft);
+  color: var(--warning);
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.stuck-say {
+  margin-top: 2px;
+  color: var(--success);
+  font-weight: 600;
+}
+.talk-frame {
+  margin: 12px 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+}
+.talk-frame li {
+  display: grid;
+  grid-template-columns: 18px 9.5em minmax(0, 1fr);
+  align-items: baseline;
+  gap: 8px;
+}
+.talk-frame-mark {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border-strong);
+  display: grid;
+  place-items: center;
+  align-self: center;
+}
+.talk-frame li.done .talk-frame-mark {
+  border-color: var(--success);
+  background: var(--success);
+  color: var(--on-primary);
+}
+.talk-frame-hint {
+  font-size: 13.5px;
+  color: var(--text-2);
+}
+.talk-frame-say {
+  font-weight: 600;
+}
+@media (max-width: 560px) {
+  .talk-frame li {
+    grid-template-columns: 18px minmax(0, 1fr);
+  }
+  .talk-frame-say {
+    grid-column: 2;
+  }
+}

@@ -21,6 +21,7 @@ import { PracticePage } from "./features/practice/PracticePage";
 import { ReviewPage } from "./features/review/ReviewPage";
 import { RoadmapPage } from "./features/roadmap/RoadmapPage";
 import { SoundsPage } from "./features/sounds/SoundsPage";
+import { TalkPracticePage } from "./features/talk/TalkPracticePage";
 
 watchExpiredLogin();
 
@@ -65,6 +66,8 @@ function AppRoutes() {
       <Route path="/check" element={<CheckPage />} />
       <Route path="/history" element={<HistoryPage />} />
       <Route path="/lesson/:unitId" element={<LessonPage />} />
+      <Route path="/talk/:talkId" element={<LessonPage />} />
+      <Route path="/talk/:talkId/practice" element={<TalkPracticePage />} />
       <Route path="/account" element={<AccountPage />} />
       {email}
       {admin && <Route path="/bench" element={<BenchPage />} />}

@@ -20,11 +20,18 @@ router = APIRouter(prefix="/api/review", tags=["review"])
 ROUND = 15  # cards per daily round, about five minutes
 
 
+def _source(unit_id: str) -> str:
+    """What the card came from, for its label: a unit, or a speaking check ('check:<prompt id>')."""
+    if unit_id.startswith("check:"):
+        return "Kiểm tra nói"
+    unit = units_by_id.get(unit_id)
+    return unit["title"] if unit else unit_id
+
+
 def _card(c: dict) -> dict:
-    unit = units_by_id.get(c["unit_id"])
     return {
         "id": c["id"], "kind": c["kind"], "unit_id": c["unit_id"],
-        "unit_title": unit["title"] if unit else c["unit_id"],
+        "unit_title": _source(c["unit_id"]),
         "question": c["question"], "said": c["said"], "target": c["target"],
         "box": c["box"], "due": c["due"], "reviews": c["reviews"], "session_id": c["session_id"],
     }  # fmt: skip

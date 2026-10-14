@@ -1,0 +1,553 @@
+[
+  {
+    "id": "opinion",
+    "title": "Giving your opinion",
+    "title_vi": "Nêu ý kiến hai mặt",
+    "goal": "Nói 2 phút về một câu hỏi \"tốt hay xấu, đồng ý không\": ý kiến, lý do, ví dụ của bạn, mặt trái, kết luận.",
+    "frame": [
+      {
+        "hint": "Ý kiến của bạn",
+        "say": "In my opinion, ...",
+        "also": [
+          "i think",
+          "i believe",
+          "personally",
+          "for me"
+        ]
+      },
+      {
+        "hint": "Lý do chính",
+        "say": "The main reason is that ...",
+        "also": [
+          "the reason is",
+          "because",
+          "that's why"
+        ]
+      },
+      {
+        "hint": "Ví dụ của bạn",
+        "say": "For example, in my team, ...",
+        "also": [
+          "for example",
+          "for instance",
+          "in my case",
+          "in my experience"
+        ]
+      },
+      {
+        "hint": "Mặt trái",
+        "say": "On the other hand, ...",
+        "also": [
+          "however",
+          "but on the other side",
+          "the downside is",
+          "the problem is"
+        ]
+      },
+      {
+        "hint": "Kết luận",
+        "say": "So overall, I think ...",
+        "also": [
+          "overall",
+          "in conclusion",
+          "to sum up",
+          "all in all"
+        ]
+      }
+    ],
+    "practice": [
+      {
+        "id": "overtime",
+        "text": "Should developers work overtime to finish a project on time?",
+        "hint": "Lập trình viên có nên làm thêm giờ để kịp tiến độ dự án không?"
+      },
+      {
+        "id": "big-or-small",
+        "text": "Is it better to work for a big company or a small startup?",
+        "hint": "Làm ở công ty lớn hay startup nhỏ thì tốt hơn?"
+      },
+      {
+        "id": "kids-coding",
+        "text": "Do you think children should learn programming at school?",
+        "hint": "Trẻ em có nên học lập trình ở trường không?"
+      },
+      {
+        "id": "social-media",
+        "text": "Is social media good or bad for young people?",
+        "hint": "Mạng xã hội tốt hay xấu cho người trẻ?"
+      }
+    ],
+    "lesson": {
+      "intro": "Hi! Today we'll learn a simple plan for giving your opinion for two minutes. It has five steps: your opinion, a reason, an example, the other side, and a conclusion. Our example topic is online meetings. Are you ready?",
+      "intro_vi": "Chào bạn! Hôm nay mình học một dàn ý đơn giản để nêu ý kiến trong hai phút. Có năm bước: ý kiến, lý do, ví dụ, mặt trái và kết luận. Chủ đề ví dụ là họp trực tuyến. Bạn sẵn sàng chưa?",
+      "outro": "Well done! Now use these five steps to talk about a new topic for two minutes.",
+      "outro_vi": "Làm tốt lắm! Giờ dùng năm bước này để nói hai phút về một chủ đề mới nhé.",
+      "vocab": [
+        {
+          "word": "advantage",
+          "vi": "lợi ích, điểm mạnh"
+        },
+        {
+          "word": "downside",
+          "vi": "mặt trái, điểm yếu"
+        },
+        {
+          "word": "depend on",
+          "vi": "phụ thuộc vào"
+        },
+        {
+          "word": "in the long run",
+          "vi": "về lâu dài"
+        },
+        {
+          "word": "overall",
+          "vi": "nhìn chung"
+        }
+      ],
+      "sentences": [
+        {
+          "say": "In my opinion, online meetings are useful, but we have too many of them.",
+          "use": "Start by giving your opinion in one clear sentence. Then the listener knows where you are going.",
+          "use_vi": "Bắt đầu bằng ý kiến của bạn trong một câu rõ ràng. Người nghe sẽ biết bạn định nói gì."
+        },
+        {
+          "say": "The main reason is that they save a lot of travel time.",
+          "use": "Next, give your main reason. One strong reason is better than three weak ones.",
+          "use_vi": "Tiếp theo, nêu lý do chính. Một lý do mạnh tốt hơn ba lý do yếu."
+        },
+        {
+          "say": "For example, in my team, we can talk to clients in Japan without flying there.",
+          "use": "Now add an example from your own life. It is the easiest way to keep talking.",
+          "use_vi": "Giờ thêm một ví dụ từ chính bạn. Đây là cách dễ nhất để nói tiếp mà không bí."
+        },
+        {
+          "say": "On the other hand, it's harder to focus when everyone's camera is off.",
+          "use": "Then show the other side. It makes your answer longer and more balanced.",
+          "use_vi": "Rồi nói mặt trái. Câu trả lời sẽ dài hơn và cân bằng hơn."
+        },
+        {
+          "say": "It really depends on how well the meeting is organized.",
+          "use": "When you are not sure, say that it depends, and say what it depends on.",
+          "use_vi": "Khi chưa chắc, hãy nói \"còn tùy\", và nói rõ tùy vào điều gì."
+        },
+        {
+          "say": "So overall, I think online meetings are good if we keep them short.",
+          "use": "Finish with your conclusion. Say your opinion again in new words.",
+          "use_vi": "Kết thúc bằng kết luận. Nhắc lại ý kiến của bạn bằng cách nói khác."
+        }
+      ]
+    }
+  },
+  {
+    "id": "story",
+    "title": "Telling a story",
+    "title_vi": "Kể một trải nghiệm",
+    "goal": "Kể 2 phút về một chuyện đã xảy ra bằng thì quá khứ: bối cảnh, vấn đề, bạn đã làm gì, kết quả, bài học.",
+    "frame": [
+      {
+        "hint": "Bối cảnh",
+        "say": "It happened about ... ago, when I ...",
+        "also": [
+          "ago",
+          "last year",
+          "last month",
+          "a few years"
+        ]
+      },
+      {
+        "hint": "Vấn đề",
+        "say": "The problem was that ...",
+        "also": [
+          "the problem is",
+          "the issue was",
+          "the challenge was"
+        ]
+      },
+      {
+        "hint": "Bạn đã làm gì",
+        "say": "So I decided to ...",
+        "also": [
+          "i decided",
+          "so i",
+          "i tried to"
+        ]
+      },
+      {
+        "hint": "Kết quả",
+        "say": "In the end, ...",
+        "also": [
+          "finally",
+          "at the end",
+          "as a result"
+        ]
+      },
+      {
+        "hint": "Bài học",
+        "say": "What I learned from it is that ...",
+        "also": [
+          "i learned",
+          "the lesson",
+          "i realized"
+        ]
+      }
+    ],
+    "practice": [
+      {
+        "id": "mistake",
+        "text": "Tell me about a time you made a mistake and how you fixed it.",
+        "hint": "Kể một lần bạn mắc lỗi và cách bạn sửa."
+      },
+      {
+        "id": "trip-plan",
+        "text": "Describe a trip that did not go as planned.",
+        "hint": "Kể một chuyến đi không diễn ra như dự định."
+      },
+      {
+        "id": "first-day",
+        "text": "Tell me about your first day at your current job.",
+        "hint": "Kể về ngày đầu tiên ở công việc hiện tại."
+      },
+      {
+        "id": "helped",
+        "text": "Talk about a time you helped someone at work.",
+        "hint": "Kể một lần bạn giúp một người ở chỗ làm."
+      }
+    ],
+    "lesson": {
+      "intro": "Hi! Today we'll learn how to tell a story about something that happened to you. A good story has five parts: when it happened, the problem, what you did, how it ended, and what you learned. Are you ready?",
+      "intro_vi": "Chào bạn! Hôm nay mình học cách kể một chuyện đã xảy ra với bạn. Một câu chuyện tốt có năm phần: chuyện xảy ra khi nào, vấn đề, bạn đã làm gì, kết thúc ra sao và bạn học được gì. Bạn sẵn sàng chưa?",
+      "outro": "Great job! Now tell a new story for two minutes, using these five parts.",
+      "outro_vi": "Giỏi lắm! Giờ kể một chuyện mới trong hai phút, theo năm phần này nhé.",
+      "vocab": [
+        {
+          "word": "at first",
+          "vi": "lúc đầu"
+        },
+        {
+          "word": "suddenly",
+          "vi": "đột nhiên"
+        },
+        {
+          "word": "figure out",
+          "vi": "tìm ra, nghĩ ra cách"
+        },
+        {
+          "word": "in the end",
+          "vi": "cuối cùng"
+        },
+        {
+          "word": "learn from",
+          "vi": "rút ra bài học từ"
+        }
+      ],
+      "sentences": [
+        {
+          "say": "It happened about two years ago, when I was preparing for an important demo.",
+          "use": "Begin with when it happened and what you were doing. Use the past tense from the start.",
+          "use_vi": "Bắt đầu bằng thời điểm và việc bạn đang làm. Dùng thì quá khứ ngay từ câu đầu."
+        },
+        {
+          "say": "At first, everything was fine, but suddenly my laptop stopped working.",
+          "use": "Use at first and suddenly to move the story forward.",
+          "use_vi": "Dùng \"at first\" và \"suddenly\" để đẩy câu chuyện đi tiếp."
+        },
+        {
+          "say": "The problem was that all my slides were on that laptop.",
+          "use": "Then say clearly what the problem was.",
+          "use_vi": "Rồi nói rõ vấn đề là gì."
+        },
+        {
+          "say": "So I decided to borrow a laptop from a colleague and rebuild the slides.",
+          "use": "Next, say what you did. This is the main part of your story, so add details here.",
+          "use_vi": "Tiếp theo, kể bạn đã làm gì. Đây là phần chính, hãy thêm chi tiết ở đây."
+        },
+        {
+          "say": "In the end, the demo went well, and the client was happy.",
+          "use": "Say how it ended.",
+          "use_vi": "Nói chuyện kết thúc ra sao."
+        },
+        {
+          "say": "What I learned from it is that I should always keep a backup.",
+          "use": "Finish with what you learned. It gives your story a clear ending.",
+          "use_vi": "Kết thúc bằng bài học. Câu chuyện sẽ có một cái kết rõ ràng."
+        }
+      ]
+    }
+  },
+  {
+    "id": "explain",
+    "title": "Explaining how something works",
+    "title_vi": "Giải thích một việc",
+    "goal": "Giải thích 2 phút cho người không chuyên: tóm tắt một câu, từng bước, ví dụ đời thường, vì sao quan trọng.",
+    "frame": [
+      {
+        "hint": "Tóm tắt một câu",
+        "say": "Simply put, ... is ...",
+        "also": [
+          "in simple words",
+          "basically",
+          "in short"
+        ]
+      },
+      {
+        "hint": "Bước đầu",
+        "say": "First, ...",
+        "also": [
+          "first of all",
+          "firstly",
+          "to begin with",
+          "the first step"
+        ]
+      },
+      {
+        "hint": "Bước tiếp",
+        "say": "After that, ...",
+        "also": [
+          "then",
+          "next",
+          "the next step",
+          "after this"
+        ]
+      },
+      {
+        "hint": "So sánh đời thường",
+        "say": "You can think of it like ...",
+        "also": [
+          "it's like",
+          "it is like",
+          "imagine",
+          "similar to"
+        ]
+      },
+      {
+        "hint": "Vì sao quan trọng",
+        "say": "This matters because ...",
+        "also": [
+          "this is important because",
+          "it's important because",
+          "that's why"
+        ]
+      }
+    ],
+    "practice": [
+      {
+        "id": "database",
+        "text": "Explain to a friend who is not technical what a database is.",
+        "hint": "Giải thích cho một người bạn không làm IT database là gì."
+      },
+      {
+        "id": "feature",
+        "text": "Explain how your team builds a new feature, from the idea to the release.",
+        "hint": "Giải thích team bạn làm một tính năng mới thế nào, từ ý tưởng tới lúc phát hành."
+      },
+      {
+        "id": "chat-message",
+        "text": "Explain what happens when you send a message in a chat app.",
+        "hint": "Giải thích chuyện gì xảy ra khi bạn gửi một tin nhắn trong ứng dụng chat."
+      },
+      {
+        "id": "start-coding",
+        "text": "Explain how a beginner should start learning to program.",
+        "hint": "Giải thích một người mới nên bắt đầu học lập trình thế nào."
+      }
+    ],
+    "lesson": {
+      "intro": "Hi! Today we'll learn how to explain something technical to someone who is not technical. Start with a short summary, go step by step, give an everyday comparison, and say why it matters. Our example is how an online payment works. Are you ready?",
+      "intro_vi": "Chào bạn! Hôm nay mình học cách giải thích một việc kỹ thuật cho người không làm kỹ thuật. Bắt đầu bằng một câu tóm tắt, đi từng bước, so sánh với đời thường, và nói vì sao nó quan trọng. Ví dụ là thanh toán trực tuyến hoạt động thế nào. Bạn sẵn sàng chưa?",
+      "outro": "Nice work! Now explain something new for two minutes, step by step.",
+      "outro_vi": "Tốt lắm! Giờ giải thích một việc mới trong hai phút, từng bước một nhé.",
+      "vocab": [
+        {
+          "word": "simply put",
+          "vi": "nói đơn giản thì"
+        },
+        {
+          "word": "step by step",
+          "vi": "từng bước"
+        },
+        {
+          "word": "it's like",
+          "vi": "nó giống như"
+        },
+        {
+          "word": "in other words",
+          "vi": "nói cách khác"
+        },
+        {
+          "word": "as a result",
+          "vi": "kết quả là"
+        }
+      ],
+      "sentences": [
+        {
+          "say": "Simply put, an online payment is a message that moves money between two banks.",
+          "use": "Start with a one-sentence summary that anyone can understand.",
+          "use_vi": "Bắt đầu bằng một câu tóm tắt mà ai cũng hiểu."
+        },
+        {
+          "say": "First, you type your card number, and the shop sends it to a payment company.",
+          "use": "Then go step by step. First tells the listener that more steps are coming.",
+          "use_vi": "Rồi đi từng bước. \"First\" báo cho người nghe biết còn các bước tiếp theo."
+        },
+        {
+          "say": "After that, the payment company asks your bank if you have enough money.",
+          "use": "Use after that to link each step to the next one.",
+          "use_vi": "Dùng \"after that\" để nối bước này với bước sau."
+        },
+        {
+          "say": "You can think of it like a cashier calling your bank to check.",
+          "use": "Give a simple comparison from everyday life.",
+          "use_vi": "Đưa một phép so sánh đơn giản từ đời thường."
+        },
+        {
+          "say": "In other words, the shop never touches your money directly.",
+          "use": "If an idea is hard, say it again in other words.",
+          "use_vi": "Nếu ý nào khó, hãy nói lại bằng cách khác."
+        },
+        {
+          "say": "This matters because it keeps your card details safe.",
+          "use": "End with why it matters. It shows you understand the big picture.",
+          "use_vi": "Kết thúc bằng lý do nó quan trọng. Điều đó cho thấy bạn hiểu bức tranh lớn."
+        }
+      ]
+    }
+  },
+  {
+    "id": "describe",
+    "title": "Describing something",
+    "title_vi": "Miêu tả một nơi, một thói quen",
+    "goal": "Miêu tả 2 phút một nơi, một ngày hay một sở thích: giới thiệu, chi tiết thứ nhất, chi tiết thứ hai, cảm nhận, tóm lại.",
+    "frame": [
+      {
+        "hint": "Giới thiệu",
+        "say": "Let me tell you about ...",
+        "also": [
+          "i want to talk about",
+          "i'd like to talk about",
+          "i'm going to talk about"
+        ]
+      },
+      {
+        "hint": "Chi tiết thứ nhất",
+        "say": "The first thing I'd mention is ...",
+        "also": [
+          "first of all",
+          "first",
+          "the first thing"
+        ]
+      },
+      {
+        "hint": "Chi tiết thứ hai",
+        "say": "Another thing is that ...",
+        "also": [
+          "another thing",
+          "also",
+          "besides",
+          "in addition"
+        ]
+      },
+      {
+        "hint": "Cảm nhận",
+        "say": "What I like most about it is ...",
+        "also": [
+          "what i like",
+          "i really like",
+          "my favourite part",
+          "i love"
+        ]
+      },
+      {
+        "hint": "Tóm lại",
+        "say": "All in all, ...",
+        "also": [
+          "overall",
+          "in conclusion",
+          "to sum up",
+          "in general"
+        ]
+      }
+    ],
+    "practice": [
+      {
+        "id": "workplace",
+        "text": "Describe your favourite place to work or study.",
+        "hint": "Miêu tả nơi bạn thích làm việc hoặc học nhất."
+      },
+      {
+        "id": "weekend",
+        "text": "Describe your usual weekend.",
+        "hint": "Miêu tả một ngày cuối tuần bình thường của bạn."
+      },
+      {
+        "id": "colleague",
+        "text": "Describe a colleague you like working with.",
+        "hint": "Miêu tả một đồng nghiệp bạn thích làm việc cùng."
+      },
+      {
+        "id": "city",
+        "text": "Describe the city you live in now.",
+        "hint": "Miêu tả thành phố bạn đang sống."
+      }
+    ],
+    "lesson": {
+      "intro": "Hi! Today we'll learn how to describe a place, a routine or a hobby for two minutes. Introduce it, give two details, say how you feel, and sum up. Our example is a coffee shop. Are you ready?",
+      "intro_vi": "Chào bạn! Hôm nay mình học cách miêu tả một nơi, một thói quen hay một sở thích trong hai phút. Giới thiệu, đưa hai chi tiết, nói cảm nhận và tóm lại. Ví dụ là một quán cà phê. Bạn sẵn sàng chưa?",
+      "outro": "Well done! Now describe something new for two minutes with these five steps.",
+      "outro_vi": "Làm tốt lắm! Giờ miêu tả một điều mới trong hai phút theo năm bước này nhé.",
+      "vocab": [
+        {
+          "word": "usually",
+          "vi": "thường thường"
+        },
+        {
+          "word": "most of the time",
+          "vi": "phần lớn thời gian"
+        },
+        {
+          "word": "compared to",
+          "vi": "so với"
+        },
+        {
+          "word": "atmosphere",
+          "vi": "không khí, bầu không khí"
+        },
+        {
+          "word": "all in all",
+          "vi": "nhìn chung, tóm lại"
+        }
+      ],
+      "sentences": [
+        {
+          "say": "Let me tell you about the coffee shop I go to every weekend.",
+          "use": "Introduce what you will describe in one sentence.",
+          "use_vi": "Giới thiệu thứ bạn sắp miêu tả trong một câu."
+        },
+        {
+          "say": "The first thing I'd mention is that it's very quiet, so I can read there.",
+          "use": "Then give details one by one. Start with the most important one.",
+          "use_vi": "Rồi đưa chi tiết lần lượt. Bắt đầu bằng chi tiết quan trọng nhất."
+        },
+        {
+          "say": "Another thing is that the owner always remembers my order.",
+          "use": "Another thing is that lets you add more details smoothly.",
+          "use_vi": "\"Another thing is that\" giúp bạn thêm chi tiết một cách trơn tru."
+        },
+        {
+          "say": "Compared to other places, it's a bit more expensive, but it's worth it.",
+          "use": "Compare it with something else. Comparing is an easy way to say more.",
+          "use_vi": "So sánh với thứ khác. So sánh là cách dễ để nói thêm."
+        },
+        {
+          "say": "What I like most about it is the friendly atmosphere.",
+          "use": "Say how you feel about it.",
+          "use_vi": "Nói cảm nhận của bạn."
+        },
+        {
+          "say": "All in all, it's my favourite place to relax after a busy week.",
+          "use": "Finish with a short summary.",
+          "use_vi": "Kết thúc bằng một câu tóm lại ngắn."
+        }
+      ]
+    }
+  }
+]

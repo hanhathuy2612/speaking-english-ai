@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Link } from "react-router";
 import type { CheckReport, CheckRow, CheckState } from "../../api/types";
 import { AppBar } from "../../components/AppBar";
 import { Lead } from "../../components/Lead";
@@ -11,6 +12,8 @@ import { useRecordings } from "../../hooks/useRecordings";
 import { criterionValue, fmtClock } from "../../lib/check";
 import type { WithAudio } from "../../lib/replay";
 import { fmtDate, fmtNum, latestWithDelta } from "../../lib/format";
+import { StuckList } from "../talk/TalkParts";
+import { CheckLearn } from "./CheckLearn";
 import "../../styles/check.css";
 
 const MAX_SECONDS = 150; // stop automatically a little after the 2-minute target
@@ -44,6 +47,14 @@ function Result({ r, onNext }: { r: WithAudio<CheckReport>; onNext: () => void }
           </li>
         ))}
       </ul>
+      <h3 className="talk-h3">Chỗ bạn ngập ngừng giữa câu ({r.stuck.length})</h3>
+      <StuckList points={r.stuck} />
+      {r.talk && (
+        <p className="check-talk-tip">
+          Đây là dạng đề <strong>{r.talk.title_vi.toLowerCase()}</strong>. Bài giảng{" "}
+          <Link to={`/talk/${r.talk.id}`}>{r.talk.title_vi}</Link> dạy dàn ý 2 phút và các câu nối ý cho dạng đề này.
+        </p>
+      )}
       <details className="check-text">
         <summary>Máy nghe được ({r.words} từ)</summary>
         <p>{r.text || "(không nghe được gì)"}</p>
@@ -54,6 +65,43 @@ function Result({ r, onNext }: { r: WithAudio<CheckReport>; onNext: () => void }
           Làm đề khác
         </button>
       </div>
+    </section>
+  );
+}
+
+/** Talk lessons: how to speak for two minutes on each kind of question (docs/features/talk-lessons.md). */
+function Talks({ talks }: { talks: CheckState["talks"] }) {
+  return (
+    <section className="card talk-lessons">
+      <h2>Học cách nói 2 phút</h2>
+      <p className="check-learn-hint">
+        Mỗi dạng đề có một bài giảng: giáo viên dạy dàn ý 5 bước và các câu nối ý, bạn đọc theo, rồi luyện nói 2 phút
+        với đề luyện riêng (không bao giờ là đề kiểm tra).
+      </p>
+      <ul className="talk-cards">
+        {talks.map((t) => (
+          <li key={t.id} className="talk-card">
+            <div>
+              <p className="talk-card-title">{t.title_vi}</p>
+              <p className="talk-card-goal">{t.goal}</p>
+              <p className="talk-card-meta">
+                {t.finished ? "Đã học bài giảng" : "Chưa học"}
+                {t.practiced > 0 && ` · ${t.practiced} lần luyện`}
+              </p>
+            </div>
+            <div className="talk-card-actions">
+              <Link className={`btn btn-sm${t.finished ? "" : " btn-primary"}`} to={`/talk/${t.id}`}>
+                {t.finished ? "Học lại" : "Học"}
+              </Link>
+              {t.finished > 0 && (
+                <Link className="btn btn-sm btn-primary" to={`/talk/${t.id}/practice`}>
+                  Luyện nói
+                </Link>
+              )}
+            </div>
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }
@@ -226,6 +274,8 @@ export function CheckPage() {
         )}
 
         {result && <Result r={result} onNext={() => (setResult(null), void load(data?.prompt.id))} />}
+        {result?.id != null && <CheckLearn key={result.id} report={result} />}
+        {data && data.talks.length > 0 && <Talks talks={data.talks} />}
         {data && <Past checks={data.checks} />}
       </main>
     </>

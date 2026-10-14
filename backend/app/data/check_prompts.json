@@ -1,10 +1,122 @@
 [
-  { "id": "working-day", "text": "Describe a typical working day for you, from the morning until the evening.", "hint": "Kể một ngày làm việc bình thường của bạn, từ sáng tới tối." },
-  { "id": "hometown", "text": "Talk about the place where you grew up. What is it like, and would you go back?", "hint": "Nói về nơi bạn lớn lên: nơi đó thế nào, bạn có muốn quay lại không." },
-  { "id": "explain-website", "text": "Explain to someone who is not technical what happens when they open a website.", "hint": "Giải thích cho người không làm IT chuyện gì xảy ra khi họ mở một trang web." },
-  { "id": "remote-work", "text": "Do you prefer working from home or in the office? Give your reasons.", "hint": "Bạn thích làm ở nhà hay ở văn phòng? Nêu lý do." },
-  { "id": "recent-problem", "text": "Tell me about a problem you had recently, at work or in life, and how you dealt with it.", "hint": "Kể một vấn đề gần đây (công việc hoặc cuộc sống) và bạn đã xử lý ra sao." },
-  { "id": "free-time", "text": "What do you like to do in your free time, and why do you enjoy it?", "hint": "Lúc rảnh bạn thích làm gì, vì sao?" },
-  { "id": "learning", "text": "Describe something new you learned in the last year and how you learned it.", "hint": "Kể một điều mới bạn học được trong năm qua và cách bạn học." },
-  { "id": "ai-tools", "text": "How do AI tools change the way developers work? Is that good or bad?", "hint": "Công cụ AI thay đổi cách lập trình viên làm việc thế nào? Tốt hay xấu?" }
+  {
+    "id": "working-day",
+    "kind": "describe",
+    "text": "Describe a typical working day for you, from the morning until the evening.",
+    "hint": "Kể một ngày làm việc bình thường của bạn, từ sáng tới tối."
+  },
+  {
+    "id": "hometown",
+    "kind": "describe",
+    "text": "Talk about the place where you grew up. What is it like, and would you go back?",
+    "hint": "Nói về nơi bạn lớn lên: nơi đó thế nào, bạn có muốn quay lại không."
+  },
+  {
+    "id": "explain-website",
+    "kind": "explain",
+    "text": "Explain to someone who is not technical what happens when they open a website.",
+    "hint": "Giải thích cho người không làm IT chuyện gì xảy ra khi họ mở một trang web."
+  },
+  {
+    "id": "remote-work",
+    "kind": "opinion",
+    "text": "Do you prefer working from home or in the office? Give your reasons.",
+    "hint": "Bạn thích làm ở nhà hay ở văn phòng? Nêu lý do."
+  },
+  {
+    "id": "recent-problem",
+    "kind": "story",
+    "text": "Tell me about a problem you had recently, at work or in life, and how you dealt with it.",
+    "hint": "Kể một vấn đề gần đây (công việc hoặc cuộc sống) và bạn đã xử lý ra sao."
+  },
+  {
+    "id": "free-time",
+    "kind": "describe",
+    "text": "What do you like to do in your free time, and why do you enjoy it?",
+    "hint": "Lúc rảnh bạn thích làm gì, vì sao?"
+  },
+  {
+    "id": "learning",
+    "kind": "story",
+    "text": "Describe something new you learned in the last year and how you learned it.",
+    "hint": "Kể một điều mới bạn học được trong năm qua và cách bạn học."
+  },
+  {
+    "id": "ai-tools",
+    "kind": "opinion",
+    "text": "How do AI tools change the way developers work? Is that good or bad?",
+    "hint": "Công cụ AI thay đổi cách lập trình viên làm việc thế nào? Tốt hay xấu?"
+  },
+  {
+    "id": "flexible-hours",
+    "kind": "opinion",
+    "text": "Should companies let employees choose their own working hours?",
+    "hint": "Công ty có nên cho nhân viên tự chọn giờ làm không?"
+  },
+  {
+    "id": "degree",
+    "kind": "opinion",
+    "text": "Is a university degree important for a software developer?",
+    "hint": "Bằng đại học có quan trọng với lập trình viên không?"
+  },
+  {
+    "id": "specialist",
+    "kind": "opinion",
+    "text": "Is it better to be an expert in one technology or to know many technologies a little?",
+    "hint": "Giỏi sâu một công nghệ hay biết sơ nhiều công nghệ thì tốt hơn?"
+  },
+  {
+    "id": "proud-project",
+    "kind": "story",
+    "text": "Tell me about a project you are proud of.",
+    "hint": "Kể về một dự án bạn tự hào."
+  },
+  {
+    "id": "learn-fast",
+    "kind": "story",
+    "text": "Tell me about a time you had to learn something very quickly.",
+    "hint": "Kể một lần bạn phải học một thứ thật nhanh."
+  },
+  {
+    "id": "hard-talk",
+    "kind": "story",
+    "text": "Tell me about a difficult conversation you had at work.",
+    "hint": "Kể về một cuộc nói chuyện khó khăn ở chỗ làm."
+  },
+  {
+    "id": "explain-bug",
+    "kind": "explain",
+    "text": "Explain what a bug is and how developers find and fix one.",
+    "hint": "Giải thích bug là gì và lập trình viên tìm, sửa bug thế nào."
+  },
+  {
+    "id": "explain-cloud",
+    "kind": "explain",
+    "text": "Explain to someone who is not technical what cloud computing is.",
+    "hint": "Giải thích cho người không làm IT điện toán đám mây là gì."
+  },
+  {
+    "id": "explain-testing",
+    "kind": "explain",
+    "text": "Explain how you test your code before it goes to users.",
+    "hint": "Giải thích bạn kiểm thử code thế nào trước khi tới tay người dùng."
+  },
+  {
+    "id": "explain-app",
+    "kind": "explain",
+    "text": "Explain how a mobile app gets from a developer's computer to someone's phone.",
+    "hint": "Giải thích một ứng dụng di động đi từ máy lập trình viên tới điện thoại người dùng thế nào."
+  },
+  {
+    "id": "my-team",
+    "kind": "describe",
+    "text": "Describe the team you work with now.",
+    "hint": "Miêu tả team bạn đang làm cùng."
+  },
+  {
+    "id": "favourite-food",
+    "kind": "describe",
+    "text": "Describe your favourite food and where you usually eat it.",
+    "hint": "Miêu tả món ăn bạn thích nhất và bạn thường ăn ở đâu."
+  }
 ]

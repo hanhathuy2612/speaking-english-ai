@@ -8,8 +8,8 @@ from app.utils.parsing import norm, used_phrase_indices
 LESSON_UNITS = [u for u in units if "lesson" in u]
 
 
-def test_some_units_have_a_lesson():
-    assert {"tell-me-about-yourself", "current-project", "career-goals"} <= {u["id"] for u in LESSON_UNITS}
+def test_every_unit_has_a_lesson():
+    assert {u["id"] for u in LESSON_UNITS} == {u["id"] for u in units}
 
 
 def test_each_lesson_sentence_uses_its_phrase():
@@ -67,10 +67,12 @@ def test_a_unit_with_a_lesson_is_done_only_after_both_parts(monkeypatch):
     from app.services import history
 
     played = {"sessions": 1, "completed": 1, "last_at": "2026-10-14T10:00:00"}
-    monkeypatch.setattr(history, "unit_stats", lambda uid: {"tell-me-about-yourself": played, "weekend": played})
+    # Every shipped unit has a lesson; an admin can still save one without (docs/features/content-admin.md).
+    monkeypatch.setattr(route, "units", [*route.units, {"id": "no-lesson"}])
+    monkeypatch.setattr(history, "unit_stats", lambda uid: {"tell-me-about-yourself": played, "no-lesson": played})
     monkeypatch.setattr(history, "lesson_counts", lambda uid: {})
     stats = route._stats(1)
-    assert stats["weekend"]["done"] is True  # no lesson: the role-play is enough
+    assert stats["no-lesson"]["done"] is True  # no lesson: the role-play is enough
     assert stats["tell-me-about-yourself"]["done"] is False
     assert stats["current-project"]["done"] is False and stats["current-project"]["lesson"] is True
     monkeypatch.setattr(history, "lesson_counts", lambda uid: {"tell-me-about-yourself": 1})

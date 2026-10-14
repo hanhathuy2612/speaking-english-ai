@@ -214,6 +214,7 @@ def test_an_old_database_is_backed_up_migrated_and_claimed(tmp_path, monkeypatch
     old_schema = history.SCHEMA.replace(
         f"    {history.USER},\n    UNIQUE (user_id, unit_id, phrase_index)", "    UNIQUE (unit_id, phrase_index)"
     )
+    old_schema = old_schema.replace(f"    {history.USER},\n", "")  # user_id followed by more columns
     old_schema = re.sub(r",( *--[^\n]*)?\n    " + re.escape(history.USER), r"\1", old_schema)
     assert "user_id" not in old_schema
     with sqlite3.connect(tmp_path / "old.db") as conn:

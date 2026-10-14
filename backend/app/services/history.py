@@ -25,7 +25,7 @@ CARDS = f"""
 CREATE TABLE IF NOT EXISTS {{name}} (
     id INTEGER PRIMARY KEY,
     created_at TEXT NOT NULL,
-    kind TEXT NOT NULL,                -- 'note' | 'phrase' (docs/features/review.md)
+    kind TEXT NOT NULL,                -- 'note' | 'phrase' | 'talk' (docs/features/review.md)
     session_id INTEGER REFERENCES sessions(id) ON DELETE CASCADE,
     turn_id INTEGER UNIQUE REFERENCES turns(id) ON DELETE CASCADE,  -- note cards: undo removes them
     unit_id TEXT NOT NULL,
@@ -117,6 +117,25 @@ CREATE TABLE IF NOT EXISTS checks (
     avg_logprob REAL,
     passed INTEGER NOT NULL,           -- targets met (docs/features/speaking-check.md)
     total INTEGER NOT NULL,            -- number of targets
+    {USER},
+    stuck TEXT,                        -- JSON: hesitations with the words around them (check.stuck_points)
+    review TEXT                        -- JSON: the AI review asked for after the check (docs/features/talk-lessons.md)
+);
+CREATE TABLE IF NOT EXISTS talk_practice (
+    id INTEGER PRIMARY KEY,
+    created_at TEXT NOT NULL,
+    source TEXT NOT NULL,              -- 'talk' (practice after a talk lesson) | 'check' (retry after a check)
+    ref TEXT NOT NULL,                 -- the talk id, or the check id
+    prompt_id TEXT NOT NULL,
+    prompt TEXT NOT NULL,
+    text TEXT NOT NULL,
+    words INTEGER NOT NULL,
+    duration_s REAL NOT NULL,
+    wpm_speaking INTEGER,              -- NULL when not measurable, like checks
+    hesitations INTEGER NOT NULL,
+    hesitations_per_100 REAL,
+    steps_done INTEGER,                -- frame steps said (talk practice)
+    steps_total INTEGER,
     {USER}
 );
 CREATE TABLE IF NOT EXISTS drills (
@@ -180,9 +199,15 @@ CREATE TABLE IF NOT EXISTS lessons (
 );
 """
 
-OWNED = ("sessions", "checks", "drills", "fluency", "cards", "lesson_reads", "lessons")  # tables with user_id
+OWNED = ("sessions", "checks", "drills", "fluency", "cards", "lesson_reads", "lessons", "talk_practice")  # with user_id
 # (table, column, type) added to older databases
-MIGRATIONS = [("turns", "audio", "TEXT"), ("drills", "audio", "TEXT")] + [(t, "user_id", USER) for t in OWNED]
+MIGRATIONS = [
+    ("turns", "audio", "TEXT"),
+    ("drills", "audio", "TEXT"),
+    *((t, "user_id", USER) for t in OWNED),
+    ("checks", "stuck", "TEXT"),
+    ("checks", "review", "TEXT"),
+]
 INDEXES = [f"CREATE INDEX IF NOT EXISTS {t}_user ON {t}(user_id)" for t in OWNED]
 
 enabled = db.enabled
@@ -454,10 +479,57 @@ def add_check(uid: int, check: dict) -> int | None:
     return _insert("checks", {**check, "user_id": uid})
 
 
+def _check_row(r: dict) -> dict:
+    return {
+        **r,
+        "not_english": bool(r["not_english"]),
+        "stuck": json.loads(r["stuck"]) if r.get("stuck") else [],
+        "review": json.loads(r["review"]) if r.get("review") else None,
+    }
+
+
 def list_checks(uid: int) -> list[dict]:
     """The user's speaking checks, oldest first."""
     rows = _rows("SELECT * FROM checks WHERE user_id = ? ORDER BY created_at, id", (uid,))
-    return [{**r, "not_english": bool(r["not_english"])} for r in rows]
+    return [_check_row(r) for r in rows]
+
+
+def get_check(uid: int, check_id: int) -> dict | None:
+    rows = _rows("SELECT * FROM checks WHERE id = ? AND user_id = ?", (check_id, uid))
+    return _check_row(rows[0]) if rows else None
+
+
+def set_check_review(check_id: int, review: dict) -> None:
+    if not enabled():
+        return
+    with closing(_connect()) as conn, conn:
+        conn.execute("UPDATE checks SET review = ? WHERE id = ?", (json.dumps(review, ensure_ascii=False), check_id))
+
+
+def add_talk_practice(uid: int, row: dict) -> int | None:
+    """One practice talk (after a talk lesson, or a retry after a check); never counted as a check."""
+    return _insert("talk_practice", {**row, "user_id": uid})
+
+
+def list_talk_practice(uid: int, source: str | None = None, ref: str | None = None) -> list[dict]:
+    where, args = ["user_id = ?"], [uid]
+    if source is not None:
+        where.append("source = ?")
+        args.append(source)
+    if ref is not None:
+        where.append("ref = ?")
+        args.append(ref)
+    return _rows(f"SELECT * FROM talk_practice WHERE {' AND '.join(where)} ORDER BY created_at, id", tuple(args))
+
+
+def studied_check_prompts(uid: int) -> set[str]:
+    """Check prompts the user prepared after a check: asked for the review or retried the talk."""
+    rows = _rows(
+        "SELECT prompt_id FROM checks WHERE user_id = ? AND review IS NOT NULL "
+        "UNION SELECT prompt_id FROM talk_practice WHERE user_id = ? AND source = 'check'",
+        (uid, uid),
+    )
+    return {r["prompt_id"] for r in rows}
 
 
 def add_drill(uid: int, attempt: dict) -> int | None:

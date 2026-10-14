@@ -62,6 +62,15 @@ export type LessonData = {
   finished: number; // times the lesson part was finished
 };
 
+/** A talk lesson (GET /api/talks/<id>): the lesson as for a unit, plus the two-minute frame. */
+export type TalkData = LessonData & {
+  kind: "talk";
+  title_vi: string;
+  frame: { hint: string; say: string }[];
+  practice: CheckPrompt[];
+  attempts: TalkAttempt[];
+};
+
 export type LessonReading = {
   target: string;
   heard: string;
@@ -175,7 +184,56 @@ export type BenchItem = { text: string; done: boolean };
 
 // ----- Speaking check (docs/features/speaking-check.md) -----
 
-export type CheckPrompt = { id: string; text: string; hint: string };
+export type TalkKind = "opinion" | "story" | "explain" | "describe";
+
+export type CheckPrompt = { id: string; text: string; hint: string; kind?: TalkKind };
+
+/** A hesitation inside a sentence: the sentence so far, the pause, the words after it. */
+export type StuckPoint = { before: string; after: string; pause_s: number; say?: string | null };
+
+/** The AI review of a check, asked for after it was scored (docs/features/talk-lessons.md). */
+export type CheckReviewData = {
+  better: string;
+  stuck: StuckPoint[]; // say: how the sentence could have gone on
+  phrases: { say: string; vi: string }[];
+  added_facts: string[]; // details the rewrite added that you never said
+};
+
+/** A talk measured like a check (retry after a check, or practice after a talk lesson). */
+export type TalkMeasure = {
+  text: string;
+  words: number;
+  duration_s: number;
+  wpm_speaking: number | null;
+  hesitations: number;
+  hesitations_per_100: number | null;
+  measurable: boolean;
+};
+
+export type RetryResult = TalkMeasure & {
+  stuck: StuckPoint[];
+  first: { duration_s: number; wpm_speaking: number | null; hesitations_per_100: number | null; words: number };
+};
+
+export type TalkSummary = { id: string; title: string; title_vi: string; goal: string };
+
+export type TalkAttempt = {
+  id: number;
+  created_at: string;
+  prompt_id: string;
+  prompt: string;
+  duration_s: number;
+  wpm_speaking: number | null;
+  hesitations_per_100: number | null;
+  steps_done: number | null;
+  steps_total: number | null;
+};
+
+export type TalkPracticeResult = TalkMeasure & {
+  steps: AnswerStep[];
+  stuck: StuckPoint[];
+  previous: TalkAttempt | null;
+};
 
 export type CheckCriterion = {
   key: "duration" | "wpm_speaking" | "hesitations_per_100" | "english";
@@ -198,6 +256,9 @@ export type CheckReport = {
   measurable: boolean; // at least 30 s of English, so speed and hesitation are judged
   criteria: CheckCriterion[];
   passed: number;
+  id: number | null; // the stored check, to learn from it
+  stuck: StuckPoint[];
+  talk: TalkSummary | null; // the talk lesson for this kind of question
 };
 
 export type CheckRow = {
@@ -213,6 +274,7 @@ export type CheckRow = {
   not_english: boolean;
   passed: number;
   total: number;
+  review: CheckReviewData | null;
 };
 
 export type CheckState = {
@@ -224,6 +286,7 @@ export type CheckState = {
     hesitations_per_100: number;
   };
   checks: CheckRow[];
+  talks: (TalkSummary & { finished: number; practiced: number })[];
 };
 
 // ----- Pronunciation drills (docs/features/pronunciation-drills.md) -----

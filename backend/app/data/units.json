@@ -19,6 +19,22 @@
       "greeting": "Morning! How are you doing?",
       "closing": "Anyway, I should get back to work. Have a good week!",
       "vocab": "weekend, Saturday, Sunday, family, friends, coffee shop, movie, football, gym, relax, trip, cook.",
+      "lesson": {
+        "intro": "Hi! Today we'll learn four sentences to talk about your weekend: what you did, the best part, what you usually do, and your plans. Are you ready?",
+        "intro_vi": "Chào bạn! Hôm nay mình học bốn câu để kể về cuối tuần: bạn đã làm gì, phần vui nhất, bạn thường làm gì, và dự định sắp tới. Bạn sẵn sàng chưa?",
+        "vocab": [
+          {"word": "catch up with", "vi": "gặp lại và trò chuyện"},
+          {"word": "relax", "vi": "thư giãn"},
+          {"word": "the best part", "vi": "phần hay nhất"},
+          {"word": "plan to", "vi": "dự định"}
+        ],
+        "sentences": [
+          {"phrase": 0, "say": "On Saturday, I went to a coffee shop with some old friends from university.", "use": "Start with when and where. Notice the past tense: went, not go.", "use_vi": "Bắt đầu bằng thời gian và địa điểm. Để ý thì quá khứ: went, không phải go."},
+          {"phrase": 1, "say": "The best part was catching up with them after a long time.", "use": "Then pick one highlight. After was, you can use the -ing form of a verb.", "use_vi": "Sau đó chọn một điểm đáng nhớ. Sau was có thể dùng động từ thêm -ing."},
+          {"phrase": 2, "say": "I usually spend my weekends at home, reading or playing games.", "use": "This one describes a normal weekend. Use the present simple for habits.", "use_vi": "Câu này tả một cuối tuần bình thường. Dùng thì hiện tại đơn cho thói quen."},
+          {"phrase": 3, "say": "I'm planning to visit my parents next weekend.", "use": "Finish with your plans. I'm planning to, plus a verb, sounds natural in a chat.", "use_vi": "Kết thúc bằng dự định. I'm planning to cộng động từ nghe rất tự nhiên khi trò chuyện."}
+        ]
+      },
       "questions": [
         { "ask": "So, how was your weekend? What did you do?", "phrases": [0], "simple": "Did you go anywhere on Saturday or Sunday?", "steps": [{"hint": "Làm gì nữa?", "say": "After that, we ..."}, {"hint": "Cảm giác thế nào?", "say": "It was really ..., because ..."}, {"hint": "Một chi tiết đáng nhớ", "say": "The funny thing was ..."}] },
         { "ask": "What was the best part of it?", "phrases": [1], "simple": "What did you enjoy most?", "steps": [{"hint": "Vì sao thích nhất?", "say": "I loved it because ..."}, {"hint": "Kể chi tiết", "say": "For example, ..."}] },
@@ -71,6 +87,22 @@
       "greeting": "Hi, I don't think we've talked much yet.",
       "closing": "That sounds lovely. Maybe I'll visit one day!",
       "vocab": "Vietnam, Hanoi, Ho Chi Minh City, Da Nang, Hue, countryside, province, beach, mountain, street food, pho, traffic, motorbike.",
+      "lesson": {
+        "intro": "Hi! Today we'll learn four sentences to talk about where you're from: where it is, what it's like, what you miss, and what a visitor should try. Are you ready?",
+        "intro_vi": "Chào bạn! Hôm nay mình học bốn câu để nói về quê của bạn: ở đâu, nơi đó thế nào, bạn nhớ gì, và khách đến nên thử gì. Bạn sẵn sàng chưa?",
+        "vocab": [
+          {"word": "originally", "vi": "vốn là, gốc gác"},
+          {"word": "peaceful", "vi": "yên bình"},
+          {"word": "famous for", "vi": "nổi tiếng về"},
+          {"word": "pace of life", "vi": "nhịp sống"}
+        ],
+        "sentences": [
+          {"phrase": 0, "say": "I'm originally from Hue, in the center of Vietnam.", "use": "Say where you're from and where it is. Many people don't know the city, so add the region.", "use_vi": "Nói bạn từ đâu đến và nơi đó ở đâu. Nhiều người không biết thành phố, nên thêm vùng miền."},
+          {"phrase": 1, "say": "It's a quiet, peaceful place, famous for its old palaces and its food.", "use": "Describe it with clear adjectives, then say what it's famous for.", "use_vi": "Tả nơi đó bằng tính từ rõ ràng, rồi nói nó nổi tiếng về gì."},
+          {"phrase": 2, "say": "What I miss most is my mom's cooking and the slow pace of life.", "use": "Share a feeling. It makes small talk warmer and more personal.", "use_vi": "Chia sẻ cảm xúc. Câu chuyện xã giao sẽ gần gũi và có dấu ấn riêng hơn."},
+          {"phrase": 3, "say": "You should definitely try bun bo Hue if you ever go there.", "use": "End with a tip for the listener. People love a local recommendation.", "use_vi": "Kết bằng một lời khuyên cho người nghe. Ai cũng thích được người địa phương gợi ý."}
+        ]
+      },
       "questions": [
         { "ask": "Where are you from originally?", "phrases": [0], "simple": "Which city or town did you grow up in?", "steps": [{"hint": "Ở đâu, cách bao xa?", "say": "It's about ... from ..."}, {"hint": "Bạn sống ở đó bao lâu?", "say": "I lived there until ..., and then I ..."}] },
         { "ask": "What's it like there?", "phrases": [1], "simple": "Is it a big city or a small town?", "steps": [{"hint": "Con người, không khí", "say": "The people there are ..."}, {"hint": "Điều đặc biệt", "say": "It's famous for ..., so ..."}] },
@@ -124,6 +156,22 @@
       "greeting": "Hey, quick coffee break?",
       "closing": "Nice talking to you. I learned something new about you today!",
       "vocab": "hobby, free time, gaming, reading, running, swimming, badminton, guitar, photography, cooking, travel, side project.",
+      "lesson": {
+        "intro": "Hi! Today we'll learn four sentences to talk about your hobbies: what you like to do, how long you've done it, why you enjoy it, and something new you'd like to try. Are you ready?",
+        "intro_vi": "Chào bạn! Hôm nay mình học bốn câu để nói về sở thích: bạn thích làm gì, đã làm bao lâu, vì sao thích, và điều mới bạn muốn thử. Bạn sẵn sàng chưa?",
+        "vocab": [
+          {"word": "free time", "vi": "thời gian rảnh"},
+          {"word": "badminton", "vi": "cầu lông"},
+          {"word": "clear my head", "vi": "làm đầu óc thư thái"},
+          {"word": "give it a try", "vi": "thử xem sao"}
+        ],
+        "sentences": [
+          {"phrase": 0, "say": "In my free time, I like to play badminton with my coworkers.", "use": "Start with the hobby itself, and who you do it with.", "use_vi": "Bắt đầu bằng chính sở thích, và bạn làm cùng ai."},
+          {"phrase": 1, "say": "I've been doing it since I was in university.", "use": "This shows how long. Use I've been doing it since, plus a time in the past.", "use_vi": "Câu này cho biết đã bao lâu. Dùng I've been doing it since cộng một mốc trong quá khứ."},
+          {"phrase": 2, "say": "I enjoy it because it helps me clear my head after work.", "use": "Now give the reason. A real reason makes your answer longer and more interesting.", "use_vi": "Giờ nói lý do. Một lý do thật làm câu trả lời dài hơn và thú vị hơn."},
+          {"phrase": 3, "say": "I'd love to try rock climbing one day.", "use": "Finish with something new. I'd love to try sounds friendly and open.", "use_vi": "Kết bằng một điều mới. I'd love to try nghe thân thiện và cởi mở."}
+        ]
+      },
       "questions": [
         { "ask": "What do you like to do when you're not working?", "phrases": [0], "simple": "What do you do in your free time?", "steps": [{"hint": "Bao lâu một lần?", "say": "I usually do it ... times a week."}, {"hint": "Nó giúp gì cho bạn?", "say": "It helps me ..."}] },
         { "ask": "How did you get into it?", "phrases": [1], "simple": "When did you start doing that?", "steps": [{"hint": "Bắt đầu thế nào?", "say": "I started because ..."}, {"hint": "Lúc đầu ra sao?", "say": "At first, it was ..., but now ..."}] },
@@ -177,6 +225,22 @@
       "greeting": "You look busy today!",
       "closing": "Thanks for sharing. Let's grab lunch together sometime.",
       "vocab": "get up, alarm, breakfast, commute, traffic, bus, motorbike, office, lunch break, meeting, gym, dinner, bedtime.",
+      "lesson": {
+        "intro": "Hi! Today we'll learn four sentences to describe your day: your morning, your way to work, your evening, and one thing you'd change. Are you ready?",
+        "intro_vi": "Chào bạn! Hôm nay mình học bốn câu để kể về một ngày của bạn: buổi sáng, đường đi làm, buổi tối, và một điều bạn muốn đổi. Bạn sẵn sàng chưa?",
+        "vocab": [
+          {"word": "get up", "vi": "thức dậy"},
+          {"word": "commute", "vi": "đi lại đến chỗ làm"},
+          {"word": "traffic jam", "vi": "kẹt xe"},
+          {"word": "work out", "vi": "tập thể dục"}
+        ],
+        "sentences": [
+          {"phrase": 0, "say": "I usually get up at seven, and then I have a quick breakfast.", "use": "Tell your day in order. Usually and and then help the listener follow you.", "use_vi": "Kể theo thứ tự thời gian. Usually và and then giúp người nghe theo kịp."},
+          {"phrase": 1, "say": "It takes me about thirty minutes to get to work by motorbike.", "use": "Use it takes me about to say how long something takes, then add how you go.", "use_vi": "Dùng it takes me about để nói mất bao lâu, rồi thêm bạn đi bằng gì."},
+          {"phrase": 2, "say": "After work, I usually go to the gym or cook dinner at home.", "use": "This one moves to the evening. Two activities joined by or sound natural.", "use_vi": "Câu này chuyển sang buổi tối. Nêu hai việc nối bằng or nghe tự nhiên."},
+          {"phrase": 3, "say": "I wish I could start work later and avoid the traffic jam.", "use": "Use I wish I could for something you want but can't do now.", "use_vi": "Dùng I wish I could cho điều bạn muốn nhưng hiện chưa làm được."}
+        ]
+      },
       "questions": [
         { "ask": "What does a normal day look like for you?", "phrases": [0], "simple": "What time do you get up, and what do you do first?", "steps": [{"hint": "Sau đó làm gì?", "say": "After that, I ..."}, {"hint": "Buổi tối", "say": "In the evening, I usually ..."}] },
         { "ask": "How do you get to work?", "phrases": [1], "simple": "Do you go to work by bus, car or motorbike?", "steps": [{"hint": "Vì sao đi cách đó?", "say": "I go by ... because ..."}, {"hint": "Trên đường đi", "say": "On the way, I ..."}] },
@@ -228,6 +292,22 @@
       "greeting": "I'm thinking about my next holiday. Do you travel much?",
       "closing": "What a great story. Now I want to go there too!",
       "vocab": "trip, holiday, vacation, beach, mountain, flight, hotel, homestay, Da Lat, Phu Quoc, Sapa, Thailand, Japan, Korea, backpack.",
+      "lesson": {
+        "intro": "Hi! Today we'll learn four sentences to tell the story of a trip: where you went, what you did, what you remember most, and whether you'd go back. Are you ready?",
+        "intro_vi": "Chào bạn! Hôm nay mình học bốn câu để kể về một chuyến đi: bạn đi đâu, làm gì, nhớ nhất điều gì, và có muốn quay lại không. Bạn sẵn sàng chưa?",
+        "vocab": [
+          {"word": "memorable", "vi": "đáng nhớ"},
+          {"word": "sunrise", "vi": "bình minh"},
+          {"word": "rice fields", "vi": "ruộng lúa"},
+          {"word": "friendly", "vi": "thân thiện"}
+        ],
+        "sentences": [
+          {"phrase": 0, "say": "A few years ago, I went to Sapa with my college friends.", "use": "Start with when, where and who. Keep the whole story in the past tense.", "use_vi": "Bắt đầu bằng khi nào, ở đâu, với ai. Giữ cả câu chuyện ở thì quá khứ."},
+          {"phrase": 1, "say": "We spent most of the time hiking and taking photos of the rice fields.", "use": "Then say what you did. After we spent most of the time, use the -ing form of a verb.", "use_vi": "Sau đó kể bạn đã làm gì. Sau we spent most of the time, dùng động từ thêm -ing."},
+          {"phrase": 2, "say": "What I remember most is watching the sunrise over the mountains.", "use": "Pick one special moment. One clear picture is better than a long list.", "use_vi": "Chọn một khoảnh khắc đặc biệt. Một hình ảnh rõ ràng hay hơn một danh sách dài."},
+          {"phrase": 3, "say": "I'd definitely go back, because the people there were so friendly.", "use": "Finish with your feeling, and give a reason with because.", "use_vi": "Kết bằng cảm nhận, và đưa lý do bằng because."}
+        ]
+      },
       "questions": [
         { "ask": "Tell me about a trip you really remember. Where did you go?", "phrases": [0], "simple": "Where did you go on your last holiday?", "steps": [{"hint": "Vì sao chọn nơi đó?", "say": "We stayed there for ..., because ..."}, {"hint": "Ấn tượng đầu tiên", "say": "When we arrived, ..."}] },
         { "ask": "Who did you go with, and what did you do there?", "phrases": [1], "simple": "What did you do every day on that trip?", "steps": [{"hint": "Làm gì nữa?", "say": "We also ..."}, {"hint": "Điều thích nhất", "say": "The best thing was ..."}] },
@@ -280,6 +360,23 @@
       "greeting": "Can I ask your opinion about something?",
       "closing": "Interesting, you've given me a lot to think about.",
       "vocab": "opinion, remote work, office, AI tools, ChatGPT, Copilot, social media, learning English, work-life balance, productivity, advantage, disadvantage.",
+      "lesson": {
+        "intro": "Hi! Today we'll learn five sentences to give your opinion: say what you think, give the main reason, add an example, and agree or disagree politely. Are you ready?",
+        "intro_vi": "Chào bạn! Hôm nay mình học năm câu để nêu ý kiến: nói bạn nghĩ gì, đưa lý do chính, thêm ví dụ, và đồng ý hay phản đối một cách lịch sự. Bạn sẵn sàng chưa?",
+        "vocab": [
+          {"word": "opinion", "vi": "ý kiến"},
+          {"word": "productivity", "vi": "năng suất"},
+          {"word": "interruption", "vi": "sự gián đoạn"},
+          {"word": "distraction", "vi": "sự xao nhãng"}
+        ],
+        "sentences": [
+          {"phrase": 0, "say": "In my opinion, working from home is better for focused work.", "use": "Give your opinion first, clearly, in one sentence.", "use_vi": "Nêu ý kiến trước, rõ ràng, trong một câu."},
+          {"phrase": 1, "say": "The main reason is that I don't waste two hours a day in traffic.", "use": "Then give your main reason. One strong reason is enough.", "use_vi": "Sau đó đưa lý do chính. Một lý do thuyết phục là đủ."},
+          {"phrase": 2, "say": "For example, I finished a big feature last month without any interruptions.", "use": "Support it with a real example from your life or your work.", "use_vi": "Thêm một ví dụ thật từ cuộc sống hay công việc của bạn."},
+          {"phrase": 3, "say": "I see your point, but I think AI tools can't replace real experience.", "use": "Use this when you disagree. First show you heard the other person, then give your view.", "use_vi": "Dùng câu này khi không đồng ý. Trước hết cho thấy bạn đã nghe ý người kia, rồi mới nêu ý mình."},
+          {"phrase": 4, "say": "I totally agree, because short videos make it hard to focus.", "use": "Use this when you agree, and always add your reason after because.", "use_vi": "Dùng câu này khi đồng ý, và luôn thêm lý do sau because."}
+        ]
+      },
       "questions": [
         { "ask": "Do you prefer working from home or in the office?", "phrases": [0, 1], "simple": "Where do you like working more, home or office? Why?", "steps": [{"hint": "Vì sao?", "say": "That's because ..."}, {"hint": "Một lần cụ thể", "say": "For example, last week I ..."}, {"hint": "Mặt trái", "say": "The only downside is that ..."}] },
         { "ask": "What do you think about using AI tools for coding?", "phrases": [0, 2], "simple": "Do AI coding tools help you? How?", "steps": [{"hint": "Vì sao?", "say": "That's because ..."}, {"hint": "Một lần cụ thể", "say": "For example, last week I used it to ..."}, {"hint": "Mặt trái", "say": "But one problem is that ..."}] },
@@ -345,6 +442,22 @@
       "greeting": "Okay, let's start the stand-up.",
       "closing": "Okay, next person, please.",
       "vocab": "ticket, task, pull request, merge, deploy, staging, production, bug fix, API, endpoint, unit test, blocker, review, sprint, Jira.",
+      "lesson": {
+        "intro": "Hi! Today we'll learn four sentences for the daily stand-up: what you did yesterday, what you'll do today, what's blocking you, and when your task will be ready. Are you ready?",
+        "intro_vi": "Chào bạn! Hôm nay mình học bốn câu cho buổi họp đứng hằng ngày: hôm qua làm gì, hôm nay làm gì, vướng ở đâu, và khi nào xong việc. Bạn sẵn sàng chưa?",
+        "vocab": [
+          {"word": "ticket", "vi": "phiếu công việc"},
+          {"word": "merge", "vi": "gộp code"},
+          {"word": "blocked", "vi": "bị vướng, không làm tiếp được"},
+          {"word": "review comments", "vi": "góp ý khi review code"}
+        ],
+        "sentences": [
+          {"phrase": 0, "say": "Yesterday, I worked on the login API and finished the unit tests.", "use": "Start with yesterday. Say what you worked on and what you finished.", "use_vi": "Bắt đầu bằng hôm qua. Nói bạn làm gì và đã xong việc gì."},
+          {"phrase": 1, "say": "Today, I'm going to fix the review comments and merge the pull request.", "use": "Then today's plan. Keep it short and concrete.", "use_vi": "Sau đó là kế hoạch hôm nay. Ngắn gọn và cụ thể."},
+          {"phrase": 2, "say": "I'm blocked by the missing test account, so I need help from the QA team.", "use": "If something stops you, say what it is and who can help.", "use_vi": "Nếu có gì cản trở, nói rõ đó là gì và ai có thể giúp."},
+          {"phrase": 3, "say": "It should be ready by Thursday afternoon.", "use": "Finish with a clear time. Should be ready by sounds confident but honest.", "use_vi": "Kết bằng một mốc thời gian rõ ràng. Should be ready by nghe tự tin mà vẫn thật."}
+        ]
+      },
       "questions": [
         { "ask": "What did you work on yesterday?", "phrases": [0], "simple": "What did you finish yesterday?", "steps": [{"hint": "Phần khó", "say": "The tricky part was ..."}, {"hint": "Còn lại gì?", "say": "I still need to ..."}] },
         { "ask": "What are you going to work on today?", "phrases": [1], "simple": "What is your task for today?", "steps": [{"hint": "Làm gì trước, vì sao?", "say": "I'll start with ..., because ..."}, {"hint": "Nếu còn thời gian", "say": "If I have time, I'll also ..."}] },
@@ -400,6 +513,23 @@
       "greeting": "Hey, you said you wanted to talk about a bug?",
       "closing": "Good, that sounds like a solid plan. Ping me if you get stuck.",
       "vocab": "bug, error, exception, stack trace, log, null pointer, timeout, database, query, cache, deploy, rollback, reproduce, environment, staging, production.",
+      "lesson": {
+        "intro": "Hi! Today we'll learn five sentences to explain a bug: what happens, when it started, what you've checked, what you suspect, and your next step. Are you ready?",
+        "intro_vi": "Chào bạn! Hôm nay mình học năm câu để giải thích một lỗi: chuyện gì xảy ra, bắt đầu từ khi nào, bạn đã kiểm tra gì, nghi nguyên nhân gì, và bước tiếp theo. Bạn sẵn sàng chưa?",
+        "vocab": [
+          {"word": "reproduce", "vi": "làm lỗi xảy ra lại"},
+          {"word": "timeout", "vi": "hết thời gian chờ"},
+          {"word": "suspect", "vi": "nghi ngờ"},
+          {"word": "roll back", "vi": "quay về bản trước"}
+        ],
+        "sentences": [
+          {"phrase": 0, "say": "The problem is that when users upload a file, they get a timeout error.", "use": "Describe what the user sees, not what you think the cause is.", "use_vi": "Tả điều người dùng gặp, chưa nói nguyên nhân bạn đoán."},
+          {"phrase": 1, "say": "It started after yesterday's deploy, and it affects about ten percent of uploads.", "use": "Say when it started and how big it is. Numbers help a lot here.", "use_vi": "Nói lỗi bắt đầu khi nào và ảnh hưởng bao nhiêu. Con số giúp ích rất nhiều."},
+          {"phrase": 2, "say": "So far, I've checked the logs and the database connections.", "use": "Show what you've already done, so nobody checks it twice.", "use_vi": "Cho biết bạn đã làm gì, để không ai kiểm tra lại lần nữa."},
+          {"phrase": 3, "say": "I suspect it's caused by the new file size limit in the config.", "use": "Now give your guess. I suspect shows it's not confirmed yet.", "use_vi": "Giờ nêu phỏng đoán. I suspect cho thấy điều đó chưa được xác nhận."},
+          {"phrase": 4, "say": "Next, I'm going to reproduce it on staging and roll back if needed.", "use": "End with a clear next step.", "use_vi": "Kết bằng bước tiếp theo rõ ràng."}
+        ]
+      },
       "questions": [
         { "ask": "So what's the problem exactly?", "phrases": [0], "simple": "What is going wrong?", "steps": [{"hint": "Cách tái hiện", "say": "For example, when I ..., I get ..."}, {"hint": "Khi nào xảy ra?", "say": "It only happens when ..."}] },
         { "ask": "When did it start, and how many users are affected?", "phrases": [1], "simple": "When did you first see it?", "steps": [{"hint": "Phát hiện thế nào?", "say": "We found out because ..."}, {"hint": "Ảnh hưởng", "say": "Right now, users can't ..."}] },
@@ -463,6 +593,23 @@
       "greeting": "Hi, I had a look at your pull request.",
       "closing": "Great, thanks. Update it and I'll approve it.",
       "vocab": "pull request, commit, refactor, method, class, interface, naming, null check, exception handling, unit test, edge case, performance, readability, duplicate code.",
+      "lesson": {
+        "intro": "Hi! Today we'll learn five sentences for a code review: what your change does, why you chose it, how you tested it, and how to answer comments politely. Are you ready?",
+        "intro_vi": "Chào bạn! Hôm nay mình học năm câu cho buổi review code: thay đổi của bạn làm gì, vì sao chọn cách đó, bạn test thế nào, và trả lời góp ý một cách lịch sự. Bạn sẵn sàng chưa?",
+        "vocab": [
+          {"word": "approach", "vi": "cách làm"},
+          {"word": "validation", "vi": "kiểm tra dữ liệu đầu vào"},
+          {"word": "edge case", "vi": "trường hợp biên"},
+          {"word": "readability", "vi": "độ dễ đọc"}
+        ],
+        "sentences": [
+          {"phrase": 0, "say": "This pull request adds input validation so that we reject bad requests early.", "use": "Summarize the change and its purpose in one line. So that gives the purpose.", "use_vi": "Tóm tắt thay đổi và mục đích trong một câu. So that nêu mục đích."},
+          {"phrase": 1, "say": "I chose this approach because it keeps the controller simple.", "use": "Explain why. Reviewers accept a change faster when they know the reason.", "use_vi": "Giải thích lý do. Người review chấp nhận nhanh hơn khi biết vì sao."},
+          {"phrase": 2, "say": "Good point, I'll split it into two smaller methods.", "use": "When you agree with a comment, say so and say what you'll do.", "use_vi": "Khi đồng ý với góp ý, nói ra và nói bạn sẽ làm gì."},
+          {"phrase": 3, "say": "I tested it by adding unit tests for the main edge cases.", "use": "Say how you tested it. It builds trust in your change.", "use_vi": "Nói bạn đã test thế nào. Điều đó tạo niềm tin vào thay đổi của bạn."},
+          {"phrase": 4, "say": "I see what you mean, but I'd like to keep it in one class for now.", "use": "When you disagree, show you understood first, then explain your view politely.", "use_vi": "Khi không đồng ý, cho thấy bạn đã hiểu ý người kia trước, rồi lịch sự giải thích ý mình."}
+        ]
+      },
       "questions": [
         { "ask": "Can you give me a quick summary of what this pull request changes?", "phrases": [0], "simple": "What does your change do?", "steps": [{"hint": "Trước thay đổi", "say": "Before this change, ..."}, {"hint": "Thay đổi chính ở đâu?", "say": "The main change is in ..."}] },
         { "ask": "Why did you choose this approach?", "phrases": [1], "simple": "Why did you write it this way?", "steps": [{"hint": "Cách khác đã cân nhắc", "say": "I also considered ..., but ..."}, {"hint": "Lợi ích", "say": "This way, ..."}] },
@@ -523,6 +670,22 @@
       "greeting": "Thanks for joining. I want to plan the next release.",
       "closing": "Okay, that works for me. Thanks for raising it early.",
       "vocab": "release, deadline, scope, feature, risk, testing, bug, technical debt, estimate, priority, MVP, phase, rollout, user, feedback.",
+      "lesson": {
+        "intro": "Hi! Today we'll learn four sentences to raise a concern in a meeting: show you understand, name the risk, suggest another way, and sum up. Are you ready?",
+        "intro_vi": "Chào bạn! Hôm nay mình học bốn câu để nêu lo ngại trong cuộc họp: cho thấy bạn hiểu, nói rõ rủi ro, đề xuất cách khác, và tóm tắt. Bạn sẵn sàng chưa?",
+        "vocab": [
+          {"word": "concern", "vi": "mối lo ngại"},
+          {"word": "risk", "vi": "rủi ro"},
+          {"word": "rollout", "vi": "triển khai dần"},
+          {"word": "sum up", "vi": "tóm lại"}
+        ],
+        "sentences": [
+          {"phrase": 0, "say": "I understand why that's important, but I'm worried that we haven't tested it enough.", "use": "Start by respecting the other person's goal, then share your worry.", "use_vi": "Mở đầu bằng việc tôn trọng mục tiêu của người kia, rồi mới nói điều bạn lo."},
+          {"phrase": 1, "say": "The main risk is that the new search could slow down the whole app.", "use": "Name one concrete risk, not a general feeling.", "use_vi": "Nêu một rủi ro cụ thể, không phải cảm giác chung chung."},
+          {"phrase": 2, "say": "What if we start with ten percent of users? That way, we can check the performance.", "use": "Offer another way. What if we sounds like teamwork, not a complaint.", "use_vi": "Đưa ra cách khác. What if we nghe như cùng làm việc, không phải phàn nàn."},
+          {"phrase": 3, "say": "So, to sum up, we agreed to start with a small rollout next Friday.", "use": "End with a short summary, so everyone leaves with the same plan.", "use_vi": "Kết thúc bằng một câu tóm tắt ngắn, để ai cũng ra về với cùng một kế hoạch."}
+        ]
+      },
       "questions": [
         { "ask": "I'd like to release the new search feature next Friday. Does that work for you?", "phrases": [0], "simple": "Can your team finish the search feature by next Friday?", "steps": [{"hint": "Ví dụ rủi ro", "say": "For example, ..."}, {"hint": "Đề xuất", "say": "Could we ... instead?"}] },
         { "ask": "What exactly is the risk?", "phrases": [1], "simple": "Why do you think it is a problem?", "steps": [{"hint": "Nếu xảy ra thì sao?", "say": "If that happens, ..."}, {"hint": "Từng gặp chưa?", "say": "We had a similar problem when ..."}] },
@@ -576,6 +739,23 @@
       "greeting": "Alright, you're up next for the demo.",
       "closing": "Nice work, the team will be happy with that.",
       "vocab": "feature, demo, screen, button, page, dashboard, filter, export, notification, user, admin, mobile, release, feedback, next sprint.",
+      "lesson": {
+        "intro": "Hi! Today we'll learn five sentences to demo a feature: what you'll show, who it's for, how it works, what's not done yet, and what's next. Are you ready?",
+        "intro_vi": "Chào bạn! Hôm nay mình học năm câu để demo một tính năng: bạn sẽ cho xem gì, dành cho ai, hoạt động thế nào, phần nào chưa xong, và tiếp theo là gì. Bạn sẵn sàng chưa?",
+        "vocab": [
+          {"word": "walk through", "vi": "trình bày từng bước"},
+          {"word": "export", "vi": "xuất ra file"},
+          {"word": "date range", "vi": "khoảng thời gian"},
+          {"word": "notification", "vi": "thông báo"}
+        ],
+        "sentences": [
+          {"phrase": 0, "say": "Today, I'm going to show you the new export feature on the dashboard.", "use": "Open the demo by saying what people are about to see.", "use_vi": "Mở đầu buổi demo bằng việc nói mọi người sắp được xem gì."},
+          {"phrase": 1, "say": "It's for sales managers, who need to share monthly reports with their team.", "use": "Say who the feature is for and what they need. It gives the demo a purpose.", "use_vi": "Nói tính năng dành cho ai và họ cần gì. Nhờ đó buổi demo có mục đích."},
+          {"phrase": 2, "say": "First, the user picks a date range. Then they click Export and get an Excel file.", "use": "Walk through the steps in order with first and then.", "use_vi": "Đi qua các bước theo thứ tự với first và then."},
+          {"phrase": 3, "say": "One thing that's not done yet is exporting to PDF.", "use": "Be honest about what's missing. It sets the right expectations.", "use_vi": "Nói thật phần còn thiếu. Điều đó giúp mọi người kỳ vọng đúng."},
+          {"phrase": 4, "say": "Next sprint, we plan to add email notifications.", "use": "Finish with the next step for the feature.", "use_vi": "Kết bằng bước tiếp theo của tính năng."}
+        ]
+      },
       "questions": [
         { "ask": "What are you going to show us today?", "phrases": [0], "simple": "Which feature did you build?", "steps": [{"hint": "Giúp người dùng gì?", "say": "It helps users ..."}, {"hint": "Bắt đầu từ đâu?", "say": "I'll start with ..."}] },
         { "ask": "Who is it for, and what problem does it solve?", "phrases": [1], "simple": "Why do users need this?", "steps": [{"hint": "Trước đây ra sao?", "say": "Before this, they had to ..."}, {"hint": "Giờ thì sao?", "say": "Now they can ..."}] },
@@ -640,6 +820,22 @@
       "greeting": "Hi, thanks for taking the call. I have a request for you.",
       "closing": "Perfect, it sounds like we're on the same page.",
       "vocab": "requirement, report, page, export, Excel, PDF, filter, deadline, priority, example, user, customer, slow, faster, dashboard.",
+      "lesson": {
+        "intro": "Hi! Today we'll learn four sentences to clarify a request: check what the person means, ask for an example, ask about the deadline, and repeat the request in your own words. Are you ready?",
+        "intro_vi": "Chào bạn! Hôm nay mình học bốn câu để làm rõ một yêu cầu: hỏi lại ý người nói, xin ví dụ, hỏi hạn chót, và nhắc lại yêu cầu bằng lời của bạn. Bạn sẵn sàng chưa?",
+        "vocab": [
+          {"word": "clarify", "vi": "làm rõ"},
+          {"word": "requirement", "vi": "yêu cầu"},
+          {"word": "deadline", "vi": "hạn chót"},
+          {"word": "on the same page", "vi": "hiểu giống nhau"}
+        ],
+        "sentences": [
+          {"phrase": 0, "say": "Just to clarify, do you mean the page loads slowly, or the export is slow?", "use": "Don't guess. Ask which one they mean, and give two options.", "use_vi": "Đừng đoán. Hỏi xem họ muốn nói cái nào, và đưa ra hai lựa chọn."},
+          {"phrase": 1, "say": "Could you give me an example of a report that takes too long?", "use": "Ask for a real example. It turns a vague request into something you can test.", "use_vi": "Xin một ví dụ thật. Nó biến một yêu cầu mơ hồ thành thứ bạn kiểm tra được."},
+          {"phrase": 2, "say": "When do you need it by, and how fast should it be?", "use": "Ask about the deadline and the goal before you start.", "use_vi": "Hỏi hạn chót và mục tiêu trước khi bắt đầu."},
+          {"phrase": 3, "say": "So if I understand correctly, you want the monthly report to open in a few seconds.", "use": "Repeat the request in your own words, so you're both on the same page.", "use_vi": "Nhắc lại yêu cầu bằng lời của bạn, để hai bên hiểu giống nhau."}
+        ]
+      },
       "questions": [
         { "ask": "We need the report page to be faster. Can you handle that?", "phrases": [0], "simple": "The report page is slow. What do you want to ask me about it?", "steps": [{"hint": "Hỏi phạm vi", "say": "Do you mean ... or ...?"}, {"hint": "Hỏi ai bị ảnh hưởng", "say": "Is it slow for everyone, or only ...?"}] },
         { "ask": "Sorry, I mean the monthly sales report. It's really slow, especially in the morning. What else do you need to know?", "phrases": [1, 2], "simple": "Do you want to ask how slow it is, or when we need it?", "steps": [{"hint": "Hỏi con số", "say": "How long does it take to ... right now?"}, {"hint": "Hỏi tần suất", "say": "Does it happen every time, or only ...?"}] },
@@ -924,6 +1120,23 @@
       "greeting": "Let's move on to your technical experience.",
       "closing": "Great, thank you for walking me through your stack.",
       "vocab": "Java, Spring Boot, Spring Security, JPA, Hibernate, REST API, Maven, Gradle, JUnit, dependency injection, annotation, JWT, OAuth2, Java 17, Java 21, virtual threads, records.",
+      "lesson": {
+        "intro": "Hi! Today we'll learn five sentences to talk about Java and Spring: the tools you use, what you've built, a simple explanation, security, and a feature you like. Are you ready?",
+        "intro_vi": "Chào bạn! Hôm nay mình học năm câu để nói về Java và Spring: công cụ bạn dùng, thứ bạn đã xây dựng, một lời giải thích đơn giản, bảo mật, và một tính năng bạn thích. Bạn sẵn sàng chưa?",
+        "vocab": [
+          {"word": "dependency injection", "vi": "tiêm phụ thuộc"},
+          {"word": "framework", "vi": "khung phần mềm"},
+          {"word": "boilerplate", "vi": "code lặp lại, rườm rà"},
+          {"word": "token", "vi": "mã xác thực"}
+        ],
+        "sentences": [
+          {"phrase": 0, "say": "In my daily work, I mainly use Java, Spring Boot and PostgreSQL.", "use": "Start with your main tools. Three is a good number to list.", "use_vi": "Bắt đầu bằng công cụ chính. Liệt kê ba thứ là vừa."},
+          {"phrase": 1, "say": "I've used Spring Boot to build REST APIs for an online shop.", "use": "Then connect the tool to something real you built.", "use_vi": "Sau đó gắn công cụ với một thứ thật bạn đã làm."},
+          {"phrase": 2, "say": "Simply put, dependency injection means the framework creates objects for you.", "use": "Use simply put to explain a technical idea in plain words.", "use_vi": "Dùng simply put để giải thích một khái niệm kỹ thuật bằng lời dễ hiểu."},
+          {"phrase": 3, "say": "We secure our APIs with Spring Security and JWT tokens.", "use": "Say how you protect your APIs, with the actual tools.", "use_vi": "Nói bạn bảo vệ API thế nào, kèm công cụ cụ thể."},
+          {"phrase": 4, "say": "One feature I really like is records, because they remove a lot of boilerplate.", "use": "Show interest in the language. Name a feature and say why you like it.", "use_vi": "Cho thấy bạn quan tâm đến ngôn ngữ. Nêu một tính năng và lý do bạn thích nó."}
+        ]
+      },
       "questions": [
         { "ask": "Which technologies do you use most in your daily work?", "phrases": [0], "simple": "What languages and tools do you use every day?", "steps": [{"hint": "Dùng vào việc gì?", "say": "For example, in my current project, I use ... to ..."}, {"hint": "Công cụ khác", "say": "I also use ... for ..."}] },
         { "ask": "What have you built with Spring Boot?", "phrases": [1], "simple": "Tell me about one service you made with Spring Boot.", "steps": [{"hint": "Hệ thống làm gì?", "say": "It handles ..."}, {"hint": "Phần khó", "say": "The tricky part was ..."}] },
@@ -981,6 +1194,23 @@
       "greeting": "I'd like to talk about system design.",
       "closing": "Thank you, that was a clear explanation of your architecture.",
       "vocab": "microservices, monolith, REST, gRPC, Kafka, RabbitMQ, message queue, API gateway, service discovery, circuit breaker, retry, timeout, eventual consistency, Docker, Kubernetes.",
+      "lesson": {
+        "intro": "Hi! Today we'll learn five sentences to describe a microservices system: how it's split, how services talk, how you handle failures, the trade-off, and what you'd change. Are you ready?",
+        "intro_vi": "Chào bạn! Hôm nay mình học năm câu để mô tả một hệ thống microservices: chia ra sao, các service giao tiếp thế nào, xử lý lỗi ra sao, điểm đánh đổi, và bạn sẽ đổi gì. Bạn sẵn sàng chưa?",
+        "vocab": [
+          {"word": "split into", "vi": "chia thành"},
+          {"word": "message queue", "vi": "hàng đợi tin nhắn"},
+          {"word": "circuit breaker", "vi": "cơ chế ngắt mạch"},
+          {"word": "trade-off", "vi": "sự đánh đổi"}
+        ],
+        "sentences": [
+          {"phrase": 0, "say": "The system was split into five services, for example orders, payments and users.", "use": "Give the number of services and a few examples, so the listener can picture it.", "use_vi": "Nói số service và vài ví dụ, để người nghe hình dung được."},
+          {"phrase": 1, "say": "They communicate through REST for queries and Kafka for events.", "use": "Then explain how the services talk to each other.", "use_vi": "Sau đó giải thích các service nói chuyện với nhau thế nào."},
+          {"phrase": 2, "say": "To handle failures, we use retries, timeouts and a circuit breaker.", "use": "Interviewers always ask what happens when something fails. Answer with concrete patterns.", "use_vi": "Người phỏng vấn luôn hỏi khi có lỗi thì sao. Trả lời bằng các cách làm cụ thể."},
+          {"phrase": 3, "say": "The main trade-off is that debugging across services is much harder.", "use": "Show balance. Every design has a cost, and saying it shows experience.", "use_vi": "Cho thấy góc nhìn cân bằng. Thiết kế nào cũng có cái giá, nói ra cho thấy bạn có kinh nghiệm."},
+          {"phrase": 4, "say": "If I could do it again, I would start with a modular monolith.", "use": "End with what you learned. It shows you think about your own work.", "use_vi": "Kết bằng điều bạn rút ra. Nó cho thấy bạn biết nhìn lại công việc của mình."}
+        ]
+      },
       "questions": [
         { "ask": "Have you worked with microservices? How was the system split into services?", "phrases": [0], "simple": "How many services did your system have, and what did each one do?", "steps": [{"hint": "Mỗi service làm gì?", "say": "Each service ..."}, {"hint": "Vì sao chia vậy?", "say": "We split it like that because ..."}] },
         { "ask": "How do the services communicate with each other?", "phrases": [1], "simple": "Do your services call each other directly, or send messages?", "steps": [{"hint": "Ví dụ một luồng", "say": "For example, when ..., ..."}, {"hint": "Vì sao chọn cách đó?", "say": "We use ... for ... because ..."}] },
@@ -1042,6 +1272,23 @@
       "greeting": "Let's talk about databases and performance.",
       "closing": "Thanks, it's clear you've dealt with real performance issues.",
       "vocab": "PostgreSQL, MySQL, MongoDB, index, query, slow query, execution plan, N+1 problem, Redis, cache, connection pool, transaction, latency, response time, monitoring, Grafana.",
+      "lesson": {
+        "intro": "Hi! Today we'll learn five sentences to talk about databases and performance: why you chose a database, how you found a slow query, how you fixed it, when to cache, and how you measured. Are you ready?",
+        "intro_vi": "Chào bạn! Hôm nay mình học năm câu để nói về cơ sở dữ liệu và hiệu năng: vì sao chọn cơ sở dữ liệu đó, tìm ra truy vấn chậm thế nào, sửa ra sao, khi nào dùng cache, và đo kết quả thế nào. Bạn sẵn sàng chưa?",
+        "vocab": [
+          {"word": "execution plan", "vi": "kế hoạch thực thi truy vấn"},
+          {"word": "index", "vi": "chỉ mục"},
+          {"word": "bottleneck", "vi": "điểm nghẽn"},
+          {"word": "response time", "vi": "thời gian phản hồi"}
+        ],
+        "sentences": [
+          {"phrase": 0, "say": "We chose PostgreSQL because our data has a lot of relations.", "use": "Give your choice and the reason in one sentence.", "use_vi": "Nêu lựa chọn và lý do trong một câu."},
+          {"phrase": 1, "say": "First, I checked the execution plan and found that the query didn't use an index.", "use": "Show that you measured before changing anything.", "use_vi": "Cho thấy bạn đã đo trước khi sửa bất cứ điều gì."},
+          {"phrase": 2, "say": "I fixed it by adding a composite index on the user ID and the date columns.", "use": "Then say exactly what you changed.", "use_vi": "Sau đó nói chính xác bạn đã thay đổi gì."},
+          {"phrase": 3, "say": "A cache makes sense when the data is read often but rarely changes.", "use": "Explain a rule of thumb. It shows you don't add a cache everywhere.", "use_vi": "Nêu một nguyên tắc thực tế. Nó cho thấy bạn không thêm cache ở mọi nơi."},
+          {"phrase": 4, "say": "We measured the response time before and after the change.", "use": "Finish with proof. Interviewers like results with numbers.", "use_vi": "Kết bằng bằng chứng. Người phỏng vấn thích kết quả có con số."}
+        ]
+      },
       "questions": [
         { "ask": "Which databases have you worked with, and how did you choose between them?", "phrases": [0], "simple": "Which databases do you use?", "steps": [{"hint": "Ví dụ", "say": "For example, ..."}, {"hint": "Khi nào chọn cái khác?", "say": "If I needed ..., I'd choose ..."}] },
         { "ask": "Tell me about a slow query or a slow API you had to fix. How did you find the cause?", "phrases": [1], "simple": "How do you find out why something is slow?", "steps": [{"hint": "Chậm cỡ nào?", "say": "The API took about ..."}, {"hint": "Tìm ra thế nào?", "say": "Then I ..."}] },
@@ -1103,6 +1350,23 @@
       "greeting": "Now let's talk about code quality.",
       "closing": "Thank you, I like how you think about quality.",
       "vocab": "unit test, integration test, JUnit, Mockito, Testcontainers, code coverage, code review, pull request, SonarQube, CI pipeline, refactoring, clean code, legacy code.",
+      "lesson": {
+        "intro": "Hi! Today we'll learn five sentences to talk about testing and code quality: what you test, what makes a good test, how your team reviews code, a bug a test caught, and how you handle old code. Are you ready?",
+        "intro_vi": "Chào bạn! Hôm nay mình học năm câu để nói về kiểm thử và chất lượng code: bạn test gì, thế nào là một test tốt, team review code ra sao, một lỗi test đã bắt được, và cách xử lý code cũ. Bạn sẵn sàng chưa?",
+        "vocab": [
+          {"word": "integration test", "vi": "kiểm thử tích hợp"},
+          {"word": "approval", "vi": "sự chấp thuận"},
+          {"word": "legacy code", "vi": "code cũ"},
+          {"word": "behavior", "vi": "hành vi, cách chạy"}
+        ],
+        "sentences": [
+          {"phrase": 0, "say": "I usually write unit tests for business logic and integration tests for the APIs.", "use": "Say what kinds of tests you write, and for what.", "use_vi": "Nói bạn viết loại test nào, và cho phần nào."},
+          {"phrase": 1, "say": "A good test should be fast, clear, and check only one thing.", "use": "Give a short rule with three qualities. It's easy to remember.", "use_vi": "Đưa ra một nguyên tắc ngắn với ba đặc điểm. Dễ nhớ."},
+          {"phrase": 2, "say": "In our team, every pull request needs one approval and a green build.", "use": "Describe your team's process in one concrete sentence.", "use_vi": "Tả quy trình của team bằng một câu cụ thể."},
+          {"phrase": 3, "say": "Thanks to that test, we caught a rounding bug before release.", "use": "Tell a short success story about a test.", "use_vi": "Kể một câu chuyện ngắn về lần test giúp ích."},
+          {"phrase": 4, "say": "Before changing it, I first add tests around the current behavior.", "use": "Show a safe way to work with old code.", "use_vi": "Cho thấy một cách an toàn để làm việc với code cũ."}
+        ]
+      },
       "questions": [
         { "ask": "How do you usually test your code?", "phrases": [0], "simple": "What kinds of tests do you write?", "steps": [{"hint": "Ví dụ", "say": "For example, ..."}, {"hint": "Thêm gì nữa?", "say": "I also ..."}] },
         { "ask": "What makes a good unit test, in your opinion?", "phrases": [1], "simple": "How do you know a test is good?", "steps": [{"hint": "Ví dụ", "say": "For example, ..."}, {"hint": "Test tệ là gì?", "say": "A bad test is one that ..."}] },
@@ -1164,6 +1428,24 @@
       "greeting": "Let's talk about problem solving.",
       "closing": "Thank you, that was a clear example. That's all from me.",
       "vocab": "bug, production issue, deadline, performance, database, deployment, customer, as a result, reduced, improved.",
+      "lesson": {
+        "intro": "Hi! Today we'll learn six sentences to tell the story of a problem you solved, step by step: the situation, your task, your action, the result, the numbers, and what you learned. Are you ready?",
+        "intro_vi": "Chào bạn! Hôm nay mình học sáu câu để kể lại một vấn đề bạn đã giải quyết, từng bước: bối cảnh, nhiệm vụ, hành động, kết quả, con số, và bài học. Bạn sẵn sàng chưa?",
+        "vocab": [
+          {"word": "situation", "vi": "bối cảnh"},
+          {"word": "peak hours", "vi": "giờ cao điểm"},
+          {"word": "as a result", "vi": "kết quả là"},
+          {"word": "reduce", "vi": "giảm"}
+        ],
+        "sentences": [
+          {"phrase": 0, "say": "At that time, we were facing slow page loads during peak hours.", "use": "Set the scene. Describe the situation in the past continuous.", "use_vi": "Dựng bối cảnh. Tả tình huống bằng thì quá khứ tiếp diễn."},
+          {"phrase": 1, "say": "My task was to find the cause and fix it within one week.", "use": "Say what you were responsible for.", "use_vi": "Nói bạn chịu trách nhiệm việc gì."},
+          {"phrase": 2, "say": "So I decided to profile the API and add caching for product data.", "use": "This is the most important part: what you did. Use I, not we.", "use_vi": "Đây là phần quan trọng nhất: bạn đã làm gì. Dùng I, không dùng we."},
+          {"phrase": 3, "say": "As a result, the pages loaded much faster.", "use": "Then give the result.", "use_vi": "Sau đó nêu kết quả."},
+          {"phrase": 4, "say": "It reduced the average response time by sixty percent.", "use": "Add a number if you can. Numbers make results believable.", "use_vi": "Thêm con số nếu có thể. Con số làm kết quả đáng tin hơn."},
+          {"phrase": 5, "say": "Looking back, I learned that measuring first saves a lot of time.", "use": "Finish with a lesson. It shows you grow from experience.", "use_vi": "Kết bằng một bài học. Nó cho thấy bạn trưởng thành qua kinh nghiệm."}
+        ]
+      },
       "questions": [
         { "ask": "Can you tell me about a difficult problem you solved at work? What was the situation?", "phrases": [0], "simple": "Think of one problem at work. What happened?", "steps": [{"hint": "Vì sao nghiêm trọng?", "say": "It was a big problem because ..."}, {"hint": "Vai trò của bạn", "say": "At that time, I was ..."}] },
         { "ask": "What exactly was your task?", "phrases": [1], "simple": "What did you need to do?", "steps": [{"hint": "Vì sao gấp?", "say": "It was urgent because ..."}, {"hint": "Hạn chót", "say": "I had to ... by ..."}] },
@@ -1227,6 +1509,23 @@
       "greeting": "Let's talk about teamwork.",
       "closing": "Thanks, that's a good example of working with others.",
       "vocab": "teammate, tech lead, product owner, disagreement, opinion, approach, compromise, pros and cons, meeting, decision, proof of concept, benchmark.",
+      "lesson": {
+        "intro": "Hi! Today we'll learn five sentences to talk about a disagreement with a teammate: what it was about, how you shared your view, how you decided, your relationship, and what you'd do next time. Are you ready?",
+        "intro_vi": "Chào bạn! Hôm nay mình học năm câu để kể về một lần bất đồng với đồng nghiệp: chuyện gì, bạn nêu ý mình thế nào, quyết định ra sao, quan hệ sau đó, và lần sau bạn sẽ làm gì. Bạn sẵn sàng chưa?",
+        "vocab": [
+          {"word": "complexity", "vi": "sự phức tạp"},
+          {"word": "compromise", "vi": "sự thỏa hiệp"},
+          {"word": "proof of concept", "vi": "bản thử nghiệm ý tưởng"},
+          {"word": "benchmark", "vi": "bài đo hiệu năng"}
+        ],
+        "sentences": [
+          {"phrase": 0, "say": "We had different opinions about whether to use Kafka or a simple REST call.", "use": "Start with the topic of the disagreement. Keep it about the work, not the person.", "use_vi": "Bắt đầu bằng chủ đề bất đồng. Nói về công việc, không nói về con người."},
+          {"phrase": 1, "say": "I told him, I understand your point, but Kafka adds a lot of complexity for us.", "use": "Show you listened first, then give your reason.", "use_vi": "Cho thấy bạn đã lắng nghe, rồi mới đưa lý do của mình."},
+          {"phrase": 2, "say": "In the end, we agreed to build a small proof of concept first.", "use": "Explain how you decided together.", "use_vi": "Giải thích hai bên đã cùng quyết định thế nào."},
+          {"phrase": 3, "say": "We still work well together, and we often review each other's code.", "use": "Interviewers want to hear that the relationship stayed good.", "use_vi": "Người phỏng vấn muốn nghe rằng quan hệ vẫn tốt."},
+          {"phrase": 4, "say": "Next time, I would share data from a benchmark earlier.", "use": "End with what you'd improve. It shows self-awareness.", "use_vi": "Kết bằng điều bạn sẽ làm tốt hơn. Nó cho thấy bạn biết nhìn lại mình."}
+        ]
+      },
       "questions": [
         { "ask": "Tell me about a time you disagreed with a teammate. What was it about?", "phrases": [0], "simple": "Did you ever have a different opinion from a teammate? What happened?", "steps": [{"hint": "Hai ý kiến", "say": "I wanted to ..., but they wanted to ..."}, {"hint": "Vì sao quan trọng?", "say": "It mattered because ..."}] },
         { "ask": "How did you share your opinion with them?", "phrases": [1], "simple": "What did you say to them?", "steps": [{"hint": "Bạn đưa bằng chứng gì?", "say": "I showed them ..."}, {"hint": "Bạn hỏi gì?", "say": "I also asked ..."}] },
@@ -1289,6 +1588,23 @@
       "greeting": "Let's talk about working under time pressure.",
       "closing": "Thank you, that shows how you handle pressure.",
       "vocab": "deadline, release, sprint, scope, priority, stakeholder, manager, client, overtime, hotfix, must-have, nice-to-have, estimate.",
+      "lesson": {
+        "intro": "Hi! Today we'll learn five sentences to talk about a tight deadline: how little time you had, what you did first, who you told, the result, and what you do now. Are you ready?",
+        "intro_vi": "Chào bạn! Hôm nay mình học năm câu để kể về một lần gấp hạn: bạn có ít thời gian thế nào, làm gì trước, báo cho ai, kết quả ra sao, và giờ bạn làm gì. Bạn sẵn sàng chưa?",
+        "vocab": [
+          {"word": "tight deadline", "vi": "hạn chót gấp"},
+          {"word": "prioritize", "vi": "ưu tiên"},
+          {"word": "estimate", "vi": "ước lượng thời gian"},
+          {"word": "on time", "vi": "đúng hạn"}
+        ],
+        "sentences": [
+          {"phrase": 0, "say": "We only had two weeks to finish the new checkout page.", "use": "Show the pressure. Only makes the time sound short.", "use_vi": "Cho thấy áp lực. Only làm khoảng thời gian nghe ngắn hơn."},
+          {"phrase": 1, "say": "I focused on the most important features first.", "use": "Say how you prioritized.", "use_vi": "Nói bạn đã ưu tiên thế nào."},
+          {"phrase": 2, "say": "I let my manager know early that the reports would be late.", "use": "Good communication matters. Say who you told, and that you told them early.", "use_vi": "Giao tiếp tốt rất quan trọng. Nói bạn báo cho ai, và báo sớm."},
+          {"phrase": 3, "say": "We managed to release the checkout page on time.", "use": "Give the result. Managed to means it was hard, but you did it.", "use_vi": "Nêu kết quả. Managed to nghĩa là khó, nhưng bạn đã làm được."},
+          {"phrase": 4, "say": "Now I always split big tasks and check the estimate at the start.", "use": "Finish with the habit you built from it.", "use_vi": "Kết bằng thói quen bạn rút ra từ lần đó."}
+        ]
+      },
       "questions": [
         { "ask": "Tell me about a time you had a very tight deadline. What was the situation?", "phrases": [0], "simple": "Did you ever have too little time for a task? What happened?", "steps": [{"hint": "Vì sao gấp?", "say": "The reason was that ..."}, {"hint": "Áp lực", "say": "At that time, ..."}] },
         { "ask": "How did you decide what to do first?", "phrases": [1], "simple": "Which tasks did you do first, and why?", "steps": [{"hint": "Ví dụ", "say": "For example, ..."}, {"hint": "Bỏ bớt gì?", "say": "We moved ... to the next release."}] },
@@ -1348,6 +1664,23 @@
       "greeting": "Everyone makes mistakes, so let's talk about one.",
       "closing": "Thank you for being honest, that's a valuable lesson.",
       "vocab": "mistake, bug, production, rollback, hotfix, root cause, postmortem, checklist, monitoring, alert, responsibility, configuration, migration.",
+      "lesson": {
+        "intro": "Hi! Today we'll learn five sentences to talk about a mistake: what you did, the impact, how you took responsibility, the root cause, and what you changed. Are you ready?",
+        "intro_vi": "Chào bạn! Hôm nay mình học năm câu để kể về một lỗi bạn mắc: bạn đã làm gì, hậu quả, cách bạn nhận trách nhiệm, nguyên nhân gốc, và điều bạn thay đổi. Bạn sẵn sàng chưa?",
+        "vocab": [
+          {"word": "migration", "vi": "cập nhật cấu trúc cơ sở dữ liệu"},
+          {"word": "backup", "vi": "bản sao lưu"},
+          {"word": "root cause", "vi": "nguyên nhân gốc"},
+          {"word": "take responsibility", "vi": "nhận trách nhiệm"}
+        ],
+        "sentences": [
+          {"phrase": 0, "say": "I made a mistake when I ran a database migration without a backup.", "use": "Admit the mistake directly. Don't blame anyone else.", "use_vi": "Thừa nhận lỗi thẳng thắn. Không đổ lỗi cho ai."},
+          {"phrase": 1, "say": "Because of that, the app was down for about twenty minutes.", "use": "Say what happened because of it, with a number if you can.", "use_vi": "Nói chuyện gì đã xảy ra vì lỗi đó, kèm con số nếu có."},
+          {"phrase": 2, "say": "I took responsibility and restored the data with my team.", "use": "Show that you owned the problem and fixed it.", "use_vi": "Cho thấy bạn nhận trách nhiệm và đã sửa."},
+          {"phrase": 3, "say": "The root cause was that we had no checklist for migrations.", "use": "Go deeper than the mistake itself. What allowed it to happen?", "use_vi": "Đi sâu hơn bản thân lỗi. Điều gì khiến nó có thể xảy ra?"},
+          {"phrase": 4, "say": "Since then, I always test migrations on staging first.", "use": "End with the change you made, so it doesn't happen again.", "use_vi": "Kết bằng thay đổi bạn đã làm, để lỗi không lặp lại."}
+        ]
+      },
       "questions": [
         { "ask": "Can you tell me about a mistake you made at work?", "phrases": [0], "simple": "Think of one mistake at work. What went wrong?", "steps": [{"hint": "Vì sao xảy ra?", "say": "It happened because ..."}, {"hint": "Phát hiện thế nào?", "say": "I noticed it when ..."}] },
         { "ask": "What was the impact?", "phrases": [1], "simple": "What problem did it cause?", "steps": [{"hint": "Ví dụ hậu quả", "say": "For example, ..."}, {"hint": "Mất bao lâu?", "say": "It took us ... to fix."}] },
@@ -1401,6 +1734,22 @@
       "greeting": "We're almost done, just a few practical questions.",
       "closing": "Thank you for your time today. We'll get back to you within a week.",
       "vocab": "salary, expectation, gross, net, notice period, start date, remote, hybrid, onsite, benefits, probation, team size, onboarding, career path.",
+      "lesson": {
+        "intro": "Hi! Today we'll learn four sentences for the end of an interview: your salary expectation, when you can start, how you prefer to work, and a good question to ask. Are you ready?",
+        "intro_vi": "Chào bạn! Hôm nay mình học bốn câu cho phần cuối buổi phỏng vấn: mức lương mong muốn, khi nào bạn bắt đầu được, cách làm việc bạn muốn, và một câu hỏi hay để hỏi lại. Bạn sẵn sàng chưa?",
+        "vocab": [
+          {"word": "salary expectation", "vi": "mức lương mong muốn"},
+          {"word": "notice period", "vi": "thời gian báo trước khi nghỉ việc"},
+          {"word": "hybrid", "vi": "làm việc kết hợp ở nhà và văn phòng"},
+          {"word": "onboarding", "vi": "quá trình làm quen khi mới vào"}
+        ],
+        "sentences": [
+          {"phrase": 0, "say": "Based on my experience, I'm expecting around two thousand dollars a month.", "use": "Give an amount politely, and connect it to your experience.", "use_vi": "Nêu mức lương một cách lịch sự, và gắn nó với kinh nghiệm của bạn."},
+          {"phrase": 1, "say": "My notice period is one month, so I could start at the beginning of next month.", "use": "Say your notice period and a realistic start date.", "use_vi": "Nói thời gian báo trước và ngày bắt đầu thực tế."},
+          {"phrase": 2, "say": "I'd prefer hybrid work, because I focus better at home but enjoy meeting the team.", "use": "Say what you prefer, and give a reason that sounds good for the company too.", "use_vi": "Nói bạn thích cách nào, và đưa lý do có lợi cho cả công ty."},
+          {"phrase": 3, "say": "Could you tell me more about the team I would join?", "use": "Always ask a question at the end. It shows real interest in the job.", "use_vi": "Luôn hỏi lại một câu ở cuối. Nó cho thấy bạn thật sự quan tâm đến công việc."}
+        ]
+      },
       "questions": [
         { "ask": "What are your salary expectations?", "phrases": [0], "simple": "How much salary do you want?", "steps": [{"hint": "Dựa vào đâu?", "say": "This is based on ..."}, {"hint": "Linh hoạt", "say": "But I'm open to discussing it, depending on ..."}] },
         { "ask": "When would you be able to start?", "phrases": [1], "simple": "When can you start the new job?", "steps": [{"hint": "Có thể sớm hơn?", "say": "If needed, I could ..."}, {"hint": "Trước khi bắt đầu", "say": "Before I start, I'd like to ..."}] },

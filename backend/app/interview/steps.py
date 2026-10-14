@@ -49,9 +49,11 @@ def _lead(say: str) -> str:
     return norm(say.split("...")[0])
 
 
-def _done(say: str, text: str) -> bool:
+def _done(say: str, text: str, also: list[str] = ()) -> bool:
     lead = _lead(say)
     if len(lead.split()) >= MIN_LEAD_WORDS and f" {lead} " in text:
+        return True
+    if any(f" {norm(a)} " in text for a in also):  # other wordings of the step (talk frames, interview/talks.py)
         return True
     return any(
         any(f" {m} " in f" {lead} " for m in move) and any(f" {m} " in text for m in move) for move in SAME_MOVE
@@ -60,7 +62,7 @@ def _done(say: str, text: str) -> bool:
 
 def mark_steps(steps: list[dict], text: str) -> list[dict]:
     padded = f" {norm(text)} "
-    return [{"hint": st["hint"], "say": st["say"], "done": _done(st["say"], padded)} for st in steps]
+    return [{"hint": st["hint"], "say": st["say"], "done": _done(st["say"], padded, st.get("also", []))} for st in steps]
 
 
 def _stem(word: str) -> str:

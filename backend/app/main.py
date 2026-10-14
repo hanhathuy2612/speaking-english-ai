@@ -18,7 +18,9 @@ from fastapi.responses import FileResponse, HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from app.api.deps import current_user, require_admin
-from app.api.routes import admin_content, admin_users, auth, bench, check, drills, fluency, history, lessons, review, units, ws
+from app.api.routes import (
+    admin_content, admin_users, auth, bench, check, drills, fluency, history, lessons, review, talks, units, ws,
+)
 from app.core.config import FRONTEND_DIST
 from app.interview import units as catalog
 from app.services import accounts, db
@@ -43,7 +45,9 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
 app = FastAPI(title="Speaking demo", lifespan=lifespan)
 # Every API route needs a logged-in user (docs/features/accounts.md); /ws checks the cookie itself.
 app.include_router(auth.router)
-for _router in (units.router, check.router, drills.router, fluency.router, review.router, lessons.router, history.router):
+for _router in (
+    units.router, check.router, talks.router, drills.router, fluency.router, review.router, lessons.router, history.router
+):
     app.include_router(_router, dependencies=[Depends(current_user)])
 for _router in (admin_users.router, admin_content.router, bench.router):
     app.include_router(_router, dependencies=[Depends(require_admin)])
@@ -53,6 +57,7 @@ app.include_router(ws.router)
 SPA_ROUTES = [
     "/", "/review", "/roadmap", "/sounds", "/fluency", "/check", "/history", "/bench", "/lesson/{unit_id}",
     "/login", "/signup", "/verify", "/forgot", "/reset", "/account", "/admin", "/admin/{rest:path}",
+    "/talk/{talk_id}", "/talk/{talk_id}/practice",
 ]
 # Files from frontend/public, copied to the root of dist: the PWA manifest and its icons.
 PUBLIC_FILES = [

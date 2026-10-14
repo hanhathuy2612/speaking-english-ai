@@ -45,6 +45,8 @@ def lines(unit: dict) -> dict[str, dict[str, str]]:
     lesson = unit["lesson"]
     out = {k: {"en": en, "vi": vi} for k, (en, vi) in TEACHER.items()}
     out["intro"] = {"en": lesson["intro"], "vi": lesson["intro_vi"]}
+    if lesson.get("outro"):  # talk lessons end with practice, not a role-play (interview/talks.py)
+        out["outro"] = {"en": lesson["outro"], "vi": lesson.get("outro_vi", "")}
     for i, s in enumerate(lesson["sentences"]):
         out[f"s{i}"] = {"en": f"{s['use']} {s['say']}", "vi": s["use_vi"]}
         out[f"say{i}"] = {"en": s["say"], "vi": ""}

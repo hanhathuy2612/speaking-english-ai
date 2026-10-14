@@ -289,6 +289,45 @@
   color: var(--text-2);
   font-size: 14px;
 }
+/* Talk lessons: the two-minute frame (docs/features/talk-lessons.md) */
+.lesson-frame {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.lesson-frame li {
+  counter-increment: step;
+  display: grid;
+  grid-template-columns: 28px 9em minmax(0, 1fr);
+  align-items: baseline;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  font-weight: 600;
+}
+.lesson-frame li::before {
+  content: counter(step);
+  color: var(--primary);
+}
+.lesson-frame-hint {
+  color: var(--text-2);
+  font-size: 14px;
+  font-weight: 500;
+}
+@media (max-width: 560px) {
+  .lesson-frame li {
+    grid-template-columns: 24px minmax(0, 1fr);
+  }
+  .lesson-frame li > span[lang] {
+    grid-column: 2;
+  }
+}
 .lesson-foot {
   margin: 0;
   color: var(--text-3);

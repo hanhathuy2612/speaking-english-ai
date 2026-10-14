@@ -5,7 +5,7 @@
 1. **Bài học (bài giảng):** giáo viên giới thiệu bài và từ vựng, rồi giảng từng câu cần học: câu đó dùng để làm gì, kèm câu đầy đủ in đậm. Sau đó giáo viên bảo người học đọc to câu đó, và app so từng từ.
 2. **Đóng vai:** phần hỏi đáp như trước (phòng tập). Các câu hỏi đã nhắm sẵn vào mẫu câu vừa học, nên người học dùng lại ngay.
 
-Hiện có bài giảng cho 3 bài của chủ đề "Giới thiệu bản thân": `tell-me-about-yourself`, `current-project`, `career-goals`. Bài chưa có `lesson` vẫn chạy như cũ.
+Cả 24 bài trong `units.json` đều có bài giảng (từ ngày 14/10/2026; trước đó chỉ 3 bài của chủ đề "Giới thiệu bản thân"). Mỗi bài dạy 4–6 câu, mỗi câu một mẫu câu, theo cùng khung: lời mở đầu nêu các câu sẽ học, 4 từ vựng, mỗi câu kèm lời giải thích dùng khi nào. Câu đọc theo ngắn, phần lớn dưới 16 từ, để đọc được một hơi, ví dụ hợp với lập trình viên Java/backend. `test_every_unit_has_a_lesson` giữ điều này cho nội dung đi kèm mã nguồn. Bài admin tạo trên web có thể không có `lesson` và vẫn chạy như cũ.
 
 ## Nguyên tắc
 

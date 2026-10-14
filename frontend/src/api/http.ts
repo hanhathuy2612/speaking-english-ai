@@ -33,6 +33,14 @@ export async function api<T>(url: string, init?: { method?: string; body?: unkno
   return body as T;
 }
 
+/** POST raw audio (a recording) and read the JSON answer, with the server's error message. */
+export async function postAudio<T>(url: string, blob: Blob): Promise<T> {
+  const r = await fetch(url, { method: "POST", body: blob });
+  const body = await r.json().catch(() => null);
+  if (!r.ok) throw errorOf(r.status, body);
+  return body as T;
+}
+
 /** Fired when the server says the login is gone (401 on an API call, or the WebSocket closed with 4401). */
 export const AUTH_EXPIRED = "auth:expired";
 

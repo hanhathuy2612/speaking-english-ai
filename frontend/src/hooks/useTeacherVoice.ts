@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 /**
- * Plays a lesson's teacher lines one after another (GET /api/lessons/<unit>/audio/<key>).
+ * Plays a lesson's teacher lines one after another (GET <base>/audio/<key>, base = /api/lessons/<unit>
+ * or /api/talks/<talk>).
  * One reused <audio> element: once it has played inside a tap, mobile browsers (iOS Safari in
  * particular) let it keep playing later lines that start outside a user gesture.
  */
-export function useTeacherVoice(unitId: string) {
+export function useTeacherVoice(base: string) {
   const audio = useRef<HTMLAudioElement | null>(null);
   const queue = useRef<string[]>([]);
   const busy = useRef(false);
@@ -23,10 +24,10 @@ export function useTeacherVoice(unitId: string) {
     busy.current = true;
     setSpeaking(key);
     const token = ++seq.current;
-    a.src = `/api/lessons/${encodeURIComponent(unitId)}/audio/${encodeURIComponent(key)}`;
+    a.src = `${base}/audio/${encodeURIComponent(key)}`;
     // A failed line must not block the ones after it; changing src rejects the previous play() too.
     void a.play().catch(() => token === seq.current && playNext());
-  }, [unitId]);
+  }, [base]);
 
   useEffect(() => {
     const a = new Audio();

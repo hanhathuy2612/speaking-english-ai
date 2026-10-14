@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router";
-import type { LessonData, LessonLine, LessonReading } from "../../api/types";
+import type { LessonData, LessonLine, LessonReading, TalkData } from "../../api/types";
 import { BackIcon, BookIcon, ChatIcon, CheckIcon, MicIcon, SpeakerIcon, TranslateIcon } from "../../components/Icons";
 import { ReplayButton } from "../../components/ReplayButton";
 import { Chip, type Status, StatusLine } from "../../components/ui";
@@ -22,10 +22,38 @@ type Wait = "ready" | "read" | "busy" | "finished";
 
 let nextId = 1;
 
-/** Lesson part of a unit (docs/features/lesson.md): overview, then the teacher's lecture. */
+/** Where a lesson comes from: a unit (then a role-play) or a talk lesson (then a two-minute practice talk). */
+type Mode = { base: string; practice: string; back: string; backLabel: string; part: string; partSub: string };
+
+function modeFor(unitId?: string, talkId?: string): Mode {
+  if (talkId) {
+    const id = encodeURIComponent(talkId);
+    return {
+      base: `/api/talks/${id}`,
+      practice: `/talk/${id}/practice`,
+      back: "/check",
+      backLabel: "Về trang kiểm tra",
+      part: "Luyện nói 2 phút",
+      partSub: "Bước 2: nói 2 phút theo dàn ý",
+    };
+  }
+  const id = encodeURIComponent(unitId ?? "");
+  return {
+    base: `/api/lessons/${id}`,
+    practice: `/?unit=${id}`,
+    back: "/roadmap",
+    backLabel: "Về lộ trình",
+    part: "Đóng vai",
+    partSub: "Bước 2: dùng các câu vừa học",
+  };
+}
+
+/** Lesson part of a unit (docs/features/lesson.md) or a talk lesson (docs/features/talk-lessons.md):
+ * overview, then the teacher's lecture. */
 export function LessonPage() {
-  const { unitId = "" } = useParams();
-  const [data, setData] = useState<LessonData | null>(null);
+  const { unitId, talkId } = useParams();
+  const mode = modeFor(unitId, talkId);
+  const [data, setData] = useState<LessonData | TalkData | null>(null);
   const [missing, setMissing] = useState(false);
   const [lecture, setLecture] = useState(false);
   const [items, setItems] = useState<Item[]>([]);
@@ -33,13 +61,13 @@ export function LessonPage() {
   const [status, setStatus] = useState<Status>({ text: "", state: "" });
   const sentence = useRef(0); // sentence being taught
   const attempts = useRef(0); // readings of that sentence so far
-  const voice = useTeacherVoice(unitId);
+  const voice = useTeacherVoice(mode.base);
   const keepRecording = useRecordings();
   const chat = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let live = true;
-    fetch(`/api/lessons/${encodeURIComponent(unitId)}`)
+    fetch(mode.base)
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
       .then((d: LessonData) => {
         if (!live) return;
@@ -50,7 +78,7 @@ export function LessonPage() {
     return () => {
       live = false;
     };
-  }, [unitId]);
+  }, [mode.base]);
 
   useEffect(() => {
     chat.current?.scrollTo({ top: chat.current.scrollHeight, behavior: "smooth" });
@@ -80,7 +108,7 @@ export function LessonPage() {
     voice.enqueue(["outro"]);
     setWait("finished");
     setStatus({ text: "", state: "" });
-    void fetch(`/api/lessons/${encodeURIComponent(d.id)}/finish`, { method: "POST" })
+    void fetch(`${mode.base}/finish`, { method: "POST" })
       .then((r) => r.json())
       .then((r: { finished: number }) => setData((x) => (x ? { ...x, finished: r.finished } : x)))
       .catch(() => {});
@@ -109,7 +137,7 @@ export function LessonPage() {
     const audio = keepRecording(blob);
     let reading: LessonReading;
     try {
-      const r = await fetch(`/api/lessons/${encodeURIComponent(data.id)}/read/${i}`, { method: "POST", body: blob });
+      const r = await fetch(`${mode.base}/read/${i}`, { method: "POST", body: blob });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       reading = await r.json();
     } catch (e) {
@@ -151,12 +179,14 @@ export function LessonPage() {
     return (
       <div className="lesson-app">
         <div className="lesson-empty">
-          <p>Bài này chưa có bài giảng.</p>
-          <Link className="btn btn-primary" to={`/?unit=${encodeURIComponent(unitId)}`}>
-            Vào phần luyện tập
-          </Link>
-          <Link className="btn btn-ghost" to="/roadmap">
-            Về lộ trình
+          <p>{talkId ? "Không tìm thấy bài giảng này." : "Bài này chưa có bài giảng."}</p>
+          {!talkId && (
+            <Link className="btn btn-primary" to={mode.practice}>
+              Vào phần luyện tập
+            </Link>
+          )}
+          <Link className="btn btn-ghost" to={mode.back}>
+            {mode.backLabel}
           </Link>
         </div>
       </div>
@@ -164,7 +194,7 @@ export function LessonPage() {
   }
   if (!data) return <div className="lesson-app" aria-busy />;
 
-  const practice = `/?unit=${encodeURIComponent(data.id)}`;
+  const practice = mode.practice;
   const step = Math.min(sentence.current + 1, data.sentences.length);
 
   return (
@@ -182,7 +212,7 @@ export function LessonPage() {
             <BackIcon />
           </button>
         ) : (
-          <Link className="icon-btn" to="/roadmap" aria-label="Về lộ trình">
+          <Link className="icon-btn" to={mode.back} aria-label={mode.backLabel}>
             <BackIcon />
           </Link>
         )}
@@ -190,7 +220,7 @@ export function LessonPage() {
           <p className="lesson-top-title">{data.title}</p>
           <ol className="lesson-steps" aria-label="Các phần của bài">
             <li className={lecture || !data.finished ? "on" : "passed"}>Bài học</li>
-            <li className={data.finished && !lecture ? "on" : undefined}>Đóng vai</li>
+            <li className={data.finished && !lecture ? "on" : undefined}>{mode.part}</li>
           </ol>
         </div>
         {lecture && wait !== "finished" && wait !== "ready" && (
@@ -245,7 +275,7 @@ export function LessonPage() {
             {wait === "finished" && (
               <div className="lesson-finish">
                 <Link className="btn btn-primary btn-lg" to={practice}>
-                  <ChatIcon /> Bắt đầu đóng vai
+                  <ChatIcon /> {talkId ? "Luyện nói 2 phút" : "Bắt đầu đóng vai"}
                 </Link>
                 <button className="btn btn-ghost" onClick={start}>
                   Học lại bài giảng
@@ -255,7 +285,14 @@ export function LessonPage() {
           </div>
         </>
       ) : (
-        <Overview data={data} onStart={start} practice={practice} onPlay={voice.playNow} speaking={voice.speaking} />
+        <Overview
+          data={data}
+          mode={mode}
+          onStart={start}
+          practice={practice}
+          onPlay={voice.playNow}
+          speaking={voice.speaking}
+        />
       )}
     </div>
   );
@@ -342,12 +379,14 @@ function ReadingBubble({ r }: { r: WithAudio<LessonReading> }) {
 
 function Overview({
   data,
+  mode,
   onStart,
   practice,
   onPlay,
   speaking,
 }: {
-  data: LessonData;
+  data: LessonData | TalkData;
+  mode: Mode;
   onStart: () => void;
   practice: string;
   onPlay: (key: string) => void;
@@ -381,18 +420,32 @@ function Overview({
           {learned ? (
             <Link className="lesson-part primary" to={practice}>
               <ChatIcon size={22} />
-              <span className="lesson-part-name">Đóng vai</span>
-              <span className="lesson-part-sub">Bước 2: dùng các câu vừa học</span>
+              <span className="lesson-part-name">{mode.part}</span>
+              <span className="lesson-part-sub">{mode.partSub}</span>
             </Link>
           ) : (
             <div className="lesson-part locked" aria-disabled>
               <ChatIcon size={22} />
-              <span className="lesson-part-name">Đóng vai</span>
+              <span className="lesson-part-name">{mode.part}</span>
               <span className="lesson-part-sub">Học xong bài giảng để mở</span>
             </div>
           )}
         </div>
       </section>
+
+      {"frame" in data && (
+        <section>
+          <h2 className="lesson-h2">Dàn ý 2 phút</h2>
+          <ol className="lesson-frame">
+            {data.frame.map((st) => (
+              <li key={st.say}>
+                <span className="lesson-frame-hint">{st.hint}</span>
+                <span lang="en">{st.say}</span>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
 
       <section>
         <h2 className="lesson-h2">Từ vựng</h2>
@@ -438,7 +491,9 @@ function Overview({
         </ol>
       </section>
       <p className="lesson-foot">
-        Sau phần bài học, {data.partner.toLowerCase()} sẽ hỏi bạn các câu liên quan. Hãy dùng lại những câu vừa học.
+        {"frame" in data
+          ? "Sau phần bài học, bạn nói 2 phút về một đề luyện theo dàn ý trên. Đề luyện không bao giờ là đề kiểm tra."
+          : `Sau phần bài học, ${data.partner.toLowerCase()} sẽ hỏi bạn các câu liên quan. Hãy dùng lại những câu vừa học.`}
       </p>
     </main>
   );
