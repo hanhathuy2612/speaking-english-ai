@@ -77,6 +77,7 @@ Mọi chỗ người học nói đều có nút **"Nghe lại"** (`ReplayButton`
 | Tiến bộ | Chi tiết buổi tập (nút "Xem"), mỗi lượt nói một nút. Đây là file lưu trên server (`/api/history/audio/...`), nên nghe được cả buổi cũ (xem [session-history.md](session-history.md)) |
 
 - Ngoài trang Tiến bộ, bản ghi chỉ nằm trong trình duyệt (`URL.createObjectURL` của Blob vừa ghi, `useRecordings`). Không gửi thêm, không lưu thêm gì; tải lại trang hay rời trang thì mất. Phòng tập gắn bản ghi vào tin `transcript` hoặc `shadow_result` đến ngay sau nó (`lastRecording` trong `useInterview.ts`).
+- **Âm lượng khi phát lại:** bản ghi trên điện thoại rất nhỏ (đỉnh khoảng −18 đến −27 dBFS), nên `playReplay` cho tiếng đi qua một `GainNode` (Web Audio) đưa đỉnh lên khoảng −6 dBFS (`replayGain()`, tối đa ×3, không bao giờ nhỏ đi; có test). Bản đầu tiên đưa lên −1 dBFS, tối đa ×12, người dùng thấy to quá nên giảm lại. Mức khuếch đại được tính một lần cho mỗi bản ghi bằng cách giải mã file và tìm đỉnh; trong vài ms đầu dùng ×2. Chỉ đổi lúc phát: file gửi đi nhận dạng giữ nguyên.
 - Một trình phát dùng chung (`lib/replay.ts`): bật bản ghi khác thì bản đang phát dừng; bấm micro (`useMic`) cũng dừng, để không thu lại tiếng loa.
 
 ## Hệ thiết kế (`src/styles/base.css`)
