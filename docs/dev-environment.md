@@ -76,5 +76,6 @@ Agent không chạy `run.cmd` để thử nếu `.env` có `SERVER_HOST=0.0.0.0`
 - **Python 3.11** không cho dùng lại cùng loại dấu nháy bên trong f-string lồng nhau.
 - **npm 12 chặn script cài đặt** (`install-scripts`). Cảnh báo về esbuild là bình thường, build vẫn chạy.
 - **Trình duyệt thử không có micro.** Để thử luồng ghi âm (kể cả nói lại), tạo file MP3 bằng edge-tts rồi gửi thẳng qua WebSocket (`ws://localhost:8001/ws`) bằng script Python, hoặc gửi vào đúng socket của trang.
+- **edge-tts báo `WSServerHandshakeError: 403`**, không có giọng đọc: Microsoft đổi cách kiểm tra token, bản edge-tts cũ bị từ chối. Cập nhật (`pip install -U -r requirements.txt`, cần bản 7.3.1 trở lên) rồi khởi động lại server.
 - **CRLF:** một số file có thể dùng xuống dòng CRLF, nên thay chuỗi nhiều dòng bằng script dễ không khớp. Dùng công cụ Edit.
 - **`cublas64_12.dll` not found:** thiếu gói CUDA trong venv (xem [speech-recognition.md](features/speech-recognition.md)), hoặc quên gọi `add_cuda_dlls()` (`core/cuda.py`) trước khi import faster_whisper.
