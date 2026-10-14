@@ -49,12 +49,21 @@ def test_only_the_first_stage_is_open_at_the_start():
     assert status(evidence()) == ["current", "locked", "locked", "locked", "locked"]
 
 
-def test_drills_alone_do_not_pass_without_enough_attempts_or_accuracy():
+def test_the_sounds_stage_passes_once_every_set_is_practised():
+    some = [{"set_id": s["id"], "focus_correct": 1, "focus_total": 1} for s in drills.sets[:-1]]
+    assert status(evidence(drill_attempts=some))[0] == "current"
+    # accuracy is not part of this gate: Whisper misjudges focus words too often (docs/features/roadmap.md)
+    poor = [{"set_id": s["id"], "focus_correct": 0, "focus_total": 2} for s in drills.sets]
+    assert status(evidence(drill_attempts=poor))[:2] == ["passed", "current"]
+
+
+def test_a_drill_accuracy_gate_needs_enough_attempts_and_accuracy():
+    gated = [{**stages[0], "gate": {"drill_accuracy": 90}}]
     few = [{"set_id": s["id"], "focus_correct": 1, "focus_total": 1} for s in drills.sets]  # 5 < window
-    assert status(evidence(drill_attempts=few))[0] == "current"
+    assert [s["status"] for s in evaluate(gated, evidence(drill_attempts=few))] == ["current"]
     poor = [{**a, "focus_correct": 1, "focus_total": 2} for a in good_drills()]
-    assert status(evidence(drill_attempts=poor))[0] == "current"
-    assert status(evidence(drill_attempts=good_drills()))[:2] == ["passed", "current"]
+    assert [s["status"] for s in evaluate(gated, evidence(drill_attempts=poor))] == ["current"]
+    assert [s["status"] for s in evaluate(gated, evidence(drill_attempts=good_drills()))] == ["passed"]
 
 
 def test_a_stage_needs_its_units_and_its_check_level():

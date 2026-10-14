@@ -4,7 +4,7 @@
     "title": "Phát âm",
     "goal": "Sửa các lỗi phát âm máy đã đo trên giọng bạn: mất âm cuối -s, -ed, cụm phụ âm cuối, phụ âm cuối, âm th và số đếm.",
     "practice": "drills",
-    "gate": { "drill_sets": true, "drill_accuracy": 90 }
+    "gate": { "drill_sets": true }
   },
   {
     "id": "daily",

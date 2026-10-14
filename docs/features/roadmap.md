@@ -24,11 +24,13 @@ Mức bài kiểm tra tăng dần từ số đo đầu vào của người dùng
 
 | # | Giai đoạn | Luyện | Tiêu chí qua |
 |---|---|---|---|
-| 1 | Phát âm | Trang `/sounds` ([pronunciation-drills.md](pronunciation-drills.md)) | Tập đủ 5 nhóm âm; đọc đúng từ 90% từ trọng tâm trong 20 câu gần nhất |
+| 1 | Phát âm | Trang `/sounds` ([pronunciation-drills.md](pronunciation-drills.md)) | Tập đủ 5 nhóm âm |
 | 2 | Nói về bản thân và cuộc sống | Chủ đề `daily` | Hoàn thành mọi bài; bài kiểm tra nói liền 1:00, từ 80 từ/phút |
 | 3 | Tiếng Anh ở công ty | Chủ đề `workplace` | Hoàn thành mọi bài; bài kiểm tra 1:30, từ 95 từ/phút, dưới 5 lần ngập ngừng / 100 từ |
 | 4 | Nói dài và mạch lạc | Trang `/fluency` ([fluency-432.md](fluency-432.md)) | Làm trọn 2 bài 4–3–2; bài kiểm tra đạt mức đích: 2:00, từ 110 từ/phút, dưới 3 lần ngập ngừng |
 | 5 | Phỏng vấn | Chủ đề `intro`, `technical`, `behavioral`, `closing` | Hoàn thành mọi bài |
+
+Giai đoạn 1 từng yêu cầu thêm "đọc đúng 90% từ trọng tâm trong 20 câu gần nhất" (`drill_accuracy`). Tiêu chí này đã bỏ (14/10/2026): Whisper hay đoán sai từ trọng tâm theo ngữ cảnh (ví dụ "tests" thiếu /s/ cuối bị viết thành "text" vì ngay trước đó có "text"), nên con số này chặn người học lâu hơn mức phát âm thật. Độ chính xác vẫn hiện trên trang `/sounds` để theo dõi. Khóa `drill_accuracy` vẫn dùng được trong `gate`.
 
 ## Mở khóa (`evaluate()`)
 
