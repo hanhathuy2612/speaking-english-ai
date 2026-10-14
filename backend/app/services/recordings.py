@@ -17,6 +17,7 @@ from app.core import config
 # Only names the app creates itself are ever served (no path separators, no other files).
 NAME_RE = re.compile(r"^\d{8}-\d{6}-\d{6}\.webm$")
 MAX_GAP_S = 600  # a turn is saved after STT and the LLM reply, so within minutes of its recording
+DRILL_GAP_S = 15  # a drill reading is saved right after STT, seconds after its recording
 
 
 def folder() -> Path | None:
@@ -46,6 +47,38 @@ def transcripts() -> dict[str, str]:
         name = hyp.name[: -len(".hyp.txt")] + ".webm"
         if NAME_RE.match(name) and (base / name).is_file():
             out[name] = hyp.read_text(encoding="utf-8").strip()
+    return out
+
+
+def untranscribed() -> list[str]:
+    """Kept recordings without a .hyp.txt: drill and lesson readings (their text is in the database)."""
+    base = folder()
+    if not base or not base.is_dir():
+        return []
+    files = base.glob("*.webm")
+    return sorted(f.name for f in files if NAME_RE.match(f.name) and not f.with_suffix(".hyp.txt").exists())
+
+
+def match_by_time(
+    rows: list[dict], names: list[str], taken: set[str], max_gap_s: float = DRILL_GAP_S
+) -> dict[int, str]:
+    """Row id -> recording for rows without one (drill readings saved before `drills.audio` existed):
+    the closest recording saved at most max_gap_s before the row; each file is used once."""
+    out: dict[int, str] = {}
+    for r in rows:
+        if r.get("audio"):
+            continue
+        when = datetime.fromisoformat(r["created_at"])
+        best: tuple[float, str] | None = None
+        for name in names:
+            if name in taken:
+                continue
+            gap = (when - saved_at(name)).total_seconds()
+            if -1 <= gap <= max_gap_s and (best is None or gap < best[0]):
+                best = (gap, name)
+        if best:
+            out[r["id"]] = best[1]
+            taken.add(best[1])
     return out
 
 

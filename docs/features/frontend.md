@@ -70,7 +70,7 @@ Mọi chỗ người học nói đều có nút **"Nghe lại"** (`ReplayButton`
 | Trang | Vị trí nút |
 |---|---|
 | Phòng tập | Dưới mỗi tin nhắn của bạn (lượt nói, không có ở lượt gõ chữ), và trong kết quả "Nói lại câu này" |
-| Phát âm | Đầu hàng kết quả của câu vừa đọc |
+| Phát âm | Đầu hàng kết quả của câu vừa đọc, và ở "Lần đọc tốt nhất" của mỗi câu (file trên server, xem [pronunciation-drills.md](pronunciation-drills.md)) |
 | Ôn tập | Cạnh dòng "Máy nghe được" |
 | Kiểm tra | "Nghe lại bài nói", cạnh nút "Làm đề khác" |
 | Nói dài | Cột "Lần" của bảng, mỗi lần một nút |

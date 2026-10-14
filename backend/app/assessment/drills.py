@@ -75,6 +75,28 @@ def score(target: str, focus: list[str], heard: str) -> dict:
     return {**result, "focus_correct": hit, "focus_total": total}
 
 
+def best_reading(text: str, focus: list[str], attempts: list[dict]) -> dict | None:
+    """The best drill reading of `text` (from any set), scored with these focus words.
+
+    Best = most focus words right, then most words right; on a tie the latest wins. `attempts` are drill
+    rows oldest first. Returns score() plus heard, created_at, audio and attempts (readings of this text),
+    or None before the first reading.
+    """
+    best: dict | None = None
+    rank: tuple[float, float] | None = None
+    n = 0
+    for a in attempts:
+        if a["target"] != text:
+            continue
+        n += 1
+        r = score(text, focus, a["heard"])
+        k = (r["focus_correct"] / r["focus_total"] if r["focus_total"] else 1.0, r["accuracy"])
+        if rank is None or k >= rank:
+            rank = k
+            best = {**r, "heard": a["heard"], "created_at": a["created_at"], "audio": a.get("audio")}
+    return {**best, "attempts": n} if best else None
+
+
 def misheard_words(target: str, heard: str) -> list[str]:
     """Written words of `target` that were not heard correctly, without punctuation."""
     out: list[str] = []

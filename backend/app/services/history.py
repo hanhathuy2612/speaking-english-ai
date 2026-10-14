@@ -99,7 +99,8 @@ CREATE TABLE IF NOT EXISTS drills (
     total INTEGER NOT NULL,
     focus_correct INTEGER NOT NULL,    -- focus words heard correctly
     focus_total INTEGER NOT NULL,
-    avg_logprob REAL
+    avg_logprob REAL,
+    audio TEXT                         -- recording file name in SAVE_AUDIO_DIR, for "Nghe lại"
 );
 CREATE TABLE IF NOT EXISTS fluency (
     id INTEGER PRIMARY KEY,
@@ -162,7 +163,8 @@ CREATE TABLE IF NOT EXISTS lessons (
 );
 """
 
-MIGRATIONS = [("turns", "audio", "TEXT")]  # (table, column, type) added to older databases
+# (table, column, type) added to older databases
+MIGRATIONS = [("turns", "audio", "TEXT"), ("drills", "audio", "TEXT")]
 
 
 def enabled() -> bool:
@@ -420,6 +422,23 @@ def add_drill(attempt: dict) -> int | None:
 def list_drills() -> list[dict]:
     """All drill readings, oldest first."""
     return _rows("SELECT * FROM drills ORDER BY created_at, id")
+
+
+def set_drill_audio(audio: dict[int, str]) -> None:
+    """Store the recording file names of drill readings saved before `drills.audio` existed."""
+    if not audio or not enabled():
+        return
+    with closing(_connect()) as conn, conn:
+        conn.executemany("UPDATE drills SET audio = ? WHERE id = ?", [(n, i) for i, n in audio.items()])
+
+
+def recording_names() -> set[str]:
+    """Recording names already linked to a turn or a drill reading."""
+    rows = _rows(
+        "SELECT audio FROM turns WHERE audio IS NOT NULL "
+        "UNION SELECT audio FROM drills WHERE audio IS NOT NULL"
+    )
+    return {r["audio"] for r in rows}
 
 
 def list_readings() -> list[dict]:

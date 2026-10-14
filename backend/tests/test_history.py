@@ -155,6 +155,17 @@ def test_drills_and_shadows_feed_the_readings_list(db):
     assert history.list_drills()[0]["focus_total"] == 1
 
 
+def test_drill_recordings_are_stored_and_can_be_linked_later(db):
+    row = {"set_id": "final-s", "target": "Two cats.", "heard": "two cats", "correct": 2, "total": 2,
+           "focus_correct": 1, "focus_total": 1}  # fmt: skip
+    history.add_drill({**row, "audio": "20261014-100000-000001.webm"})
+    old = history.add_drill(row)  # saved before drills.audio existed
+    history.set_drill_audio({old: "20261014-090000-000001.webm"})
+    audio = [d["audio"] for d in history.list_drills()]
+    assert audio == ["20261014-100000-000001.webm", "20261014-090000-000001.webm"]
+    assert history.recording_names() >= {"20261014-100000-000001.webm", "20261014-090000-000001.webm"}
+
+
 def test_fluency_rounds_round_trip(db):
     history.add_fluency_round({"run": "r1", "round": 1, "limit_s": 240, "prompt_id": "p", "prompt": "P",
                                "text": "t", "words": 300, "duration_s": 200.0, "wpm_speaking": 100,

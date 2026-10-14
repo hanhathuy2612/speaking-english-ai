@@ -60,3 +60,16 @@ def test_init_adds_the_audio_column_to_an_old_database(tmp_path, monkeypatch):
     history.init()  # idempotent
     with sqlite3.connect(tmp_path / "old.db") as conn:
         assert "audio" in {r[1] for r in conn.execute("PRAGMA table_info(turns)")}
+
+
+def test_old_drill_readings_find_their_recording_by_time():
+    names = ["20261014-100000-000001.webm", "20261014-100010-000001.webm", "20261014-090000-000001.webm"]
+    rows = [
+        {"id": 1, "created_at": "2026-10-14T10:00:02", "audio": None},  # 2 s after the first file
+        {"id": 2, "created_at": "2026-10-14T10:00:12", "audio": None},
+        {"id": 3, "created_at": "2026-10-14T10:00:13", "audio": "kept.webm"},  # already linked
+        {"id": 4, "created_at": "2026-10-14T09:30:00", "audio": None},  # nothing within 15 s
+    ]
+    found = recordings.match_by_time(rows, names, taken=set())
+    assert found == {1: "20261014-100000-000001.webm", 2: "20261014-100010-000001.webm"}
+    assert recordings.match_by_time(rows[:1], names, taken={names[0]}) == {}

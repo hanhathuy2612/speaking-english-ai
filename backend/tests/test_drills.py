@@ -1,5 +1,6 @@
 from app.assessment.drills import (
     WINDOW,
+    best_reading,
     focus_accuracy,
     personal_sentences,
     score,
@@ -53,3 +54,32 @@ def test_focus_accuracy_uses_the_recent_window():
     recent = [{"focus_correct": 2, "focus_total": 2}] * WINDOW
     assert focus_accuracy(old + recent) == {"attempts": WINDOW, "accuracy": 100}
     assert focus_accuracy([]) == {"attempts": 0, "accuracy": None}
+
+
+def drill(heard, at, target="Our customers book tickets.", audio=None):
+    return {"target": target, "heard": heard, "created_at": at, "audio": audio}
+
+
+def test_the_best_reading_is_kept_not_the_latest():
+    focus = ["customers", "tickets"]
+    attempts = [
+        drill("our customer book ticket", "2026-10-14T10:00:00", audio="a.webm"),
+        drill("our customers book tickets", "2026-10-14T10:01:00", audio="b.webm"),  # all right
+        drill("how customer book tickets", "2026-10-14T10:02:00", audio="c.webm"),  # worse, but newer
+        drill("something else", "2026-10-14T10:03:00", target="Another sentence."),
+    ]
+    best = best_reading("Our customers book tickets.", focus, attempts)
+    assert best["audio"] == "b.webm" and best["focus_correct"] == 2 and best["correct"] == best["total"]
+    assert best["attempts"] == 3  # readings of this sentence only
+    assert best_reading("Never read.", focus, attempts) is None
+
+
+def test_focus_words_rank_before_the_whole_sentence_and_a_tie_keeps_the_latest():
+    focus = ["tickets"]
+    attempts = [
+        drill("our customers book ticket", "2026-10-14T10:00:00", audio="a.webm"),  # 3/4 words, focus wrong
+        drill("are customer cook tickets", "2026-10-14T10:01:00", audio="b.webm"),  # 1/4 words, focus right
+        drill("our customer look tickets", "2026-10-14T10:02:00", audio="c.webm"),  # 2/4 words, focus right
+        drill("our customer look tickets", "2026-10-14T10:03:00", audio="d.webm"),  # same score, newer
+    ]
+    assert best_reading("Our customers book tickets.", focus, attempts)["audio"] == "d.webm"

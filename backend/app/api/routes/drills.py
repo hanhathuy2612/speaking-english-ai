@@ -7,7 +7,7 @@ import asyncio
 from fastapi import APIRouter, HTTPException, Request, Response
 
 from app.assessment import drills
-from app.services import history, stt, tts
+from app.services import history, recordings, stt, tts
 
 router = APIRouter(prefix="/api/drills", tags=["drills"])
 
@@ -43,18 +43,45 @@ def _find(set_id: str, sentence_id: str) -> dict:
     return x
 
 
+def _link_old_recordings(attempts: list[dict]) -> None:
+    """Readings saved before drills.audio existed: find their recording by time, once."""
+    if not any(not a.get("audio") for a in attempts):
+        return
+    found = recordings.match_by_time(attempts, recordings.untranscribed(), history.recording_names())
+    history.set_drill_audio(found)
+    for a in attempts:
+        a["audio"] = a.get("audio") or found.get(a["id"])
+
+
+def _best(x: dict, by_text: dict[str, list[dict]]) -> dict | None:
+    best = drills.best_reading(x["text"], x["focus"], by_text.get(x["text"], []))
+    if best:
+        best["target"] = x["text"]
+        name = best.pop("audio")
+        best["audio_url"] = f"/api/history/audio/{name}" if recordings.path_for(name) else None
+    return best
+
+
 @router.get("")
 async def drill_state() -> dict:
-    """Sets with their sentences and, per set, recent focus-word accuracy."""
+    """Sets with their sentences and, per set, recent focus-word accuracy and the best reading of each
+    sentence (`best`: sentence id -> result), so past readings show again when the page opens."""
     attempts = history.list_drills()
+    _link_old_recordings(attempts)
     by_set: dict[str, list[dict]] = {}
+    by_text: dict[str, list[dict]] = {}
     for a in attempts:
         by_set.setdefault(a["set_id"], []).append(a)
+        by_text.setdefault(a["target"], []).append(a)
+    sets = []
+    for s in _all_sets():
+        best = {x["id"]: b for x in s["sentences"] if (b := _best(x, by_text))}
+        sets.append({**s, **drills.focus_accuracy(by_set.get(s["id"], [])), "best": best})
     return {
         "enabled": history.enabled(),
         "window": drills.WINDOW,
         "recent": drills.focus_accuracy(attempts),
-        "sets": [{**s, **drills.focus_accuracy(by_set.get(s["id"], []))} for s in _all_sets()],
+        "sets": sets,
     }
 
 
@@ -87,6 +114,7 @@ async def drill_submit(set_id: str, sentence_id: str, request: Request) -> dict:
                 "focus_correct": report["focus_correct"],
                 "focus_total": report["focus_total"],
                 "avg_logprob": result["avg_logprob"],
+                "audio": stt.kept_name(path),
             }
         )
     return {"target": x["text"], "heard": result["text"], **report}

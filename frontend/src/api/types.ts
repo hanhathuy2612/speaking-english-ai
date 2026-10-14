@@ -239,6 +239,8 @@ export type DrillSet = FocusAccuracy & {
   measured: string; // the mistake measured on your voice that this set targets
   tip: string;
   sentences: DrillSentence[];
+  /** Best reading of each sentence so far, by sentence id (pronunciation-drills.md). */
+  best: Record<string, DrillBest>;
 };
 
 export type DrillState = {
@@ -258,6 +260,9 @@ export type DrillResult = {
   focus_correct: number;
   focus_total: number;
 };
+
+/** The best reading of a sentence: its result, when, how many readings, and its recording if kept. */
+export type DrillBest = DrillResult & { created_at: string; attempts: number; audio_url: string | null };
 
 // ----- 4/3/2 fluency exercise (docs/features/fluency-432.md) -----
 

@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router";
-import type { DrillResult, DrillSet, DrillState } from "../../api/types";
+import type { DrillBest, DrillResult, DrillSet, DrillState } from "../../api/types";
 import { AppBar } from "../../components/AppBar";
 import { Lead } from "../../components/Lead";
 import { MicIcon, SpeakerIcon } from "../../components/Icons";
@@ -9,13 +9,14 @@ import { WordDiff } from "../../components/WordDiff";
 import { ReplayButton } from "../../components/ReplayButton";
 import { useMic } from "../../hooks/useMic";
 import { useRecordings } from "../../hooks/useRecordings";
-import { markFocus } from "../../lib/drills";
+import { bestTone, isNewBest, markFocus, passedCount } from "../../lib/drills";
 import type { WithAudio } from "../../lib/replay";
 import "../../styles/sounds.css";
 
 const accuracyTone = (acc: number | null) => (acc == null ? "" : acc >= 90 ? "success" : "warning");
 
 function SetCard({ s, active, onPick }: { s: DrillSet; active: boolean; onPick: () => void }) {
+  const passed = passedCount(s.sentences, s.best);
   return (
     <li>
       <button className={`card set-card${active ? " active" : ""}`} onClick={onPick} aria-pressed={active}>
@@ -23,19 +24,36 @@ function SetCard({ s, active, onPick }: { s: DrillSet; active: boolean; onPick: 
         <span className="set-measured">
           {s.id === "mine" ? `${s.sentences.length} câu` : `Đã đo trên giọng bạn: ${s.measured}`}
         </span>
-        <Chip tone={accuracyTone(s.accuracy)}>
-          {s.accuracy == null ? "Chưa tập" : `Đúng ${s.accuracy}% từ trọng tâm`}
-        </Chip>
+        {s.accuracy == null ? (
+          <Chip>Chưa tập</Chip>
+        ) : (
+          // Two different numbers, both labelled: sentences passed at least once (best reading), and the
+          // recent level that the stage gate uses (last attempts, mistakes included).
+          <span className="set-stats">
+            <Chip tone={passed === s.sentences.length ? "success" : ""}>
+              Đạt {passed}/{s.sentences.length} câu
+            </Chip>
+            <Chip tone={accuracyTone(s.accuracy)} title={`Từ trọng tâm đúng trong ${s.attempts} lần đọc gần nhất của nhóm`}>
+              Gần đây đúng {s.accuracy}%
+            </Chip>
+          </span>
+        )}
       </button>
     </li>
   );
 }
 
-function Result({ r }: { r: WithAudio<DrillResult> }) {
+type Fresh = WithAudio<DrillResult> & { newBest: boolean; first: boolean };
+
+/** "14/10 16:03" from a local ISO time (history stores local time without a zone). */
+const fmtDate = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)} ${iso.slice(11, 16)}`;
+
+function Result({ r, head }: { r: WithAudio<DrillResult>; head?: ReactNode }) {
   if (!r.heard) return <p className="drill-empty">Máy không nghe thấy gì. Kiểm tra micro rồi thử lại.</p>;
   const all = r.correct === r.total;
   return (
     <div className="drill-result" aria-live="polite">
+      {head && <div className="drill-result-head">{head}</div>}
       <WordDiff items={r.items} />
       <p className="drill-heard">Máy nghe được: {r.heard}</p>
       <div className="drill-meta">
@@ -55,7 +73,7 @@ export function SoundsPage() {
   const [params, setParams] = useSearchParams();
   const [data, setData] = useState<DrillState | null>(null);
   const [index, setIndex] = useState(0);
-  const [result, setResult] = useState<WithAudio<DrillResult> | null>(null);
+  const [result, setResult] = useState<Fresh | null>(null);
   const keepRecording = useRecordings();
   const [status, setStatus] = useState<Status>({ text: "", state: "" });
   const [scoring, setScoring] = useState(false);
@@ -80,6 +98,7 @@ export function SoundsPage() {
 
   const set = data?.sets.find((s) => s.id === params.get("set")) ?? data?.sets[0];
   const sentence = set?.sentences[Math.min(index, set.sentences.length - 1)];
+  const best: DrillBest | undefined = sentence ? set?.best?.[sentence.id] : undefined;
 
   const pick = (id: string) => {
     setParams({ set: id }, { replace: true });
@@ -88,11 +107,13 @@ export function SoundsPage() {
     setStatus({ text: "", state: "" });
   };
 
-  const go = (step: number) => {
-    if (!set) return;
-    setIndex((i) => (i + step + set.sentences.length) % set.sentences.length);
+  const goTo = (i: number) => {
+    setIndex(i);
     setResult(null);
     setStatus({ text: "", state: "" });
+  };
+  const go = (step: number) => {
+    if (set) goTo((Math.min(index, set.sentences.length - 1) + step + set.sentences.length) % set.sentences.length);
   };
 
   const listen = (slow: boolean) => {
@@ -104,12 +125,14 @@ export function SoundsPage() {
 
   const submit = async (blob: Blob) => {
     if (!set || !sentence) return;
+    const previous = best; // before this reading: is the new one better?
     setScoring(true);
     setStatus({ text: "Đang nhận dạng…", state: "busy" });
     try {
       const res = await fetch(`/api/drills/${set.id}/${sentence.id}`, { method: "POST", body: blob });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      setResult({ ...(await res.json()), audio: keepRecording(blob) });
+      const r: DrillResult = await res.json();
+      setResult({ ...r, audio: keepRecording(blob), newBest: !!r.heard && isNewBest(r, previous), first: !previous });
       setStatus({ text: "", state: "" });
       void load();
     } catch (e) {
@@ -146,7 +169,7 @@ export function SoundsPage() {
             <p className="sounds-recent">
               {data.recent.accuracy == null
                 ? "Chưa có lần đọc nào."
-                : `${data.window} câu gần nhất: đúng ${data.recent.accuracy}% từ trọng tâm (${data.recent.attempts} câu). Mục tiêu qua giai đoạn: từ 90%.`}
+                : `${data.recent.attempts} lần đọc gần nhất (mọi nhóm, tính cả lần sai): đúng ${data.recent.accuracy}% từ trọng tâm. Mục tiêu qua giai đoạn: từ 90%.`}
             </p>
           )}
         </div>
@@ -173,6 +196,30 @@ export function SoundsPage() {
                 </span>
               )}
             </div>
+            {set.sentences.length > 1 && (
+              <ol className="drill-dots" aria-label="Các câu trong nhóm">
+                {set.sentences.map((x, i) => {
+                  const b = set.best?.[x.id];
+                  const tone = bestTone(b);
+                  const on = i === Math.min(index, set.sentences.length - 1);
+                  return (
+                    <li key={x.id}>
+                      <button
+                        className={`drill-dot${tone ? ` ${tone}` : ""}${on ? " on" : ""}`}
+                        onClick={() => goTo(i)}
+                        disabled={mic.recording}
+                        aria-current={on ? "step" : undefined}
+                        aria-label={`Câu ${i + 1}: ${
+                          b ? `tốt nhất đúng ${b.focus_correct}/${b.focus_total} từ trọng tâm` : "chưa đọc"
+                        }`}
+                      >
+                        {i + 1}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ol>
+            )}
             <p className="drill-tip">{set.tip}</p>
 
             {sentence ? (
@@ -207,7 +254,37 @@ export function SoundsPage() {
                   />
                 </div>
 
-                {result && <Result r={result} />}
+                {result ? (
+                  <Result
+                    r={result}
+                    head={
+                      result.newBest ? (
+                        <Chip tone="success">{result.first ? "Lần đọc đầu tiên của câu này" : "Kết quả tốt nhất mới"}</Chip>
+                      ) : (
+                        best && (
+                          <span className="drill-best-note">
+                            Chưa vượt lần tốt nhất: đúng {best.focus_correct}/{best.focus_total} từ trọng tâm,{" "}
+                            {best.correct}/{best.total} từ cả câu
+                          </span>
+                        )
+                      )
+                    }
+                  />
+                ) : (
+                  best && (
+                    <Result
+                      r={{ ...best, audio: best.audio_url ?? undefined }}
+                      head={
+                        <>
+                          <span className="drill-best-label">Lần đọc tốt nhất của bạn</span>
+                          <span className="drill-best-note">
+                            {fmtDate(best.created_at)} · đã đọc {best.attempts} lần
+                          </span>
+                        </>
+                      }
+                    />
+                  )
+                )}
 
                 <div className="drill-nav">
                   <button className="btn btn-sm" onClick={() => go(-1)} disabled={mic.recording || set.sentences.length < 2}>
