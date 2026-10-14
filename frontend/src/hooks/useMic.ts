@@ -40,6 +40,7 @@ export function useMic({ onRecorded, onStart, onRecording, onTooShort, onError, 
   const [recording, setRecording] = useState(false);
   const holding = useRef(false);
   const recorder = useRef<MediaRecorder | null>(null);
+  const discard = useRef(false); // set by cancel(): the next stop drops the recording
   const stream = useRef<MediaStream | null>(null);
   // Keep the latest callbacks without re-binding listeners on every render.
   const cb = useRef({ onRecorded, onStart, onRecording, onTooShort, onError });
@@ -74,6 +75,10 @@ export function useMic({ onRecorded, onStart, onRecording, onTooShort, onError, 
         cb.current.onRecording?.();
       };
       rec.onstop = () => {
+        if (discard.current) {
+          discard.current = false;
+          return;
+        }
         const blob = new Blob(chunks, { type: rec.mimeType });
         if (blob.size < MIN_BYTES) cb.current.onTooShort?.();
         else cb.current.onRecorded(blob);
@@ -95,6 +100,13 @@ export function useMic({ onRecorded, onStart, onRecording, onTooShort, onError, 
     buzz(15);
     setTimeout(() => rec.state !== "inactive" && rec.stop(), TAIL_MS);
   }, []);
+
+  /** Stop without sending: the recording is dropped (a microphone still opening is simply abandoned). */
+  const cancel = useCallback(() => {
+    if (!holding.current) return;
+    discard.current = !!recorder.current;
+    stop();
+  }, [stop]);
 
   // Close the microphone when the page is hidden (phone locked, another app) or left.
   useEffect(() => {
@@ -133,5 +145,5 @@ export function useMic({ onRecorded, onStart, onRecording, onTooShort, onError, 
   const toggle = useCallback(() => (holding.current ? stop() : void start()), [start, stop]);
   const buttonProps = { onClick: toggle };
 
-  return { recording, start, stop, toggle, buttonProps };
+  return { recording, start, stop, cancel, toggle, buttonProps };
 }

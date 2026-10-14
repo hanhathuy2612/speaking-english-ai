@@ -1,7 +1,7 @@
 import type { AnswerStep, RetellResult as RetellData, ShadowResult as ShadowData } from "../../api/types";
-import { BulbIcon, CheckIcon, MicIcon, PlayIcon } from "../../components/Icons";
-import { Chip } from "../../components/ui";
+import { BulbIcon, CheckIcon, MicIcon, PlayIcon, StopIcon } from "../../components/Icons";
 import { ReplayButton } from "../../components/ReplayButton";
+import { Chip } from "../../components/ui";
 import { WordDiff } from "../../components/WordDiff";
 import type { WithAudio } from "../../lib/replay";
 
@@ -33,7 +33,8 @@ function ShadowResult({ r }: { r: Result }) {
           <Chip>Câu ngắn, chưa tính tốc độ</Chip>
         )}
         <Chip tone={fewer ? "success" : ""}>
-          {r.speech.long_pauses} lần ngắt dài{o ? ` · lần đầu ${o.long_pauses}` : ""}
+          {r.speech.long_pauses} lần ngắt dài
+          {o ? ` · lần đầu ${o.long_pauses}` : ""}
         </Chip>
       </div>
       <p className="shadow-legend">
@@ -80,14 +81,58 @@ function RetellResult({ r }: { r: Retell }) {
         </Chip>
         {r.speech.wpm_speaking != null && (
           <Chip>
-            Khi nói {r.speech.wpm_speaking} từ/phút{o?.wpm_speaking != null ? ` · lần đầu ${o.wpm_speaking}` : ""}
+            Khi nói {r.speech.wpm_speaking} từ/phút
+            {o?.wpm_speaking != null ? ` · lần đầu ${o.wpm_speaking}` : ""}
           </Chip>
         )}
         <Chip tone={fewer ? "success" : ""}>
-          {r.speech.long_pauses} lần ngắt dài{o ? ` · lần đầu ${o.long_pauses}` : ""}
+          {r.speech.long_pauses} lần ngắt dài
+          {o ? ` · lần đầu ${o.long_pauses}` : ""}
         </Chip>
       </div>
     </div>
+  );
+}
+
+type Mic = { recording: boolean; busy: boolean; toggle: () => void };
+
+/**
+ * "Nói lại câu này" / "Trả lời lại dài hơn": the tap starts recording right away and the same button
+ * becomes the stop (send) button, so the dock microphone is not needed.
+ */
+function SayButton({
+  waiting,
+  label,
+  primary,
+  onBegin,
+  mic,
+}: {
+  waiting: boolean;
+  label: string;
+  primary: boolean;
+  onBegin: () => void;
+  mic: Mic;
+}) {
+  if (waiting && mic.recording)
+    return (
+      <button className="btn btn-sm btn-rec" onClick={mic.toggle} aria-label="Đang ghi âm, bấm để gửi">
+        <StopIcon size={14} />
+        Dừng và gửi
+      </button>
+    );
+  if (waiting && mic.busy)
+    return (
+      <button className={`btn btn-sm${primary ? " btn-primary" : ""}`} disabled>
+        <MicIcon size={14} />
+        Đang chấm…
+      </button>
+    );
+  // Not waiting, or waiting without a recording (microphone opening, a too-short take): tap to record.
+  return (
+    <button className={`btn btn-sm${primary ? " btn-primary" : ""}`} onClick={onBegin}>
+      <MicIcon size={14} />
+      {waiting ? "Bấm để nói" : label}
+    </button>
   );
 }
 
@@ -100,6 +145,7 @@ export function CoachCard({
   retell,
   onRetell,
   onCancelRetell,
+  mic,
 }: {
   coach: { text: string; retry: boolean; steps: AnswerStep[] };
   shadow: { waiting: boolean; result: Result | null };
@@ -109,6 +155,7 @@ export function CoachCard({
   retell: { waiting: boolean; result: Retell | null };
   onRetell: () => void;
   onCancelRetell: () => void;
+  mic: Mic;
 }) {
   const cls = [
     "card",
@@ -126,45 +173,50 @@ export function CoachCard({
         </span>
         <span className="coach-label">{coach.retry ? "Câu mẫu để bạn nói theo" : "Cách nói tự nhiên hơn"}</span>
         {coach.retry && <Chip tone="warning">Chưa đủ ý, hãy trả lời lại</Chip>}
+        {/* Actions share the header row so the card stays short on a wide screen. */}
+        <div className="coach-actions">
+          <button className="btn btn-sm" onClick={onPlay}>
+            <PlayIcon />
+            Nghe câu này
+          </button>
+          {/* With steps below, "Trả lời lại dài hơn" is the main action. */}
+          <SayButton
+            waiting={shadow.waiting}
+            label={shadow.result ? "Thử lại" : "Nói lại câu này"}
+            primary={!steps.length}
+            onBegin={onShadow}
+            mic={mic}
+          />
+          {shadow.waiting && (
+            <button className="btn btn-sm btn-ghost" onClick={onCancelShadow}>
+              Hủy
+            </button>
+          )}
+        </div>
       </div>
       <p className="coach-text">{coach.text}</p>
       {shadow.result && <ShadowResult r={shadow.result} />}
-      <div className="coach-actions">
-        <button className="btn btn-sm" onClick={onPlay}>
-          <PlayIcon />
-          Nghe câu này
-        </button>
-        {/* With steps below, "Trả lời lại dài hơn" is the main action. */}
-        <button
-          className={`btn btn-sm${steps.length ? "" : " btn-primary"}`}
-          onClick={onShadow}
-          disabled={shadow.waiting}
-        >
-          <MicIcon size={14} />
-          {shadow.waiting ? "Đang chờ bạn đọc…" : shadow.result ? "Thử lại" : "Nói lại câu này"}
-        </button>
-        {shadow.waiting && (
-          <button className="btn btn-sm btn-ghost" onClick={onCancelShadow}>
-            Hủy
-          </button>
-        )}
-      </div>
       {steps.length > 0 && (
         <div className="steps">
-          <p className="steps-head">Nói dài hơn: trả lời lại và thêm các ý này</p>
+          <div className="steps-row">
+            <p className="steps-head">Nói dài hơn: trả lời lại và thêm các ý này</p>
+            <div className="coach-actions">
+              <SayButton
+                waiting={retell.waiting}
+                label={retell.result ? "Thử lại" : "Trả lời lại dài hơn"}
+                primary
+                onBegin={onRetell}
+                mic={mic}
+              />
+              {retell.waiting && (
+                <button className="btn btn-sm btn-ghost" onClick={onCancelRetell}>
+                  Hủy
+                </button>
+              )}
+            </div>
+          </div>
           <Steps steps={steps} />
           {retell.result && <RetellResult r={retell.result} />}
-          <div className="coach-actions">
-            <button className="btn btn-sm btn-primary" onClick={onRetell} disabled={retell.waiting}>
-              <MicIcon size={14} />
-              {retell.waiting ? "Đang chờ bạn trả lời…" : retell.result ? "Thử lại" : "Trả lời lại dài hơn"}
-            </button>
-            {retell.waiting && (
-              <button className="btn btn-sm btn-ghost" onClick={onCancelRetell}>
-                Hủy
-              </button>
-            )}
-          </div>
         </div>
       )}
     </section>

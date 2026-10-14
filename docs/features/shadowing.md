@@ -1,6 +1,6 @@
 # Nói lại câu mẫu (shadowing)
 
-Hoàn thiện vòng cốt lõi "nói, xem cách nói tốt hơn, **nói lại**". Sau khi NOTE hiện ra, người học bấm **"Nói lại câu này"** rồi bấm micro (hoặc giữ Space) và đọc câu NOTE; thanh dưới hiện câu cần đọc trong lúc chờ. App so chữ nhận dạng được với câu mẫu, tô từng từ, và so tốc độ / số lần ngắt với lần trả lời đầu.
+Hoàn thiện vòng cốt lõi "nói, xem cách nói tốt hơn, **nói lại**". Sau khi NOTE hiện ra, người học bấm **"Nói lại câu này"**: app ghi âm luôn, nút đổi thành **"Dừng và gửi"** (màu đỏ), người học đọc câu NOTE rồi bấm nút đó để gửi. Micro ở thanh dưới (hoặc giữ Space) vẫn dùng được. Thanh dưới hiện câu cần đọc trong lúc đó. App so chữ nhận dạng được với câu mẫu, tô từng từ, và so tốc độ / số lần ngắt với lần trả lời đầu.
 
 Lượt nói lại **không gọi LLM, không chuyển câu hỏi**, không tính vào số lượt phỏng vấn.
 
@@ -18,7 +18,7 @@ Lượt nói lại **không gọi LLM, không chuyển câu hỏi**, không tín
 
 ## Luồng
 
-1. Bấm "Nói lại câu này": `shadow.waiting = true`, thẻ NOTE có viền nổi bật, nút Hủy hiện ra.
+1. Bấm "Nói lại câu này": `shadow.waiting = true`, micro bắt đầu ghi ngay (`mic.start()` trong `PracticePage.tsx`; trước đây phải bấm thêm micro ở thanh dưới, mất hai bước). Thẻ NOTE có viền nổi bật, nút đổi thành "Dừng và gửi" (`SayButton` trong `CoachCard.tsx`), nút Hủy hiện ra. Hủy bỏ luôn bản ghi đang thu (`useMic().cancel()`); nếu không, bản ghi gửi sau khi đã thoát chế độ nói lại sẽ bị tính là câu trả lời mới. Ghi âm quá ngắn thì vẫn ở chế độ nói lại, nút ghi "Bấm để nói".
 2. Khi thả micro, frontend gửi `{"type": "shadow", "text": NOTE}` **ngay trước** khung âm thanh. Server đặt `shadow_target`.
 3. Server nhận dạng **không có `initial_prompt`**. Gợi ý từ vựng sẽ kéo Whisper về đúng các từ trong câu mẫu và che mất lỗi phát âm.
 4. `handle_shadow()` gửi `shadow_result`: `target`, `heard`, `compare`, `speech` (chỉ số nói của lần đọc lại), `original` (chỉ số của câu trả lời đã sinh ra NOTE, `null` nếu câu đó gõ chữ). Mỗi yêu cầu chỉ dùng cho **một** lần ghi âm; "Thử lại" gửi lại `shadow`.

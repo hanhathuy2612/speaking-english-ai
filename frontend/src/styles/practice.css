@@ -289,9 +289,12 @@
   max-width: 760px;
   margin: 0 auto;
 }
+/* Follows the AI message it answers: same left edge as the AI bubbles (avatar 36px + gap 12px). */
 .coach {
   margin-bottom: 20px;
-  padding: 14px 16px;
+  margin-left: calc(max(0px, (100% - 760px) / 2) + 48px); /* .chat centres a 760px column */
+  max-width: 712px;
+  padding: 12px 16px;
   border-color: color-mix(in srgb, var(--primary) 35%, var(--border));
   background: linear-gradient(var(--primary-soft), var(--surface) 70%);
 }
@@ -302,8 +305,8 @@
   flex-wrap: wrap;
 }
 .coach-icon {
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
   border-radius: 8px;
   display: grid;
   place-items: center;
@@ -316,8 +319,8 @@
   color: var(--primary);
 }
 .coach-text {
-  margin: 10px 0 12px;
-  font-size: 17px;
+  margin: 8px 0 0;
+  font-size: 16px;
   line-height: 1.55;
   font-weight: 500;
 }
@@ -325,19 +328,40 @@
 .coach-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
+}
+/* Buttons sit at the right end of the header rows */
+.coach-head .coach-actions,
+.steps-row .coach-actions {
+  margin-left: auto;
 }
 .coach.shadowing,
 .coach.retelling {
   border-color: var(--primary);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 18%, transparent);
 }
+/* "Nói lại câu này" / "Trả lời lại dài hơn" while recording: the same button stops and sends, red like the mic */
+.btn-rec,
+.btn-rec:hover {
+  border-color: transparent;
+  background: var(--danger);
+  color: #fff;
+}
+.btn-rec svg {
+  animation: blink 1s ease-in-out infinite;
+}
 
 /* ----- Steps for a longer answer, "Trả lời lại dài hơn" ----- */
 .steps {
-  margin-top: 14px;
-  padding-top: 12px;
+  margin-top: 12px;
+  padding-top: 10px;
   border-top: 1px dashed var(--border);
+}
+.steps-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 .steps-head {
   font-size: 13px;
@@ -346,14 +370,14 @@
 }
 .step-list {
   list-style: none;
-  margin: 8px 0 12px;
+  margin: 8px 0 0;
   padding: 0;
   display: grid;
-  gap: 6px;
+  gap: 4px;
 }
 .step-list li {
   display: grid;
-  grid-template-columns: 16px 10.5em 1fr;
+  grid-template-columns: 16px 8.5em 1fr;
   align-items: baseline;
   gap: 8px;
 }
@@ -371,7 +395,7 @@
   color: var(--text-2);
 }
 .step-say {
-  font-size: 15px;
+  font-size: 14.5px;
   font-weight: 500;
 }
 .step-list li.done .step-mark {
@@ -384,7 +408,7 @@
   color: var(--text-3);
 }
 .retell-result {
-  margin: -2px 0 12px;
+  margin: 10px 0 0;
   padding: 12px;
   border-radius: var(--radius);
   background: var(--surface);
@@ -403,7 +427,7 @@
 
 /* ----- Shadowing result ----- */
 .shadow-result {
-  margin: -2px 0 12px;
+  margin: 10px 0 0;
   padding: 12px;
   border-radius: var(--radius);
   background: var(--surface);
@@ -670,7 +694,12 @@
     display: none; /* the name above the bubble is enough; the bubble gets the width */
   }
   .coach {
+    margin-left: auto; /* no avatars on a phone */
     padding: 12px;
+  }
+  .coach-head .coach-actions,
+  .steps-row .coach-actions {
+    margin-left: 0; /* the buttons wrap to their own row: start it at the left edge */
   }
   .coach-text {
     margin: 8px 0 10px;

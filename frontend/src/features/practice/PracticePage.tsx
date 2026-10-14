@@ -51,16 +51,35 @@ export function PracticePage() {
   const phrases = unit?.phrases.length ?? 0;
   const sidebar = <Sidebar unit={unit} used={state.used} metrics={state.metrics} conf={state.conf} />;
 
+  // "Nói lại câu này" / "Trả lời lại dài hơn" record right away: one tap instead of that button and then the mic.
+  const beginShadow = () => {
+    actions.beginShadow();
+    if (!mic.recording) void mic.start();
+  };
+  const beginRetell = () => {
+    actions.beginRetell();
+    if (!mic.recording) void mic.start();
+  };
+  // Cancelling drops the recording: sent after the mode is cleared, it would count as a new answer.
+  const cancelShadow = () => {
+    mic.cancel();
+    actions.cancelShadow();
+  };
+  const cancelRetell = () => {
+    mic.cancel();
+    actions.cancelRetell();
+  };
+
   // While re-saying the note or answering again, the coach card may be scrolled away: keep the target in sight.
   const target = !coach
     ? null
     : shadow.waiting
-      ? { label: "Đọc lại câu mẫu", text: coach.text, cancel: actions.cancelShadow }
+      ? { label: "Đọc lại câu mẫu", text: coach.text, cancel: cancelShadow }
       : retell.waiting
         ? {
             label: "Trả lời lại, thêm các ý",
             text: (retell.result?.steps ?? coach.steps).map((st) => st.say).join("  ·  "),
-            cancel: actions.cancelRetell,
+            cancel: cancelRetell,
           }
         : null;
   const saying = !!target;
@@ -146,11 +165,12 @@ export function PracticePage() {
                   coach={coach}
                   shadow={shadow}
                   onPlay={() => actions.playNote(coach.text)}
-                  onShadow={actions.beginShadow}
-                  onCancelShadow={actions.cancelShadow}
+                  onShadow={beginShadow}
+                  onCancelShadow={cancelShadow}
                   retell={retell}
-                  onRetell={actions.beginRetell}
-                  onCancelRetell={actions.cancelRetell}
+                  onRetell={beginRetell}
+                  onCancelRetell={cancelRetell}
+                  mic={{ recording: mic.recording, busy: state.status.state === "busy", toggle: mic.toggle }}
                 />
               )
             }
