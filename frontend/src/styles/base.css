@@ -415,7 +415,8 @@ svg {
   :root:has(.tabbar) {
     --tabbar-h: calc(60px + env(safe-area-inset-bottom));
   }
-  body:has(.tabbar) {
+  /* on #root, not body: body is exactly the screen height (height: 100%), so its padding would not push content */
+  body:has(.tabbar) #root {
     padding-bottom: var(--tabbar-h);
   }
   .appbar .nav-wrap {

@@ -58,6 +58,14 @@
 .set-title {
   font-weight: 650;
 }
+.set-card .chip {
+  max-width: 100%;
+  height: auto;
+  min-height: 26px;
+  padding: 3px 10px;
+  white-space: normal; /* "Đúng 71% từ trọng tâm" wraps on a phone instead of overflowing */
+  line-height: 1.35;
+}
 .set-measured {
   flex: 1;
   font-size: 12.5px;
@@ -139,7 +147,7 @@
     padding: 20px 16px 40px;
   }
   .set-grid {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr)); /* minmax(0): a long chip cannot widen a column */
   }
   .drill {
     padding: 16px;
