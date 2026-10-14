@@ -23,12 +23,13 @@ Trình duyệt (React: useInterview.ts)    Server (backend/app)
 
 ## Giao thức WebSocket `/ws`
 
-Cần đăng nhập: server đọc cookie `sid` lúc bắt tay, không có phiên hợp lệ (hoặc `Origin` khác `Host`) thì đóng với mã 4401. Mọi lịch sử của kết nối lưu dưới `user_id` của người đó (`Session.user_id`). Xem [accounts.md](features/accounts.md).
+Cần đăng nhập: tin đầu tiên phải là `{"type":"auth","token":<access token JWT>}` (trình duyệt không gắn header được cho WebSocket). Thiếu, sai hay hết hạn thì server đóng với mã 4401. Mọi lịch sử của kết nối lưu dưới `user_id` của người đó (`Session.user_id`). Xem [accounts.md](features/accounts.md).
 
 Trình duyệt gửi:
 
 | Tin | Ý nghĩa |
 |---|---|
+| `{"type":"auth","token":...}` | Luôn là tin đầu tiên: access token. |
 | `{"type":"start","unit":id}` | Bắt đầu bài. Server tạo `Session` mới. |
 | khung nhị phân (webm) | Câu trả lời bằng giọng nói. |
 | `{"type":"text","text":...}` | Câu trả lời gõ chữ (bỏ qua STT, không có chỉ số nói). |

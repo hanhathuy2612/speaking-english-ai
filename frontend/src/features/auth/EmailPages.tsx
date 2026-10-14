@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
-import { api } from "../../api/http";
-import type { User } from "../../api/types";
+import { api, type LoginAnswer } from "../../api/http";
 import { useAuth } from "../../auth/AuthContext";
 import { AuthLayout, Field, FormError, onSubmit } from "./AuthLayout";
 
@@ -82,7 +81,7 @@ export function SignupPage() {
 export function VerifyPage() {
   const [params] = useSearchParams();
   const token = params.get("token");
-  const { setUser } = useAuth();
+  const { loggedIn } = useAuth();
   const navigate = useNavigate();
   const [error, setError] = useState("");
   const [email, setEmail] = useState(params.get("resend") ?? "");
@@ -92,13 +91,13 @@ export function VerifyPage() {
   useEffect(() => {
     if (!token || tried.current) return; // StrictMode runs effects twice; a token works only once
     tried.current = true;
-    api<User>("/api/auth/verify", { body: { token } })
-      .then((u) => {
-        setUser(u);
+    api<LoginAnswer>("/api/auth/verify", { body: { token } })
+      .then((answer) => {
+        loggedIn(answer);
         navigate("/", { replace: true });
       })
       .catch((e) => setError(message(e)));
-  }, [token, setUser, navigate]);
+  }, [token, loggedIn, navigate]);
 
   const resend = async () => {
     setError("");
@@ -181,7 +180,7 @@ export function ForgotPage() {
 
 export function ResetPage() {
   const [params] = useSearchParams();
-  const { setUser } = useAuth();
+  const { loggedIn } = useAuth();
   const navigate = useNavigate();
   const [password, setPassword] = useState("");
   const [again, setAgain] = useState("");
@@ -191,7 +190,7 @@ export function ResetPage() {
     setError("");
     if (password !== again) return setError("Hai lần nhập mật khẩu không giống nhau.");
     try {
-      setUser(await api<User>("/api/auth/reset", { body: { token: params.get("token") ?? "", password } }));
+      loggedIn(await api<LoginAnswer>("/api/auth/reset", { body: { token: params.get("token") ?? "", password } }));
       navigate("/", { replace: true });
     } catch (e) {
       setError(message(e));

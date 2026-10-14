@@ -22,7 +22,7 @@ Backend phục vụ bản build: `/`, `/lesson/<id>`, `/talk/<id>`, `/talk/<id>/
 main.tsx                    # gắn React Router: / , /review , /roadmap , /sounds , /fluency , /check , /history , /account; admin: /bench , /admin/...;
                             #   chưa đăng nhập chỉ có /login , /signup , /forgot , /verify , /reset (xem accounts.md); import base.css trước các trang
 api/types.ts                # kiểu dữ liệu của API và giao thức WebSocket
-api/http.ts                 # api() (JSON), postAudio() (ghi âm): lời gọi API duy nhất, ném ApiError với câu lỗi của server; 401 thì về trang đăng nhập
+api/http.ts                 # api() (JSON), postAudio() (ghi âm), authedAudio()/playApi() (âm thanh): lời gọi API duy nhất, gắn JWT, tự làm mới token, ném ApiError; hết phiên thì về trang đăng nhập
 auth/AuthContext.tsx        # AuthProvider, useAuth (user, login, logout), useUser (trang chỉ hiện khi đã đăng nhập)
 auth/guards.tsx             # GuestOnly, RequireAuth, RequireAdmin: route lồng dùng <Outlet>, xem accounts.md
 lib/format.ts               # hàm thuần: fmtDate, fmtNum, niceMax, latestWithDelta (+ format.test.ts)

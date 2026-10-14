@@ -1,6 +1,6 @@
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router";
-import { api, postAudio } from "../../api/http";
+import { api, playApi, postAudio } from "../../api/http";
 import type { DrillBest, DrillResult, DrillSet, DrillState } from "../../api/types";
 import { AppBar } from "../../components/AppBar";
 import { Lead } from "../../components/Lead";
@@ -129,8 +129,12 @@ export function SoundsPage() {
   const listen = (slow: boolean) => {
     if (!set || !sentence) return;
     audio.current?.pause();
-    audio.current = new Audio(`/api/drills/${set.id}/${sentence.id}/audio${slow ? "?slow=1" : ""}`);
-    void audio.current.play().catch(() => setStatus({ text: "Không phát được câu mẫu.", state: "error" }));
+    const a = new Audio();
+    audio.current = a;
+    const url = `/api/drills/${set.id}/${sentence.id}/audio${slow ? "?slow=1" : ""}`;
+    void playApi(a, url, () => audio.current === a).catch(() =>
+      setStatus({ text: "Không phát được câu mẫu.", state: "error" }),
+    );
   };
 
   const submit = async (blob: Blob) => {

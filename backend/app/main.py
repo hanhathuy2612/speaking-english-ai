@@ -43,7 +43,7 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
 
 
 app = FastAPI(title="Speaking demo", lifespan=lifespan)
-# Every API route needs a logged-in user (docs/features/accounts.md); /ws checks the cookie itself.
+# Every API route needs a logged-in user (docs/features/accounts.md); /ws reads the access token from its first message.
 app.include_router(auth.router)
 for _router in (
     units.router, check.router, talks.router, drills.router, fluency.router, review.router, lessons.router, history.router

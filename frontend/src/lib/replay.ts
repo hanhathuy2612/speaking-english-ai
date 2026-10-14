@@ -2,12 +2,15 @@
  * Playback of the learner's own recordings ("Nghe lại"). One shared player, so starting one
  * recording stops the previous one, and the microphone stops playback (useMic).
  * Recordings live only in the browser as object URLs (hooks/useRecordings.ts): nothing is uploaded
- * or stored for this, and they are gone after a page reload.
+ * or stored for this, and they are gone after a page reload. Recordings kept by the server
+ * (history, best drill reading) are /api/... URLs, downloaded with the login token first (api/http.ts).
  *
  * Phone recordings are quiet (peaks around -18 to -27 dBFS measured), so playback goes through a
  * Web Audio gain that brings the peak near full scale (a 3x cap was tried and was too quiet).
  * Only playback changes: the recording sent for recognition is untouched.
  */
+import { authedAudio, playApi } from "../api/http";
+
 let current: HTMLAudioElement | null = null;
 let ctx: AudioContext | null = null;
 const gains = new Map<string, number>(); // src -> gain, computed once per recording
@@ -23,7 +26,7 @@ export function replayGain(peak: number): number {
 }
 
 async function measure(src: string): Promise<number> {
-  const data = await (await fetch(src)).arrayBuffer();
+  const data = await (await fetch(await authedAudio(src))).arrayBuffer();
   const buf = await ctx!.decodeAudioData(data);
   let peak = 0;
   for (let c = 0; c < buf.numberOfChannels; c++) {
@@ -35,7 +38,7 @@ async function measure(src: string): Promise<number> {
 /** Play `src`, stopping whatever was playing. Returns the element so callers can track its end. */
 export function playReplay(src: string): HTMLAudioElement {
   stopReplay();
-  const a = new Audio(src);
+  const a = new Audio();
   current = a;
   try {
     ctx ??= new AudioContext();
@@ -54,7 +57,7 @@ export function playReplay(src: string): HTMLAudioElement {
   } catch {
     // no Web Audio: plain playback at the recorded level
   }
-  void a.play().catch(() => a.dispatchEvent(new Event("ended")));
+  void playApi(a, src, () => current === a).catch(() => a.dispatchEvent(new Event("ended")));
   return a;
 }
 

@@ -13,7 +13,7 @@ import type {
   Topic,
   UnitsResponse,
 } from "../../api/types";
-import { api, AUTH_EXPIRED } from "../../api/http";
+import { accessToken, api, AUTH_EXPIRED } from "../../api/http";
 import type { Status } from "../../components/ui";
 import { useAudioQueue } from "../../hooks/useAudioQueue";
 import { useRecordings } from "../../hooks/useRecordings";
@@ -238,6 +238,8 @@ export function useInterview(requestedUnit: string | null) {
     ws.current = sock;
     let closedByUs = false;
     sock.onopen = async () => {
+      // A browser WebSocket cannot carry a header: the token is the first message (docs/architecture.md).
+      sock.send(JSON.stringify({ type: "auth", token: (await accessToken().catch(() => null)) ?? "" }));
       const { topics, next_unit } = await api<UnitsResponse>("/api/units");
       dispatch({ type: "topics", topics });
       const first = pickUnit(topics, requestedUnit, next_unit);

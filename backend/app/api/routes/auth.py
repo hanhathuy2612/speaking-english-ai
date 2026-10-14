@@ -1,5 +1,7 @@
 """Login, sign-up with email confirmation, password reset, and the current user
-(docs/features/accounts.md). Only /me and /password need a login.
+(docs/features/accounts.md). Only /me and /password need a login. Logging in (password, email link,
+refresh) answers with JWTs the page sends as `Authorization: Bearer`; there is no logout on the
+server, the page forgets its tokens.
 
 Sign-up, resend and forgot answer the same whether or not the email has an account, and send their
 email from a background task, so neither the answer nor its timing tells which addresses exist.
@@ -10,12 +12,12 @@ from __future__ import annotations
 import time
 from collections import defaultdict, deque
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, Response
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from pydantic import BaseModel
 
-from app.api.deps import COOKIE, current_user
+from app.api.deps import current_user
 from app.core import config
-from app.services import accounts, mailer
+from app.services import accounts, mailer, tokens
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -49,16 +51,13 @@ def _ip(request: Request) -> str:
     return request.client.host if request.client else "?"
 
 
-def set_login_cookie(request: Request, response: Response, uid: int) -> None:
-    response.set_cookie(
-        COOKIE,
-        accounts.new_session(uid),
-        max_age=accounts.SESSION_DAYS * 86400,
-        httponly=True,  # page scripts never see it
-        samesite="lax",  # not sent on another site's POST or WebSocket
-        secure=request.url.scheme == "https",
-        path="/",
-    )
+def logged_in(uid: int) -> dict:
+    """{user, access_token, refresh_token, expires_in} for an active, verified user."""
+    state = accounts.login_state(uid)
+    if not state:
+        raise HTTPException(401, "Phiên đăng nhập đã hết. Hãy đăng nhập lại.")
+    user, stamp = state
+    return {"user": user, **tokens.issue(user, stamp)}
 
 
 def _link(request: Request, page: str, token: str) -> str:
@@ -105,7 +104,7 @@ class Login(BaseModel):
 
 
 @router.post("/login")
-async def login(body: Login, request: Request, response: Response) -> dict:
+async def login(body: Login, request: Request) -> dict:
     email, ip = accounts.normalize_email(body.email), _ip(request)
     if _over(_fails, MAX_FAILS, email, ip):
         raise HTTPException(429, "Đăng nhập sai quá nhiều lần. Thử lại sau 15 phút.")
@@ -118,20 +117,30 @@ async def login(body: Login, request: Request, response: Response) -> dict:
     if not user["verified"]:
         raise HTTPException(403, detail={"code": "unverified", "msg": "Email chưa được xác nhận."})
     _fails.pop(f"email:{email}", None)
-    set_login_cookie(request, response, user["id"])
-    return user
+    return logged_in(user["id"])
 
 
-@router.post("/logout")
-async def logout(request: Request, response: Response) -> dict:
-    accounts.end_session(request.cookies.get(COOKIE))
-    response.delete_cookie(COOKIE, path="/")
-    return {"ok": True}
+class Refresh(BaseModel):
+    refresh_token: str
+
+
+@router.post("/refresh")
+async def refresh(body: Refresh) -> dict:
+    """New tokens for a refresh token, while the account is active and its password unchanged."""
+    claims = tokens.refresh_claims(body.refresh_token)
+    state = accounts.login_state(claims[0]) if claims else None
+    if not state or state[1] != claims[1]:
+        raise HTTPException(401, "Phiên đăng nhập đã hết. Hãy đăng nhập lại.")
+    return logged_in(state[0]["id"])
 
 
 @router.get("/me")
 async def me(user: dict = Depends(current_user)) -> dict:
-    return user
+    """The full user row (verified, created_at...), not only what the access token carries."""
+    found = accounts.get_user(user["id"])
+    if not found:
+        raise HTTPException(401, "Bạn cần đăng nhập.")
+    return found
 
 
 class NewPassword(BaseModel):
@@ -140,15 +149,13 @@ class NewPassword(BaseModel):
 
 
 @router.post("/password")
-async def change_password(body: NewPassword, request: Request, response: Response,
-                          user: dict = Depends(current_user)) -> dict:  # fmt: skip
+async def change_password(body: NewPassword, user: dict = Depends(current_user)) -> dict:
     if not accounts.authenticate(user["email"], body.current):
         raise HTTPException(400, "Mật khẩu hiện tại không đúng.")
     if problem := accounts.password_problem(body.password):
         raise HTTPException(400, problem)
-    accounts.set_password(user["id"], body.password)  # ends every session, this one included
-    set_login_cookie(request, response, user["id"])
-    return {"ok": True}
+    accounts.set_password(user["id"], body.password)  # ends the other logins at their next refresh
+    return logged_in(user["id"])  # new tokens for this one
 
 
 # ----- Sign-up and email links -----
@@ -197,7 +204,7 @@ class Token(BaseModel):
 
 
 @router.post("/verify")
-async def verify(body: Token, request: Request, response: Response) -> dict:
+async def verify(body: Token) -> dict:
     """Confirms the email and logs the user in (they just proved they own the inbox)."""
     uid = accounts.use_token(body.token, "verify")
     user = accounts.get_user(uid) if uid else None
@@ -206,8 +213,7 @@ async def verify(body: Token, request: Request, response: Response) -> dict:
     if user["disabled"]:
         raise HTTPException(403, "Tài khoản đã bị khóa. Liên hệ quản trị viên.")
     accounts.mark_verified(user["id"])
-    set_login_cookie(request, response, user["id"])
-    return accounts.get_user(user["id"]) or {}
+    return logged_in(user["id"])
 
 
 @router.post("/forgot")
@@ -226,7 +232,7 @@ class Reset(BaseModel):
 
 
 @router.post("/reset")
-async def reset(body: Reset, request: Request, response: Response) -> dict:
+async def reset(body: Reset) -> dict:
     if problem := accounts.password_problem(body.password):
         raise HTTPException(400, problem)
     uid = accounts.use_token(body.token, "reset")
@@ -235,7 +241,6 @@ async def reset(body: Reset, request: Request, response: Response) -> dict:
         raise HTTPException(400, "Link đặt lại mật khẩu không đúng hoặc đã hết hạn. Hãy gửi link mới.")
     if user["disabled"]:
         raise HTTPException(403, "Tài khoản đã bị khóa. Liên hệ quản trị viên.")
-    accounts.set_password(user["id"], body.password)  # ends every other session
+    accounts.set_password(user["id"], body.password)  # ends the other logins at their next refresh
     accounts.mark_verified(user["id"])  # the reset link proved the inbox too
-    set_login_cookie(request, response, user["id"])
-    return accounts.get_user(user["id"]) or {}
+    return logged_in(user["id"])

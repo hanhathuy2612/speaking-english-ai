@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
-import { api } from "../../api/http";
+import { api, type LoginAnswer } from "../../api/http";
 import { useAuth, useUser } from "../../auth/AuthContext";
 import { AppBar } from "../../components/AppBar";
 import { Chip } from "../../components/ui";
@@ -9,6 +9,7 @@ import { Field, FormError, onSubmit } from "../auth/AuthLayout";
 import "../../styles/auth.css";
 
 function PasswordForm() {
+  const { loggedIn } = useAuth();
   const [current, setCurrent] = useState("");
   const [password, setPassword] = useState("");
   const [again, setAgain] = useState("");
@@ -20,7 +21,8 @@ function PasswordForm() {
     setDone(false);
     if (password !== again) return setError("Hai lần nhập mật khẩu mới không giống nhau.");
     try {
-      await api("/api/auth/password", { body: { current, password } });
+      // New tokens: the old refresh token stops working with the old password.
+      loggedIn(await api<LoginAnswer>("/api/auth/password", { body: { current, password } }));
       setDone(true);
       setCurrent("");
       setPassword("");

@@ -59,7 +59,9 @@ def client(db):
 
 
 def login(client, email):
-    assert client.post("/api/auth/login", json={"email": email, "password": "password1"}).status_code == 200
+    r = client.post("/api/auth/login", json={"email": email, "password": "password1"})
+    assert r.status_code == 200
+    client.headers["Authorization"] = f"Bearer {r.json()['access_token']}"
 
 
 def unit_ids(client) -> list[str]:

@@ -103,7 +103,9 @@ def client(tmp_path, monkeypatch):
     fake = {"text": " ".join(x["w"] for x in w), "words": w, "avg_logprob": -0.2, "no_speech": 0.0, "language": "en"}
     monkeypatch.setattr(stt, "transcribe", lambda path, prompt="", check_language=False: fake)
     c = TestClient(app)
-    assert c.post("/api/auth/login", json={"email": "me@example.com", "password": "password1"}).status_code == 200
+    r = c.post("/api/auth/login", json={"email": "me@example.com", "password": "password1"})
+    assert r.status_code == 200
+    c.headers["Authorization"] = f"Bearer {r.json()['access_token']}"
     return c
 
 
@@ -147,7 +149,8 @@ def test_learning_after_a_check_never_changes_or_adds_checks(client, monkeypatch
 def test_someone_elses_check_cannot_be_reviewed(client):
     check_id = client.post("/api/check/ai-tools", content=b"audio").json()["id"]
     accounts.create_user("other@example.com", "Other", "password1")
-    client.post("/api/auth/login", json={"email": "other@example.com", "password": "password1"})
+    r = client.post("/api/auth/login", json={"email": "other@example.com", "password": "password1"})
+    client.headers["Authorization"] = f"Bearer {r.json()['access_token']}"
     assert client.post(f"/api/check/{check_id}/review").status_code == 404
     assert client.post(f"/api/check/{check_id}/retry", content=b"audio").status_code == 404
 

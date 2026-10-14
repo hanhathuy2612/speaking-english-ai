@@ -153,6 +153,7 @@ export type ServerMessage =
   | { type: "error"; msg: string };
 
 export type ClientMessage =
+  | { type: "auth"; token: string } // always the first message: the access token (JWT)
   | { type: "start"; unit: string }
   | { type: "text"; text: string }
   | { type: "undo" }

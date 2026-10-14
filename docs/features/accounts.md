@@ -13,10 +13,12 @@ Mọi API `/api/*` (trừ `/api/auth/*`) và WebSocket `/ws` đều cần đăng
 
 | Phần | Vị trí |
 |---|---|
-| Bảng `users`, `auth_sessions`, `email_tokens`; băm mật khẩu, phiên, token email | `backend/app/services/accounts.py` |
+| Bảng `users`, `email_tokens`; băm mật khẩu, token email, `login_state` | `backend/app/services/accounts.py` |
+| Ký và đọc JWT (access, refresh), khóa ký | `backend/app/services/tokens.py` |
 | File SQLite dùng chung với lịch sử | `backend/app/services/db.py` |
-| Kiểm tra đăng nhập và vai trò (`current_user`, `require_admin`, `ws_user`) | `backend/app/api/deps.py`; gắn vào router trong `main.py` |
-| Đăng nhập, đăng xuất, đăng ký, xác nhận email, quên/đặt lại mật khẩu, đổi mật khẩu | `backend/app/api/routes/auth.py` |
+| Kiểm tra đăng nhập và vai trò (`current_user`, `require_admin`) | `backend/app/api/deps.py`; gắn vào router trong `main.py` |
+| Đăng nhập WebSocket (tin `auth` đầu tiên) | `backend/app/api/routes/ws.py` (`_ws_user`) |
+| Đăng nhập, làm mới token, đăng ký, xác nhận email, quên/đặt lại mật khẩu, đổi mật khẩu | `backend/app/api/routes/auth.py` |
 | Quản lý người dùng (admin) | `backend/app/api/routes/admin_users.py` |
 | Gửi email (SMTP) | `backend/app/services/mailer.py` |
 | Tạo tài khoản bằng lệnh | `backend/scripts/create_user.py` |
@@ -34,15 +36,22 @@ python -m scripts.create_user email-cua-ban@example.com --name "Huy" --admin
 
 Quản trị viên đầu tiên **nhận toàn bộ lịch sử luyện tập có từ trước khi có tài khoản** (các dòng `user_id` trống). Lệnh in ra số dòng đã nhận. Sau đó những người khác tự đăng ký, hoặc admin tạo tài khoản ở trang Quản trị.
 
-## Đăng nhập và phiên
+## Đăng nhập: JWT, không lưu phiên trên server
 
 - Đăng nhập bằng email và mật khẩu. Email lưu chữ thường, nên `Me@Example.com` và `me@example.com` là một tài khoản.
 - Mật khẩu băm bằng **scrypt** (`hashlib` có sẵn trong Python, không thêm thư viện), muối ngẫu nhiên 16 byte, tham số n=2^14, r=8, p=1 (mức tối thiểu OWASP khuyên cho scrypt, khoảng 50 ms mỗi lần). Mật khẩu tối thiểu 8 ký tự.
-- Đăng nhập thành công thì server đặt cookie `sid`: chuỗi ngẫu nhiên 32 byte, `HttpOnly` (JavaScript của trang không đọc được), `SameSite=Lax` (trang web khác không gửi kèm được trong POST hay WebSocket), `Secure` khi chạy HTTPS, sống 30 ngày. Trong DB chỉ lưu SHA-256 của cookie, nên có bản sao DB cũng không dùng được để đăng nhập.
-- **Dùng cookie, không dùng JWT:** frontend và backend cùng một địa chỉ, nên trình duyệt tự gửi cookie, kể cả khi mở WebSocket. Đăng xuất, đổi mật khẩu hay khóa tài khoản xóa phiên trong DB và có tác dụng ngay. JWT không làm được việc này nếu không có thêm danh sách thu hồi.
-- Đổi mật khẩu (trang Tài khoản hoặc link đặt lại) và khóa tài khoản sẽ **kết thúc mọi phiên** của người đó. Riêng thiết bị vừa đổi mật khẩu được cấp cookie mới.
+- Đăng nhập thành công (mật khẩu, link xác nhận email, link đặt lại mật khẩu, đổi mật khẩu) trả về `{user, access_token, refresh_token, expires_in}`. Cả hai token là JWT ký HS256 (thư viện PyJWT), server **không lưu gì** về lần đăng nhập.
+  - **Access token**, sống **15 phút**: chứa `sub` (id), `email`, `name`, `role`. Mọi API gửi nó trong header `Authorization: Bearer <token>`. `current_user` chỉ kiểm chữ ký và hạn, không đọc DB.
+  - **Refresh token**, sống **30 ngày**: chỉ chứa `sub` và `pwd`, một dấu (16 ký tự đầu của SHA-256) của mật khẩu đã băm. `POST /api/auth/refresh` đọc dòng `users` một lần (`login_state`): tài khoản phải còn hoạt động, đã xác nhận email, và `pwd` phải khớp mật khẩu hiện tại. Đúng thì trả cặp token mới (refresh mới cũng 30 ngày, nên dùng đều đặn thì không phải đăng nhập lại).
+  - Hai loại token có `typ` khác nhau (`access`, `refresh`): dùng nhầm loại thì bị từ chối.
+- **Khóa ký:** `JWT_SECRET` trong `.env`. Để trống thì server tự tạo khóa ngẫu nhiên và giữ trong file `jwt_secret` cạnh `HISTORY_DB` (ví dụ `data/jwt_secret`, không commit). Đổi khóa hay xóa file đó thì mọi người phải đăng nhập lại.
+- **Cái giá của stateless:** server không thu hồi được token trước hạn.
+  - Khóa tài khoản, đổi vai trò, đổi mật khẩu có tác dụng **trong tối đa 15 phút**, ở lần làm mới token tiếp theo. Access token đã cấp vẫn dùng được tới hết hạn.
+  - Đổi mật khẩu làm mọi refresh token cũ hết tác dụng (dấu `pwd` không khớp nữa). Thiết bị vừa đổi mật khẩu nhận cặp token mới.
+  - Đăng xuất chỉ là trình duyệt quên token, không gọi server. Ai đã lấy được refresh token thì vẫn dùng được tới khi người dùng đổi mật khẩu hoặc bị khóa.
+- **Vì sao gửi bằng header:** token không đi kèm tự động như cookie, nên trang web khác không gửi request thay người dùng được (không có CSRF). Đổi lại, token nằm trong `localStorage`: nếu trang bị chèn script độc (XSS) thì script đọc được token.
 - **Chặn đoán mật khẩu:** sai 5 lần cùng một email, hoặc 20 lần từ cùng một IP, trong 15 phút thì trả 429. Bộ đếm nằm trong bộ nhớ (một server local là đủ) và mất khi khởi động lại. Khi email không tồn tại, server vẫn tính scrypt một lần, để thời gian trả lời không lộ email nào có tài khoản.
-- WebSocket `/ws` đọc cookie lúc bắt tay. Không có phiên hợp lệ thì server đóng với mã **4401**, giao diện quay về trang đăng nhập. Header `Origin` phải trùng `Host`, để trang web khác không mở được WebSocket bằng cookie của người dùng.
+- WebSocket `/ws`: trình duyệt không gắn header được cho WebSocket, nên tin đầu tiên phải là `{"type":"auth","token":"<access token>"}`, gửi trong 10 giây. Sai, thiếu hay hết hạn thì server đóng với mã **4401**, giao diện quay về trang đăng nhập. Token chỉ được kiểm lúc mở kết nối; buổi tập dài hơn 15 phút vẫn chạy tiếp.
 
 ## Đăng ký và xác nhận email
 
@@ -51,7 +60,7 @@ Quản trị viên đầu tiên **nhận toàn bộ lịch sử luyện tập c�
 3. Bấm link: trang `/verify` gửi token lên `POST /api/auth/verify`. Server đánh dấu đã xác nhận và **đăng nhập luôn**, vì người dùng vừa chứng minh họ đọc được hộp thư đó.
 4. Đăng nhập khi chưa xác nhận thì trả 403 `{"code": "unverified"}`. Trang đăng nhập hiện link "gửi lại email xác nhận".
 
-**Quên mật khẩu:** `/forgot` gửi link `<APP_URL>/reset?token=...`, hết hạn sau 1 giờ, dùng một lần. Đặt mật khẩu mới xong thì mọi phiên cũ kết thúc, tài khoản được coi là đã xác nhận email, và người dùng được đăng nhập.
+**Quên mật khẩu:** `/forgot` gửi link `<APP_URL>/reset?token=...`, hết hạn sau 1 giờ, dùng một lần. Đặt mật khẩu mới xong thì các thiết bị khác bị đăng xuất ở lần làm mới token tiếp theo (tối đa 15 phút), tài khoản được coi là đã xác nhận email, và người dùng được đăng nhập.
 
 **Không để lộ email nào đã có tài khoản:** đăng ký bằng email đã có, gửi lại xác nhận, quên mật khẩu với email lạ đều trả cùng một câu "nếu email có tài khoản thì đã gửi". Email được gửi trong background task sau khi trả lời, nên thời gian trả lời cũng không khác. Đăng ký lại một email chưa xác nhận chỉ gửi lại link, không đổi mật khẩu cũ. Mỗi email nhận tối đa 3 thư, mỗi IP gửi tối đa 10 yêu cầu trong 15 phút.
 
@@ -101,29 +110,38 @@ Lần đầu server (hoặc `create_user`) mở một `history.db` có từ trư
 
 | Route | Cần | Việc |
 |---|---|---|
-| `POST /api/auth/login` | | `{email, password}` → user, đặt cookie |
-| `POST /api/auth/logout` | | Xóa phiên và cookie |
-| `GET /api/auth/me` | đăng nhập | User hiện tại (401 nếu chưa) |
-| `POST /api/auth/password` | đăng nhập | `{current, password}` |
+| `POST /api/auth/login` | | `{email, password}` → `{user, access_token, refresh_token, expires_in}` |
+| `POST /api/auth/refresh` | | `{refresh_token}` → như trên; 401 khi hết hạn, tài khoản bị khóa hoặc đã đổi mật khẩu |
+| `GET /api/auth/me` | đăng nhập | User hiện tại, đọc từ DB (401 nếu chưa) |
+| `POST /api/auth/password` | đăng nhập | `{current, password}` → cặp token mới |
 | `POST /api/auth/signup` | | `{email, password, name}` |
 | `POST /api/auth/resend` | | `{email}` gửi lại link xác nhận |
-| `POST /api/auth/verify` | | `{token}` → user, đặt cookie |
+| `POST /api/auth/verify` | | `{token}` → như login |
 | `POST /api/auth/forgot` | | `{email}` gửi link đặt lại |
-| `POST /api/auth/reset` | | `{token, password}` → user, đặt cookie |
+| `POST /api/auth/reset` | | `{token, password}` → như login |
 | `GET/POST /api/admin/users`, `PATCH /api/admin/users/{id}` | admin | Danh sách, tạo, sửa `{name, role, disabled, password, verified}`. Không được bỏ quyền hay khóa admin cuối cùng, cũng không tự khóa mình |
 
 User trả về không bao giờ có mật khẩu băm: `{id, email, name, role, verified, disabled, created_at}`.
 
 ## Giao diện
 
-- `AuthProvider` hỏi `GET /api/auth/me` một lần khi mở app. Các route nằm sau ba cổng trong `auth/guards.tsx`:
+- `AuthProvider`: không có refresh token trong `localStorage` thì hiện trang đăng nhập ngay, không hỏi server; có thì hỏi `GET /api/auth/me` một lần khi mở app. Các route nằm sau ba cổng trong `auth/guards.tsx`:
   - `GuestOnly`: `/login`, `/signup`, `/forgot`. Đã đăng nhập thì chuyển sang `next` (hoặc `/`).
   - `RequireAuth`: mọi trang còn lại. Chưa đăng nhập thì chuyển về `/login?next=<trang đó>`, đăng nhập xong quay lại đúng trang. `next` chỉ nhận đường dẫn trong app (bắt đầu bằng một `/`), không chuyển sang trang web khác được.
   - `RequireAdmin` (bên trong `RequireAuth`): `/bench`, `/admin/...`. Người học gõ địa chỉ này thì về `/`.
   - `/verify`, `/reset` (link trong email) mở được cả khi đã hay chưa đăng nhập.
 
   Cổng chỉ quyết định hiện trang nào. Quyền thật nằm ở server: mọi route API đều qua `current_user` / `require_admin`.
-- Mọi lời gọi API đi qua `api()` / `postAudio()` trong `api/http.ts`, không gọi `fetch` thẳng trong trang. Không dùng axios: đăng nhập là cookie HttpOnly trình duyệt tự gửi, không có token để gắn, nên wrapper `fetch` là đủ. API trả 401 (trừ `/api/auth/...`, nơi 401 là sai mật khẩu) thì phát sự kiện `auth:expired`, app quay về trang đăng nhập. WebSocket đóng với mã 4401 cũng vậy. Các trang không phải tự xử lý phiên hết hạn. Lỗi trả về thành `ApiError` với câu tiếng Việt của server; mất kết nối thì báo "Không kết nối được máy chủ."
+- Mọi lời gọi API đi qua `api()` / `postAudio()` trong `api/http.ts`, không gọi `fetch` thẳng trong trang. Không dùng axios: gắn header và làm mới token chỉ cần vài chục dòng quanh `fetch`.
+  - Token lưu trong `localStorage` (`auth.access`, `auth.refresh`), các tab dùng chung.
+  - Trước mỗi lời gọi: access token còn dưới 30 giây thì làm mới trước. Nhiều lời gọi cùng lúc dùng chung một lần làm mới.
+  - Server vẫn trả 401 thì làm mới một lần rồi gọi lại. Làm mới thất bại thì quên token, phát sự kiện `auth:expired`, app quay về trang đăng nhập. WebSocket đóng với mã 4401 cũng vậy. Các trang không phải tự xử lý phiên hết hạn.
+  - Các route đăng nhập, đăng ký, link email (`/api/auth/login|refresh|signup|resend|verify|forgot|reset`) không gửi token; 401 ở đó là câu trả lời (sai mật khẩu), không phải hết phiên.
+  - Lỗi trả về thành `ApiError` với câu tiếng Việt của server; mất kết nối thì báo "Không kết nối được máy chủ."
+- **Âm thanh sau đăng nhập** (câu mẫu ôn tập và phát âm, giọng giáo viên, bản ghi trong lịch sử): `<audio src>` không gắn header được, nên `authedAudio()` tải file bằng `fetch` kèm token rồi phát bằng object URL. File đã tải giữ tới khi tải lại trang hoặc đăng xuất.
+  - `useTeacherVoice` tải trước câu kế tiếp trong lúc câu hiện tại đang phát.
+  - Ở lần bấm đầu tiên, `useTeacherVoice` phát một file WAV rỗng để mở khóa thẻ `<audio>` trên điện thoại (iOS chỉ cho phát khi có thao tác chạm), vì câu đầu thường chưa tải xong.
+- Đăng xuất: quên token và các file âm thanh đã tải, không gọi server.
 - Thanh trên có nút tài khoản (tên người dùng) dẫn tới `/account`; admin có thêm mục "Quản trị". Trên điện thoại hai mục này nằm trong "Thêm".
 
 ## Thử nghiệm (agent)

@@ -1,8 +1,9 @@
-"""Accounts: users with a role, login sessions and one-time email tokens, in the history database.
+"""Accounts: users with a role and one-time email tokens, in the history database.
 
-Passwords are hashed with scrypt (hashlib, no extra dependency). Session and email tokens are random
-strings given to the browser; only their SHA-256 is stored, so a copy of the database cannot be used
-to log in. See docs/features/accounts.md.
+Passwords are hashed with scrypt (hashlib, no extra dependency). Logins are stateless JWTs
+(services/tokens.py), nothing about them is stored here. Email tokens are random strings sent in a
+link; only their SHA-256 is stored, so a copy of the database cannot be used to open them.
+See docs/features/accounts.md.
 """
 
 from __future__ import annotations
@@ -27,12 +28,7 @@ CREATE TABLE IF NOT EXISTS users (
     disabled INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL
 );
-CREATE TABLE IF NOT EXISTS auth_sessions (
-    token_hash TEXT PRIMARY KEY,       -- sha256 of the cookie value
-    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    created_at TEXT NOT NULL,
-    expires_at TEXT NOT NULL
-);
+DROP TABLE IF EXISTS auth_sessions;  -- cookie logins, replaced by JWTs
 CREATE TABLE IF NOT EXISTS email_tokens (
     token_hash TEXT PRIMARY KEY,       -- sha256 of the token in the emailed link
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -44,7 +40,6 @@ CREATE TABLE IF NOT EXISTS email_tokens (
 
 ROLES = ("user", "admin")
 MIN_PASSWORD = 8
-SESSION_DAYS = 30
 TOKEN_HOURS = {"verify": 48, "reset": 1}
 # scrypt cost: about 50 ms and 16 MB per hash, OWASP's minimum for scrypt.
 SCRYPT_N, SCRYPT_R, SCRYPT_P = 2**14, 8, 1
@@ -168,15 +163,12 @@ def update_user(uid: int, *, name: str | None = None, role: str | None = None, d
         return
     with closing(db.connect()) as conn, conn:
         conn.execute(f"UPDATE users SET {', '.join(f'{k} = ?' for k in sets)} WHERE id = ?", (*sets.values(), uid))
-        if disabled:
-            conn.execute("DELETE FROM auth_sessions WHERE user_id = ?", (uid,))
 
 
 def set_password(uid: int, password: str) -> None:
-    """New password; every login session of the user ends."""
+    """New password; refresh tokens issued before it stop working (login_state)."""
     with closing(db.connect()) as conn, conn:
         conn.execute("UPDATE users SET password = ? WHERE id = ?", (hash_password(password), uid))
-        conn.execute("DELETE FROM auth_sessions WHERE user_id = ?", (uid,))
 
 
 def mark_verified(uid: int) -> None:
@@ -196,38 +188,16 @@ def authenticate(email: str, password: str) -> dict | None:
     return public(row) if verify_password(password, row["password"]) else None
 
 
-# ----- Login sessions -----
+# ----- Login state (services/tokens.py signs the tokens) -----
 
 
-def new_session(uid: int) -> str:
-    token = secrets.token_urlsafe(32)
-    now = _now()
-    with closing(db.connect()) as conn, conn:
-        conn.execute("DELETE FROM auth_sessions WHERE expires_at < ?", (now.isoformat(),))
-        conn.execute(
-            "INSERT INTO auth_sessions (token_hash, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)",
-            (_sha(token), uid, now.isoformat(), (now + timedelta(days=SESSION_DAYS)).isoformat()),
-        )
-    return token
-
-
-def session_user(token: str | None) -> dict | None:
-    """The active, verified user of a login session, or None."""
-    if not token or not db.enabled():
+def login_state(uid: int) -> tuple[dict, str] | None:
+    """The active, verified user and a stamp of their password hash, or None. The stamp goes into the
+    refresh token, so a new password ends the logins made with the old one."""
+    if not db.enabled():
         return None
-    row = _one(
-        "SELECT u.* FROM auth_sessions s JOIN users u ON u.id = s.user_id "
-        "WHERE s.token_hash = ? AND s.expires_at > ? AND u.disabled = 0 AND u.verified_at IS NOT NULL",
-        (_sha(token), _now().isoformat()),
-    )
-    return public(row) if row else None
-
-
-def end_session(token: str | None) -> None:
-    if not token:
-        return
-    with closing(db.connect()) as conn, conn:
-        conn.execute("DELETE FROM auth_sessions WHERE token_hash = ?", (_sha(token),))
+    row = _one("SELECT * FROM users WHERE id = ? AND disabled = 0 AND verified_at IS NOT NULL", (uid,))
+    return (public(row), _sha(row["password"])[:16]) if row else None
 
 
 # ----- One-time email tokens -----

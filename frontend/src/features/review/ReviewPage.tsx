@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router";
-import { api, postAudio } from "../../api/http";
+import { api, playApi, postAudio } from "../../api/http";
 import type { ReviewAttempt, ReviewCard, ReviewState } from "../../api/types";
 import { AppBar } from "../../components/AppBar";
 import { Lead } from "../../components/Lead";
@@ -209,8 +209,11 @@ export function ReviewPage() {
   const listen = () => {
     if (!card) return;
     audio.current?.pause();
-    audio.current = new Audio(`/api/review/${card.id}/audio`);
-    void audio.current.play().catch(() => setStatus({ text: "Không phát được câu mẫu.", state: "error" }));
+    const a = new Audio();
+    audio.current = a;
+    void playApi(a, `/api/review/${card.id}/audio`, () => audio.current === a).catch(() =>
+      setStatus({ text: "Không phát được câu mẫu.", state: "error" }),
+    );
   };
 
   const today = localDay();

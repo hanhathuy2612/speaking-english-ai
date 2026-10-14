@@ -1,16 +1,13 @@
-"""Accounts: password hashing, login sessions, email tokens, and the API guards (temporary SQLite file)."""
+"""Accounts: password hashing, login tokens (JWT), email tokens, and the API guards (temporary SQLite file)."""
 
 from __future__ import annotations
-
-import sqlite3
-from datetime import datetime, timedelta
 
 import pytest
 from fastapi.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
 
 from app.core import config
-from app.services import accounts, history
+from app.services import accounts, history, tokens
 
 
 @pytest.fixture
@@ -41,35 +38,49 @@ def test_authenticate_and_duplicate_emails(db):
         accounts.create_user("me@example.com", "Again", "password2")
 
 
-def test_sessions_end_on_logout_password_change_and_lock(db):
-    uid = accounts.create_user("me@example.com", "Me", "password1")["id"]
-    token = accounts.new_session(uid)
-    assert accounts.session_user(token)["id"] == uid
-    assert accounts.session_user("forged") is None and accounts.session_user(None) is None
-    accounts.end_session(token)
-    assert accounts.session_user(token) is None
-
-    token = accounts.new_session(uid)
-    accounts.set_password(uid, "password2")
-    assert accounts.session_user(token) is None
-
-    token = accounts.new_session(uid)
-    accounts.update_user(uid, disabled=True)
-    assert accounts.session_user(token) is None
-    accounts.update_user(uid, disabled=False)
-    assert accounts.session_user(accounts.new_session(uid))["id"] == uid
+def refreshed(refresh_token: str) -> dict | None:
+    """What /api/auth/refresh checks, without HTTP: a valid token for an active user, same password."""
+    claims = tokens.refresh_claims(refresh_token)
+    state = accounts.login_state(claims[0]) if claims else None
+    return state[0] if state and state[1] == claims[1] else None
 
 
-def test_expired_sessions_and_unverified_users_are_refused(db):
+def test_access_tokens_need_no_database_and_refresh_checks_the_account(db):
+    user = accounts.create_user("me@example.com", "Me", "password1")
+    t = tokens.issue(user, accounts.login_state(user["id"])[1])
+    assert tokens.access_user(t["access_token"]) == {"id": user["id"], "email": "me@example.com", "name": "Me", "role": "user"}
+    assert tokens.access_user(t["refresh_token"]) is None  # a refresh token is not an access token
+    assert tokens.refresh_claims(t["access_token"]) is None
+    assert tokens.access_user("forged") is None and tokens.access_user(None) is None
+    assert refreshed(t["refresh_token"])["id"] == user["id"]
+
+    accounts.set_password(user["id"], "password2")
+    assert tokens.access_user(t["access_token"])  # lives out its 15 minutes
+    assert refreshed(t["refresh_token"]) is None  # but cannot be renewed with the old password
+
+    t = tokens.issue(user, accounts.login_state(user["id"])[1])
+    accounts.update_user(user["id"], disabled=True)
+    assert refreshed(t["refresh_token"]) is None
+    accounts.update_user(user["id"], disabled=False)
+    assert refreshed(t["refresh_token"])["id"] == user["id"]
+
+
+def test_expired_tokens_and_unverified_users_are_refused(db, monkeypatch):
     uid = accounts.create_user("me@example.com", "Me", "password1", verified=False)["id"]
-    token = accounts.new_session(uid)
-    assert accounts.session_user(token) is None  # email not confirmed yet
+    assert accounts.login_state(uid) is None  # email not confirmed yet
     accounts.mark_verified(uid)
-    assert accounts.session_user(token)["id"] == uid
-    past = (datetime.now() - timedelta(minutes=1)).isoformat()
-    with sqlite3.connect(db) as conn:
-        conn.execute("UPDATE auth_sessions SET expires_at = ?", (past,))
-    assert accounts.session_user(token) is None
+    user, stamp = accounts.login_state(uid)
+    monkeypatch.setattr(tokens, "ACCESS_SECONDS", -1)  # issued already expired
+    t = tokens.issue(user, stamp)
+    assert tokens.access_user(t["access_token"]) is None
+    assert refreshed(t["refresh_token"])["id"] == uid  # 30 days
+
+
+def test_tokens_signed_with_another_key_are_refused(db, monkeypatch):
+    user = accounts.create_user("me@example.com", "Me", "password1")
+    t = tokens.issue(user, accounts.login_state(user["id"])[1])
+    monkeypatch.setattr(config, "JWT_SECRET", "another key")
+    assert tokens.access_user(t["access_token"]) is None
 
 
 def test_email_tokens_work_once_for_their_kind(db):
@@ -95,7 +106,13 @@ def client(db):
 def login(client, email, password="password1"):
     r = client.post("/api/auth/login", json={"email": email, "password": password})
     assert r.status_code == 200, r.text
-    return r.json()
+    use(client, r.json())
+    return r.json()["user"]
+
+
+def use(client, answer: dict) -> None:
+    """Send the access token of a login answer on later requests, as the page does."""
+    client.headers["Authorization"] = f"Bearer {answer['access_token']}"
 
 
 def test_api_needs_login_and_admin_routes_need_the_admin_role(client):
@@ -108,7 +125,9 @@ def test_api_needs_login_and_admin_routes_need_the_admin_role(client):
     assert client.get("/api/units").status_code == 200
     assert client.get("/api/admin/users").status_code == 403
     assert client.get("/api/bench").status_code == 403
-    client.post("/api/auth/logout")
+    del client.headers["Authorization"]  # logging out: the page forgets its tokens
+    assert client.get("/api/units").status_code == 401
+    client.headers["Authorization"] = "Bearer forged"
     assert client.get("/api/units").status_code == 401
     login(client, "admin@example.com")
     assert [u["email"] for u in client.get("/api/admin/users").json()] == ["admin@example.com", "user@example.com"]
@@ -145,20 +164,28 @@ def test_change_password_keeps_this_login(client):
     login(client, "me@example.com")
     bad = client.post("/api/auth/password", json={"current": "nope", "password": "password2"})
     assert bad.status_code == 400
-    assert client.post("/api/auth/password", json={"current": "password1", "password": "password2"}).status_code == 200
-    assert client.get("/api/auth/me").status_code == 200  # a fresh cookie replaced the ended session
+    old = client.post("/api/auth/login", json={"email": "me@example.com", "password": "password1"}).json()
+    r = client.post("/api/auth/password", json={"current": "password1", "password": "password2"})
+    assert r.status_code == 200
+    use(client, r.json())  # fresh tokens for this login
+    assert client.get("/api/auth/me").status_code == 200
+    assert client.post("/api/auth/refresh", json={"refresh_token": r.json()["refresh_token"]}).status_code == 200
+    assert client.post("/api/auth/refresh", json={"refresh_token": old["refresh_token"]}).status_code == 401
     assert accounts.authenticate("me@example.com", "password2")
 
 
-def test_websocket_refuses_anonymous_and_cross_site_connections(client):
+def test_websocket_needs_an_access_token_first(client):
     accounts.create_user("me@example.com", "Me", "password1")
-    with client.websocket_connect("/ws") as ws, pytest.raises(WebSocketDisconnect) as closed:
-        ws.receive_json()
-    assert closed.value.code == 4401
-    login(client, "me@example.com")
-    with client.websocket_connect("/ws", headers={"origin": "https://evil.example"}) as ws:
-        with pytest.raises(WebSocketDisconnect):
+    for first in ({"type": "start", "unit": "x"}, {"type": "auth", "token": "forged"}):
+        with client.websocket_connect("/ws") as ws, pytest.raises(WebSocketDisconnect) as closed:
+            ws.send_json(first)
             ws.receive_json()
+        assert closed.value.code == 4401
+    access = client.post("/api/auth/login", json={"email": "me@example.com", "password": "password1"}).json()
+    with client.websocket_connect("/ws") as ws:
+        ws.send_json({"type": "auth", "token": access["access_token"]})
+        ws.send_json({"type": "undo"})  # nothing to undo: the connection stays open and quiet
+        ws.close()
 
 
 @pytest.fixture
@@ -189,7 +216,8 @@ def test_signup_needs_the_emailed_link_before_login(client, outbox):
     assert r.status_code == 403
     assert client.post("/api/auth/verify", json={"token": "forged"}).status_code == 400
     r = client.post("/api/auth/verify", json={"token": token_in(body, "verify")})
-    assert r.status_code == 200 and r.json()["verified"] and r.json()["role"] == "user"
+    assert r.status_code == 200 and r.json()["user"]["verified"] and r.json()["user"]["role"] == "user"
+    use(client, r.json())
     assert client.get("/api/auth/me").json()["email"] == "new@example.com"  # logged in by the link
     assert client.post("/api/auth/verify", json={"token": token_in(body, "verify")}).status_code == 400  # once
 
@@ -206,14 +234,17 @@ def test_signup_and_forgot_do_not_reveal_which_emails_exist(client, outbox):
 
 def test_password_reset_by_email(client, outbox):
     accounts.create_user("me@example.com", "Me", "password1")
-    old = accounts.new_session(accounts.user_by_email("me@example.com")["id"])
+    old = client.post("/api/auth/login", json={"email": "me@example.com", "password": "password1"}).json()
     client.post("/api/auth/forgot", json={"email": "me@example.com"}, headers={"host": "evil.example"})
     [(_to, _subject, body)] = outbox
     assert "evil.example" not in body  # links use APP_URL, never the request's Host
     token = token_in(body, "reset")
     assert client.post("/api/auth/reset", json={"token": token, "password": "short"}).status_code == 400
-    assert client.post("/api/auth/reset", json={"token": token, "password": "password2"}).status_code == 200
-    assert accounts.authenticate("me@example.com", "password2") and accounts.session_user(old) is None
+    r = client.post("/api/auth/reset", json={"token": token, "password": "password2"})
+    assert r.status_code == 200
+    assert accounts.authenticate("me@example.com", "password2")
+    assert client.post("/api/auth/refresh", json={"refresh_token": old["refresh_token"]}).status_code == 401
+    use(client, r.json())
     assert client.get("/api/auth/me").status_code == 200
 
 

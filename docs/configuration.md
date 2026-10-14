@@ -24,6 +24,7 @@ Server tự nạp `.env` bằng python-dotenv khi khởi động. Biến môi tr
 | `STT_CHECK_LANGUAGE` | `0` | không đặt | `1` = Whisper tự nhận ngôn ngữ để bắt câu tiếng Việt, chậm thêm ~0,24 giây/lượt |
 | `SAVE_AUDIO_DIR` | trống | `recordings` | Giữ file ghi âm mỗi lượt (tương đối với thư mục gốc) |
 | `HISTORY_DB` | `data/history.db` | `data/history.db` | File SQLite lưu tài khoản và lịch sử luyện tập (tương đối với thư mục gốc, hoặc đường dẫn tuyệt đối). Bắt buộc từ khi có tài khoản: để trống thì server không khởi động |
+| `JWT_SECRET` | trống | không đặt | Khóa ký token đăng nhập (JWT). Trống: server tự tạo, lưu ở file `jwt_secret` cạnh `HISTORY_DB`. Đổi khóa thì mọi người phải đăng nhập lại (xem [features/accounts.md](features/accounts.md)) |
 | `SIGNUP_ENABLED` | `1` | không đặt | `0` = tắt trang đăng ký, chỉ admin tạo tài khoản (xem [features/accounts.md](features/accounts.md)) |
 | `APP_URL` | trống | | Địa chỉ mở app, ví dụ `https://192.168.0.2:8000`, dùng cho link trong email. Bắt buộc khi có `SMTP_HOST` (không dựng link theo header `Host` vì header đó giả được) |
 | `SMTP_HOST` / `SMTP_PORT` | trống / `587` | | Máy chủ gửi email. Trống thì email chỉ in ra terminal của server |

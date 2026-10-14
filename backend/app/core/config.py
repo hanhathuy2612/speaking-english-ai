@@ -48,6 +48,9 @@ HISTORY_DB = os.getenv("HISTORY_DB", "data/history.db")  # relative to the proje
 
 # ----- Accounts and email (docs/features/accounts.md) -----
 SIGNUP_ENABLED = os.getenv("SIGNUP_ENABLED", "1") == "1"  # 0: only admins create accounts
+# Key that signs login tokens (JWT). Empty: a random key is created next to HISTORY_DB and kept.
+# Changing it logs everyone out.
+JWT_SECRET = os.getenv("JWT_SECRET", "")
 # Address the links in emails point to, e.g. https://192.168.0.2:8000. Required when SMTP_HOST is
 # set: the request's Host header could be forged to send a reset link to another site.
 APP_URL = os.getenv("APP_URL", "").rstrip("/")

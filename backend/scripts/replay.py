@@ -21,13 +21,12 @@ import json
 import os
 import ssl
 import urllib.request
-from http.cookies import SimpleCookie
 
 import websockets
 
 
 def login(ws_url: str, email: str, password: str) -> str:
-    """Log in over HTTP and return the Cookie header for the WebSocket."""
+    """Log in over HTTP and return the access token (15 minutes) the WebSocket's first message carries."""
     base = ws_url.replace("ws", "http", 1).rsplit("/ws", 1)[0]
     req = urllib.request.Request(
         f"{base}/api/auth/login",
@@ -36,12 +35,12 @@ def login(ws_url: str, email: str, password: str) -> str:
     )
     context = ssl._create_unverified_context()  # the LAN certificate is self-signed  # noqa: S323
     with urllib.request.urlopen(req, context=context) as r:
-        cookie = SimpleCookie(r.headers["Set-Cookie"])
-    return "; ".join(f"{k}={m.value}" for k, m in cookie.items())
+        return json.load(r)["access_token"]
 
 
-async def run_once(url: str, cookie: str, unit: str, answers: list[str]) -> None:
-    async with websockets.connect(url, max_size=None, additional_headers={"Cookie": cookie}) as ws:
+async def run_once(url: str, token: str, unit: str, answers: list[str]) -> None:
+    async with websockets.connect(url, max_size=None) as ws:
+        await ws.send(json.dumps({"type": "auth", "token": token}))
 
         async def until_done(show: bool) -> None:
             said: list[str] = []
@@ -83,12 +82,13 @@ async def main() -> None:
     ap.add_argument("--url", default="ws://localhost:8000/ws")
     ap.add_argument("--email", required=True, help="account to log in with")
     args = ap.parse_args()
-    cookie = login(args.url, args.email, os.getenv("REPLAY_PASSWORD") or getpass.getpass("Password: "))
+    password = os.getenv("REPLAY_PASSWORD") or getpass.getpass("Password: ")
     with open(args.answers, encoding="utf-8") as f:
         answers = [line.strip() for line in f if line.strip()]
     for r in range(1, args.runs + 1):
         print(f"\n===== Run {r}/{args.runs} =====")
-        await run_once(args.url, cookie, args.unit, answers)
+        # A fresh login per run: one run can outlast the 15-minute access token.
+        await run_once(args.url, login(args.url, args.email, password), args.unit, answers)
 
 
 if __name__ == "__main__":

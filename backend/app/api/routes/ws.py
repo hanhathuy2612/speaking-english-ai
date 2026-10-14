@@ -6,24 +6,37 @@ import asyncio
 import json
 import time
 
-from app.api.deps import ws_user
 from app.core.config import STT_CHECK_LANGUAGE, STT_VOCAB
 from app.interview.session import Session, progress
 from app.interview.retell import handle_retell
 from app.interview.shadow import handle_shadow
 from app.interview.turn import handle_user_input, start_session
 from app.interview.units import units_by_id
-from app.services import history, stt, tts
+from app.services import history, stt, tokens, tts
 from app.utils.ws import Conn
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 router = APIRouter()
 
+AUTH_TIMEOUT_S = 10
+
+
+async def _ws_user(ws: WebSocket) -> dict | None:
+    """Browsers cannot set headers on a WebSocket, so the first message carries the access token:
+    {"type": "auth", "token": "<jwt>"}."""
+    try:
+        data = json.loads(await asyncio.wait_for(ws.receive_text(), AUTH_TIMEOUT_S))
+    except (asyncio.TimeoutError, ValueError, KeyError, WebSocketDisconnect):
+        return None
+    if not isinstance(data, dict) or data.get("type") != "auth":
+        return None
+    return tokens.access_user(data.get("token"))
+
 
 @router.websocket("/ws")
 async def ws_endpoint(ws: WebSocket) -> None:
-    user = ws_user(ws)
     await ws.accept()
+    user = await _ws_user(ws)
     if not user:
         await ws.close(code=4401, reason="login required")  # the page sends the user to /login
         return

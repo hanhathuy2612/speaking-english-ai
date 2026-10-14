@@ -28,7 +28,7 @@ HISTORY_DB=<thư mục tạm>/hist.db SAVE_AUDIO_DIR= uvicorn app.main:app --por
 HISTORY_DB=<thư mục tạm>/hist.db NEW_USER_PASSWORD=<mật khẩu thử> python -m scripts.create_user admin@test.local --admin
 ```
 
-  Thử bằng script thì đăng nhập qua `POST /api/auth/login` rồi gửi kèm cookie `sid` (`replay.py` đã làm việc này). Để trống `SMTP_HOST` và `APP_URL`: email xác nhận in ra log server, link trỏ về chính server thử.
+  Thử bằng script thì đăng nhập qua `POST /api/auth/login`, gửi `access_token` trong header `Authorization: Bearer ...`, hoặc trong tin `auth` đầu tiên của WebSocket (`replay.py` đã làm việc này, đăng nhập lại mỗi lượt chạy vì token sống 15 phút). Để trống `SMTP_HOST` và `APP_URL`: email xác nhận in ra log server, link trỏ về chính server thử.
 
 - Chỉ dừng đúng tiến trình đang giữ cổng 8001. **Không bao giờ tắt `python.exe` theo tên** vì có thể tắt cả tiến trình của người dùng:
 
