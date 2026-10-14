@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
+import { api, postAudio } from "../../api/http";
 import type { CheckReport, CheckRow, CheckState } from "../../api/types";
 import { AppBar } from "../../components/AppBar";
 import { Lead } from "../../components/Lead";
@@ -178,7 +179,7 @@ export function CheckPage() {
 
   const load = useCallback(async (exclude?: string) => {
     const q = exclude ? `?exclude=${encodeURIComponent(exclude)}` : "";
-    setData(await (await fetch(`/api/check${q}`)).json());
+    setData(await api<CheckState>(`/api/check${q}`));
   }, []);
 
   useEffect(() => {
@@ -191,12 +192,11 @@ export function CheckPage() {
     setScoring(true);
     setStatus({ text: "Đang nhận dạng và đo…", state: "busy" });
     try {
-      const res = await fetch(`/api/check/${encodeURIComponent(data.prompt.id)}`, { method: "POST", body: blob });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      setResult({ ...(await res.json()), audio: keepRecording(blob) });
+      const report = await postAudio<CheckReport>(`/api/check/${encodeURIComponent(data.prompt.id)}`, blob);
+      setResult({ ...report, audio: keepRecording(blob) });
       setStatus({ text: "", state: "" });
       // Refresh the list of past checks but keep the current prompt on screen.
-      const fresh: CheckState = await (await fetch("/api/check")).json();
+      const fresh = await api<CheckState>("/api/check");
       setData((d) => (d ? { ...d, checks: fresh.checks } : fresh));
     } catch (e) {
       setStatus({ text: `Không chấm được: ${e instanceof Error ? e.message : e}`, state: "error" });

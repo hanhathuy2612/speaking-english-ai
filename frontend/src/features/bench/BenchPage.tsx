@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { api, postAudio } from "../../api/http";
 import type { BenchItem } from "../../api/types";
 import { AppBar } from "../../components/AppBar";
 import { MicIcon } from "../../components/Icons";
@@ -15,7 +16,7 @@ export function BenchPage() {
   useEffect(() => {
     document.title = "Đọc theo câu mẫu";
     void (async () => {
-      const list: BenchItem[] = await (await fetch("/api/bench")).json();
+      const list = await api<BenchItem[]>("/api/bench");
       setItems(list);
       const first = list.findIndex((x) => !x.done);
       setIdx(first < 0 ? 0 : first);
@@ -33,7 +34,7 @@ export function BenchPage() {
   const mic = useMic({
     onRecorded: async (blob) => {
       const i = idx;
-      await fetch(`/api/bench/${i}`, { method: "POST", body: blob });
+      await postAudio(`/api/bench/${i}`, blob);
       const next = items.map((x, k) => (k === i ? { ...x, done: true } : x));
       setItems(next);
       const nextIdx = next.findIndex((x, k) => k > i && !x.done);

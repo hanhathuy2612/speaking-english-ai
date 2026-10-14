@@ -1,4 +1,6 @@
-/** JSON calls to the backend with the error message the server wrote (Vietnamese, shown as is). */
+/** Every backend call goes through here: the server's error message (Vietnamese, shown as is) becomes an
+ * ApiError, and a 401 sends the app back to the login page, so no page handles an expired login itself.
+ * Plain fetch is enough: the login is an HttpOnly cookie the browser sends on its own (no token to attach). */
 
 export class ApiError extends Error {
   constructor(
@@ -11,6 +13,9 @@ export class ApiError extends Error {
   }
 }
 
+/** Fired when the server says the login is gone (401 on an API call, or the WebSocket closed with 4401). */
+export const AUTH_EXPIRED = "auth:expired";
+
 /** FastAPI errors: {"detail": "text"} or {"detail": {"code", "msg", "errors"?}} (validation errors are a list). */
 function errorOf(status: number, body: unknown): ApiError {
   const detail = (body as { detail?: unknown } | null)?.detail;
@@ -22,38 +27,31 @@ function errorOf(status: number, body: unknown): ApiError {
   return new ApiError(status, status === 422 ? "Dữ liệu chưa hợp lệ." : `Lỗi máy chủ (${status}).`);
 }
 
-export async function api<T>(url: string, init?: { method?: string; body?: unknown }): Promise<T> {
-  const r = await fetch(url, {
-    method: init?.method ?? (init?.body === undefined ? "GET" : "POST"),
-    headers: init?.body === undefined ? undefined : { "Content-Type": "application/json" },
-    body: init?.body === undefined ? undefined : JSON.stringify(init.body),
+async function send<T>(url: string, init: RequestInit): Promise<T> {
+  let r: Response;
+  try {
+    r = await fetch(url, init);
+  } catch {
+    throw new ApiError(0, "Không kết nối được máy chủ.");
+  }
+  // A wrong password on /api/auth/login is also a 401, but it is not an expired login.
+  if (r.status === 401 && !url.startsWith("/api/auth/")) window.dispatchEvent(new Event(AUTH_EXPIRED));
+  const body = await r.json().catch(() => null);
+  if (!r.ok) throw errorOf(r.status, body);
+  return body as T;
+}
+
+/** JSON call: GET without a body, POST with one, unless `method` says otherwise. */
+export function api<T = unknown>(url: string, init?: { method?: string; body?: unknown }): Promise<T> {
+  const hasBody = init?.body !== undefined;
+  return send<T>(url, {
+    method: init?.method ?? (hasBody ? "POST" : "GET"),
+    headers: hasBody ? { "Content-Type": "application/json" } : undefined,
+    body: hasBody ? JSON.stringify(init!.body) : undefined,
   });
-  const body = await r.json().catch(() => null);
-  if (!r.ok) throw errorOf(r.status, body);
-  return body as T;
 }
 
-/** POST raw audio (a recording) and read the JSON answer, with the server's error message. */
-export async function postAudio<T>(url: string, blob: Blob): Promise<T> {
-  const r = await fetch(url, { method: "POST", body: blob });
-  const body = await r.json().catch(() => null);
-  if (!r.ok) throw errorOf(r.status, body);
-  return body as T;
-}
-
-/** Fired when the server says the login is gone (401 on an API call, or the WebSocket closed with 4401). */
-export const AUTH_EXPIRED = "auth:expired";
-
-/** Watch every API response once, so a page never has to handle an expired login itself. */
-export function watchExpiredLogin() {
-  const original = window.fetch.bind(window);
-  window.fetch = async (input, init) => {
-    const r = await original(input, init);
-    const url = typeof input === "string" ? input : input instanceof URL ? input.pathname : input.url;
-    const path = new URL(url, location.origin).pathname;
-    if (r.status === 401 && path.startsWith("/api/") && !path.startsWith("/api/auth/")) {
-      window.dispatchEvent(new Event(AUTH_EXPIRED));
-    }
-    return r;
-  };
+/** POST raw audio (a recording) and read the JSON answer. */
+export function postAudio<T = unknown>(url: string, blob: Blob): Promise<T> {
+  return send<T>(url, { method: "POST", body: blob });
 }

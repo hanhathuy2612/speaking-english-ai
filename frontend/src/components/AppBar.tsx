@@ -1,5 +1,6 @@
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { Link, NavLink, useLocation } from "react-router";
+import { api } from "../api/http";
 import { useAuth } from "../auth/AuthContext";
 import { ChatIcon, MapIcon, MenuIcon, MoreIcon, RepeatIcon, UserIcon, WaveIcon } from "./Icons";
 import { Sheet } from "./Sheet";
@@ -43,9 +44,8 @@ export function AppBar({ children }: { children?: ReactNode }) {
   // Review cards due today, shown as a badge (refreshed on every page change).
   useEffect(() => {
     let live = true;
-    fetch("/api/review/count")
-      .then((r) => (r.ok ? r.json() : { due: 0 }))
-      .then((d: { due: number }) => live && setDue(d.due))
+    api<{ due: number }>("/api/review/count")
+      .then((d) => live && setDue(d.due))
       .catch(() => {});
     return () => {
       live = false;

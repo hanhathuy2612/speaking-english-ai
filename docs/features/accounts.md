@@ -116,8 +116,14 @@ User trả về không bao giờ có mật khẩu băm: `{id, email, name, role,
 
 ## Giao diện
 
-- `AuthProvider` hỏi `GET /api/auth/me` một lần khi mở app. Chưa đăng nhập thì chỉ có các trang `/login`, `/signup`, `/forgot`, `/verify`, `/reset`; địa chỉ khác chuyển về `/login?next=<trang đó>`, đăng nhập xong quay lại đúng trang. `next` chỉ nhận đường dẫn trong app (bắt đầu bằng một `/`), không chuyển sang trang web khác được.
-- `watchExpiredLogin()` (`api/http.ts`) bọc `fetch` một lần: mọi API trả 401 thì phát sự kiện `auth:expired`, app quay về trang đăng nhập. WebSocket đóng với mã 4401 cũng vậy. Các trang không phải tự xử lý phiên hết hạn.
+- `AuthProvider` hỏi `GET /api/auth/me` một lần khi mở app. Các route nằm sau ba cổng trong `auth/guards.tsx`:
+  - `GuestOnly`: `/login`, `/signup`, `/forgot`. Đã đăng nhập thì chuyển sang `next` (hoặc `/`).
+  - `RequireAuth`: mọi trang còn lại. Chưa đăng nhập thì chuyển về `/login?next=<trang đó>`, đăng nhập xong quay lại đúng trang. `next` chỉ nhận đường dẫn trong app (bắt đầu bằng một `/`), không chuyển sang trang web khác được.
+  - `RequireAdmin` (bên trong `RequireAuth`): `/bench`, `/admin/...`. Người học gõ địa chỉ này thì về `/`.
+  - `/verify`, `/reset` (link trong email) mở được cả khi đã hay chưa đăng nhập.
+
+  Cổng chỉ quyết định hiện trang nào. Quyền thật nằm ở server: mọi route API đều qua `current_user` / `require_admin`.
+- Mọi lời gọi API đi qua `api()` / `postAudio()` trong `api/http.ts`, không gọi `fetch` thẳng trong trang. Không dùng axios: đăng nhập là cookie HttpOnly trình duyệt tự gửi, không có token để gắn, nên wrapper `fetch` là đủ. API trả 401 (trừ `/api/auth/...`, nơi 401 là sai mật khẩu) thì phát sự kiện `auth:expired`, app quay về trang đăng nhập. WebSocket đóng với mã 4401 cũng vậy. Các trang không phải tự xử lý phiên hết hạn. Lỗi trả về thành `ApiError` với câu tiếng Việt của server; mất kết nối thì báo "Không kết nối được máy chủ."
 - Thanh trên có nút tài khoản (tên người dùng) dẫn tới `/account`; admin có thêm mục "Quản trị". Trên điện thoại hai mục này nằm trong "Thêm".
 
 ## Thử nghiệm (agent)

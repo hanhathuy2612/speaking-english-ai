@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { api, postAudio } from "../../api/http";
 import type { FluencyResult, FluencyRound, FluencyRun, FluencyState } from "../../api/types";
 import { AppBar } from "../../components/AppBar";
 import { Lead } from "../../components/Lead";
@@ -119,7 +120,7 @@ export function FluencyPage() {
 
   const load = useCallback(async (exclude?: string) => {
     const q = exclude ? `?exclude=${encodeURIComponent(exclude)}` : "";
-    setData(await (await fetch(`/api/fluency${q}`)).json());
+    setData(await api<FluencyState>(`/api/fluency${q}`));
   }, []);
 
   useEffect(() => {
@@ -146,12 +147,7 @@ export function FluencyPage() {
     setStatus({ text: "Đang nhận dạng và đo…", state: "busy" });
     try {
       const q = run ? `?run=${run}` : "";
-      const res = await fetch(`/api/fluency/${encodeURIComponent(data.prompt.id)}/${round}${q}`, {
-        method: "POST",
-        body: blob,
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const r: FluencyResult = await res.json();
+      const r = await postAudio<FluencyResult>(`/api/fluency/${encodeURIComponent(data.prompt.id)}/${round}${q}`, blob);
       setRun(r.run);
       setResults((rs) => [...rs, { ...r, audio: keepRecording(blob) }]);
       setStatus(
@@ -163,7 +159,7 @@ export function FluencyPage() {
             },
       );
       if (results.length + 1 >= limits.length) {
-        const fresh: FluencyState = await (await fetch("/api/fluency")).json();
+        const fresh = await api<FluencyState>("/api/fluency");
         setData((d) => (d ? { ...d, runs: fresh.runs } : fresh));
       }
     } catch (e) {

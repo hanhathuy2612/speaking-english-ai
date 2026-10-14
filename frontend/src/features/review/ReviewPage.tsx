@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router";
+import { api, postAudio } from "../../api/http";
 import type { ReviewAttempt, ReviewCard, ReviewState } from "../../api/types";
 import { AppBar } from "../../components/AppBar";
 import { Lead } from "../../components/Lead";
@@ -123,9 +124,7 @@ export function ReviewPage() {
   const audio = useRef<HTMLAudioElement | null>(null);
 
   const load = useCallback(async () => {
-    const res: ReviewState = await (
-      await fetch(`/api/review${session ? `?session=${encodeURIComponent(session)}` : ""}`)
-    ).json();
+    const res = await api<ReviewState>(`/api/review${session ? `?session=${encodeURIComponent(session)}` : ""}`);
     setData(res);
     setQueue(res.cards);
     setPos(0);
@@ -149,9 +148,8 @@ export function ReviewPage() {
     setBusy(true);
     setStatus({ text: "Đang nhận dạng…", state: "busy" });
     try {
-      const res = await fetch(`/api/review/${card.id}/attempt`, { method: "POST", body: blob });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      setAttempt({ ...(await res.json()), audio: keepRecording(blob) });
+      const res = await postAudio<ReviewAttempt>(`/api/review/${card.id}/attempt`, blob);
+      setAttempt({ ...res, audio: keepRecording(blob) });
       setRevealed(true);
       setStatus({ text: "", state: "" });
     } catch (e) {
@@ -186,13 +184,7 @@ export function ReviewPage() {
         correct: attempt?.correct ?? null,
         total: attempt?.total ?? null,
       };
-      const res = await fetch(`/api/review/${card.id}/grade`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const { due }: { due: string } = await res.json();
+      const { due } = await api<{ due: string }>(`/api/review/${card.id}/grade`, { body });
       setTally((t) => ({ ...t, [result]: t[result] + 1, nextDue: [...t.nextDue, due] }));
       // A forgotten card comes back once more at the end of this round.
       if (result === "again" && !requeued.current.has(card.id)) {
@@ -209,7 +201,7 @@ export function ReviewPage() {
 
   const suspend = async () => {
     if (!card || !confirm("Bỏ thẻ này? Thẻ sẽ không xuất hiện trong các lần ôn sau.")) return;
-    await fetch(`/api/review/${card.id}/suspend`, { method: "POST" });
+    await api(`/api/review/${card.id}/suspend`, { method: "POST" });
     setQueue((q) => q.filter((c, i) => i <= pos || c.id !== card.id));
     next();
   };

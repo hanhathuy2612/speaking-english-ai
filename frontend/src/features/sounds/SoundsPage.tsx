@@ -1,5 +1,6 @@
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router";
+import { api, postAudio } from "../../api/http";
 import type { DrillBest, DrillResult, DrillSet, DrillState } from "../../api/types";
 import { AppBar } from "../../components/AppBar";
 import { Lead } from "../../components/Lead";
@@ -83,7 +84,7 @@ export function SoundsPage() {
   const audio = useRef<HTMLAudioElement | null>(null);
 
   const load = useCallback(async () => {
-    const fresh: DrillState = await (await fetch("/api/drills")).json();
+    const fresh = await api<DrillState>("/api/drills");
     // Keep the sentences already on screen: the personal set changes as you read, and the
     // position in it should not jump while you practise. Only the stats are refreshed.
     setData((old) =>
@@ -138,9 +139,7 @@ export function SoundsPage() {
     setScoring(true);
     setStatus({ text: "Đang nhận dạng…", state: "busy" });
     try {
-      const res = await fetch(`/api/drills/${set.id}/${sentence.id}`, { method: "POST", body: blob });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const r: DrillResult = await res.json();
+      const r = await postAudio<DrillResult>(`/api/drills/${set.id}/${sentence.id}`, blob);
       setResult({ ...r, audio: keepRecording(blob), newBest: !!r.heard && isNewBest(r, previous), first: !previous });
       setStatus({ text: "", state: "" });
       void load();

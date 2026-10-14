@@ -37,7 +37,7 @@ frontend/                # React + TypeScript + Vite; build vào frontend/dist (
     main.tsx             # React Router: / , /lesson/:unitId , /talk/:talkId[/practice] , /review , /roadmap , /sounds , /fluency , /check , /history , /account ; admin: /bench , /admin/... ;
                          #   chưa đăng nhập: /login , /signup , /forgot , /verify , /reset
     api/                 # types.ts (kiểu dữ liệu API + giao thức WebSocket), http.ts (gọi JSON, 401 thì về trang đăng nhập)
-    auth/                # AuthContext (người đang đăng nhập)
+    auth/                # AuthContext (người đang đăng nhập), guards (RequireAuth, RequireAdmin, GuestOnly)
     components/          # AppBar (+ thanh tab trên điện thoại), Icons, ui (Chip, StatusLine), WordDiff, Recorder, Sheet, Lead
     hooks/               # useMic (ghi âm bấm-bấm), useAudioQueue (phát MP3), useTeacherVoice (giọng giáo viên)
     features/            # practice/ (useInterview + các component), lesson/ (bài giảng), review/, roadmap/, sounds/, fluency/, check/, talk/, history/, bench/,

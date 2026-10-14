@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router";
+import { api } from "../../api/http";
 import type { HistorySession } from "../../api/types";
 import { useUser } from "../../auth/AuthContext";
 import { AppBar } from "../../components/AppBar";
@@ -149,7 +150,7 @@ export function HistoryPage() {
   const [openId, setOpenId] = useState<number | null>(null);
 
   const load = useCallback(async () => {
-    setData(await (await fetch("/api/history/sessions")).json());
+    setData(await api<{ enabled: boolean; sessions: HistorySession[] }>("/api/history/sessions"));
   }, []);
 
   useEffect(() => {
@@ -159,7 +160,7 @@ export function HistoryPage() {
 
   const onDelete = async (s: HistorySession) => {
     if (!confirm(`Xóa buổi tập ${fmtDate(s.started_at)} (${s.unit_title})? Không thể hoàn tác.`)) return;
-    await fetch(`/api/history/sessions/${s.id}`, { method: "DELETE" });
+    await api(`/api/history/sessions/${s.id}`, { method: "DELETE" });
     if (s.id === openId) setOpenId(null);
     void load();
   };

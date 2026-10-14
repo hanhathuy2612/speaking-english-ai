@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { api } from "../../api/http";
 import type { HistorySession, HistoryTurn } from "../../api/types";
 import { ReplayButton } from "../../components/ReplayButton";
 import { Chip } from "../../components/ui";
@@ -13,7 +14,7 @@ export function SessionDetail({ session, onClose }: { session: HistorySession; o
     let live = true;
     setTurns(null);
     void (async () => {
-      const data: HistoryTurn[] = await (await fetch(`/api/history/sessions/${session.id}/turns`)).json();
+      const data = await api<HistoryTurn[]>(`/api/history/sessions/${session.id}/turns`);
       if (live) setTurns(data);
     })();
     return () => {

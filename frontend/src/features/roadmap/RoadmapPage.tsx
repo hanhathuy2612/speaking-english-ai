@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
+import { api } from "../../api/http";
 import type { CheckRow, Stage, Topic, UnitStatus } from "../../api/types";
 import { AppBar } from "../../components/AppBar";
 import { Lead } from "../../components/Lead";
@@ -201,11 +202,11 @@ export function RoadmapPage() {
   useEffect(() => {
     document.title = "Lộ trình luyện nói";
     void (async () => {
-      const data: { stages: Stage[]; next_unit: string | null } = await (await fetch("/api/stages")).json();
+      const data = await api<{ stages: Stage[]; next_unit: string | null }>("/api/stages");
       setStages(data.stages);
       setNextId(data.next_unit);
     })();
-    void (async () => setChecks((await (await fetch("/api/check")).json()).checks))();
+    void (async () => setChecks((await api<{ checks: CheckRow[] }>("/api/check")).checks))();
   }, []);
 
   const passed = stages?.filter((s) => s.status === "passed").length ?? 0;

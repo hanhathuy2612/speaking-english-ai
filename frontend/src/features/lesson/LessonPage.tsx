@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router";
+import { api, postAudio } from "../../api/http";
 import type { LessonData, LessonLine, LessonReading, TalkData } from "../../api/types";
 import { BackIcon, BookIcon, ChatIcon, CheckIcon, MicIcon, SpeakerIcon, TranslateIcon } from "../../components/Icons";
 import { ReplayButton } from "../../components/ReplayButton";
@@ -67,9 +68,8 @@ export function LessonPage() {
 
   useEffect(() => {
     let live = true;
-    fetch(mode.base)
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
-      .then((d: LessonData) => {
+    api<LessonData>(mode.base)
+      .then((d) => {
         if (!live) return;
         setData(d);
         document.title = `${d.title} · Bài học`;
@@ -108,9 +108,8 @@ export function LessonPage() {
     voice.enqueue(["outro"]);
     setWait("finished");
     setStatus({ text: "", state: "" });
-    void fetch(`${mode.base}/finish`, { method: "POST" })
-      .then((r) => r.json())
-      .then((r: { finished: number }) => setData((x) => (x ? { ...x, finished: r.finished } : x)))
+    void api<{ finished: number }>(`${mode.base}/finish`, { method: "POST" })
+      .then((r) => setData((x) => (x ? { ...x, finished: r.finished } : x)))
       .catch(() => {});
   };
 
@@ -137,9 +136,7 @@ export function LessonPage() {
     const audio = keepRecording(blob);
     let reading: LessonReading;
     try {
-      const r = await fetch(`${mode.base}/read/${i}`, { method: "POST", body: blob });
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      reading = await r.json();
+      reading = await postAudio<LessonReading>(`${mode.base}/read/${i}`, blob);
     } catch (e) {
       setWait("read");
       setStatus({ text: `Lỗi: ${e instanceof Error ? e.message : e}`, state: "error" });
