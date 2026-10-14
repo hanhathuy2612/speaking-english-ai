@@ -6,6 +6,7 @@ import asyncio
 import json
 import time
 
+from app.api.deps import ws_user
 from app.core.config import STT_CHECK_LANGUAGE, STT_VOCAB
 from app.interview.session import Session, progress
 from app.interview.retell import handle_retell
@@ -21,7 +22,11 @@ router = APIRouter()
 
 @router.websocket("/ws")
 async def ws_endpoint(ws: WebSocket) -> None:
+    user = ws_user(ws)
     await ws.accept()
+    if not user:
+        await ws.close(code=4401, reason="login required")  # the page sends the user to /login
+        return
     conn = Conn(ws)
     session: Session | None = None
     try:
@@ -30,17 +35,17 @@ async def ws_endpoint(ws: WebSocket) -> None:
             if msg["type"] == "websocket.disconnect":
                 break
             if msg.get("text") is not None:
-                session = await _on_text(conn, session, json.loads(msg["text"]))
+                session = await _on_text(conn, user, session, json.loads(msg["text"]))
             elif msg.get("bytes") is not None and session:
                 await _on_audio(conn, session, msg["bytes"])
     except WebSocketDisconnect:
         pass
 
 
-async def _on_text(conn: Conn, session: Session | None, data: dict) -> Session | None:
+async def _on_text(conn: Conn, user: dict, session: Session | None, data: dict) -> Session | None:
     kind = data.get("type")
     if kind == "start" and data.get("unit") in units_by_id:
-        return await start_session(conn, units_by_id[data["unit"]])
+        return await start_session(conn, units_by_id[data["unit"]], user["id"])
     if kind == "text" and session and data.get("text", "").strip():
         session.retell = False  # a typed message is always an interview answer
         await handle_user_input(

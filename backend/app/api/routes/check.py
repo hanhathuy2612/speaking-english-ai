@@ -5,8 +5,9 @@ from __future__ import annotations
 import asyncio
 from collections import Counter
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 
+from app.api.deps import current_user
 from app.assessment import check
 from app.core.config import STT_VOCAB
 from app.services import history, stt
@@ -23,9 +24,9 @@ def _targets() -> dict:
 
 
 @router.get("")
-async def check_state(exclude: str | None = None) -> dict:
+async def check_state(exclude: str | None = None, user: dict = Depends(current_user)) -> dict:
     """A fresh prompt (least used, not `exclude`), the targets and past checks."""
-    past = history.list_checks()
+    past = history.list_checks(user["id"])
     used = Counter(c["prompt_id"] for c in past)
     return {
         "enabled": history.enabled(),
@@ -36,7 +37,7 @@ async def check_state(exclude: str | None = None) -> dict:
 
 
 @router.post("/{prompt_id}")
-async def check_submit(prompt_id: str, request: Request) -> dict:
+async def check_submit(prompt_id: str, request: Request, user: dict = Depends(current_user)) -> dict:
     prompt = check.prompts_by_id.get(prompt_id)
     if not prompt:
         raise HTTPException(404)
@@ -50,6 +51,7 @@ async def check_submit(prompt_id: str, request: Request) -> dict:
     # Speed and hesitation are only stored when they were judged, so trends compare like with like.
     judged = report["measurable"]
     history.add_check(
+        user["id"],
         {
             "prompt_id": prompt_id,
             "prompt": prompt["text"],

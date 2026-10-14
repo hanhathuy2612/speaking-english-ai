@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router";
 import type { HistorySession } from "../../api/types";
+import { useUser } from "../../auth/AuthContext";
 import { AppBar } from "../../components/AppBar";
 import { TrashIcon } from "../../components/Icons";
 import { Chip } from "../../components/ui";
@@ -143,6 +144,7 @@ function SessionsTable({ sessions, openId, onOpen, onDelete }: TableProps) {
 }
 
 export function HistoryPage() {
+  const admin = useUser().role === "admin"; // /bench is an admin tool
   const [data, setData] = useState<{ enabled: boolean; sessions: HistorySession[] } | null>(null);
   const [openId, setOpenId] = useState<number | null>(null);
 
@@ -220,10 +222,12 @@ export function HistoryPage() {
             {open && <SessionDetail session={open} onClose={() => setOpenId(null)} />}
           </div>
         )}
-        <p className="history-foot">
-          Máy nghe sai nhiều từ bạn nói đúng? Đo lại độ chính xác nhận dạng ở trang{" "}
-          <Link to="/bench">Đo nhận dạng</Link>.
-        </p>
+        {admin && (
+          <p className="history-foot">
+            Máy nghe sai nhiều từ bạn nói đúng? Đo lại độ chính xác nhận dạng ở trang{" "}
+            <Link to="/bench">Đo nhận dạng</Link>.
+          </p>
+        )}
       </main>
     </>
   );

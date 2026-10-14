@@ -1,6 +1,7 @@
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { Link, NavLink, useLocation } from "react-router";
-import { ChatIcon, MapIcon, MenuIcon, MoreIcon, RepeatIcon, WaveIcon } from "./Icons";
+import { useAuth } from "../auth/AuthContext";
+import { ChatIcon, MapIcon, MenuIcon, MoreIcon, RepeatIcon, UserIcon, WaveIcon } from "./Icons";
 import { Sheet } from "./Sheet";
 
 const NAV = [
@@ -12,6 +13,7 @@ const NAV = [
   { to: "/check", label: "Kiểm tra" },
   { to: "/history", label: "Tiến bộ" },
 ];
+const ADMIN = { to: "/admin/users", label: "Quản trị" }; // only for the admin role
 
 /** Bottom tab bar on phones (styles/base.css, .tabbar): the four daily pages, the rest under "Thêm". */
 const TABS = [
@@ -20,7 +22,6 @@ const TABS = [
   { to: "/review", label: "Ôn tập", icon: <RepeatIcon /> },
   { to: "/sounds", label: "Phát âm", icon: <WaveIcon /> },
 ];
-const MORE = NAV.filter((n) => !TABS.some((t) => t.to === n.to));
 
 /**
  * Top bar shared by every page. `children` go between the brand and the navigation.
@@ -30,10 +31,13 @@ const MORE = NAV.filter((n) => !TABS.some((t) => t.to === n.to));
 export function AppBar({ children }: { children?: ReactNode }) {
   const [open, setOpen] = useState(false);
   const { pathname } = useLocation();
+  const { user } = useAuth();
+  const nav = user?.role === "admin" ? [...NAV, ADMIN] : NAV;
+  const more = [...nav.filter((n) => !TABS.some((t) => t.to === n.to)), { to: "/account", label: "Tài khoản" }];
   const wrap = useRef<HTMLDivElement>(null);
-  const current = NAV.find((n) => n.to === pathname)?.label ?? "Menu";
+  const current = nav.find((n) => n.to === pathname)?.label ?? "Menu";
   const [due, setDue] = useState(0);
-  const [more, setMore] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
 
   // Review cards due today, shown as a badge (refreshed on every page change).
   useEffect(() => {
@@ -49,7 +53,7 @@ export function AppBar({ children }: { children?: ReactNode }) {
 
   useEffect(() => {
     setOpen(false);
-    setMore(false);
+    setMoreOpen(false);
   }, [pathname]);
 
   useEffect(() => {
@@ -91,7 +95,7 @@ export function AppBar({ children }: { children?: ReactNode }) {
           )}
         </button>
         <nav id="main-nav" className={`nav${open ? " open" : ""}`} aria-label="Các trang">
-          {NAV.map((n) => (
+          {nav.map((n) => (
             // NavLink sets aria-current="page" on the active route, which the CSS highlights.
             <NavLink key={n.to} to={n.to} end className="btn btn-ghost btn-sm">
               {n.label}
@@ -104,6 +108,12 @@ export function AppBar({ children }: { children?: ReactNode }) {
           ))}
         </nav>
       </div>
+      {user && (
+        <NavLink to="/account" className="btn btn-ghost btn-sm account-link" aria-label={`Tài khoản: ${user.name}`}>
+          <UserIcon />
+          <span className="account-name">{user.name}</span>
+        </NavLink>
+      )}
 
       <nav className="tabbar" aria-label="Các trang chính">
         {TABS.map((t) => (
@@ -118,17 +128,17 @@ export function AppBar({ children }: { children?: ReactNode }) {
           </NavLink>
         ))}
         <button
-          className={`tab${MORE.some((n) => n.to === pathname) ? " on" : ""}`}
+          className={`tab${more.some((n) => n.to === pathname) ? " on" : ""}`}
           aria-haspopup="dialog"
-          onClick={() => setMore(true)}
+          onClick={() => setMoreOpen(true)}
         >
           <MoreIcon />
           <span>Thêm</span>
         </button>
       </nav>
-      <Sheet open={more} onClose={() => setMore(false)} title="Thêm">
+      <Sheet open={moreOpen} onClose={() => setMoreOpen(false)} title="Thêm">
         <nav className="more-nav" aria-label="Các trang khác">
-          {MORE.map((n) => (
+          {more.map((n) => (
             <NavLink key={n.to} to={n.to} end className="btn">
               {n.label}
             </NavLink>

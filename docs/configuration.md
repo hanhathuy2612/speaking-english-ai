@@ -23,7 +23,12 @@ Server tự nạp `.env` bằng python-dotenv khi khởi động. Biến môi tr
 | `STT_MAX_NO_SPEECH` | `0.6` | `0.6` | |
 | `STT_CHECK_LANGUAGE` | `0` | không đặt | `1` = Whisper tự nhận ngôn ngữ để bắt câu tiếng Việt, chậm thêm ~0,24 giây/lượt |
 | `SAVE_AUDIO_DIR` | trống | `recordings` | Giữ file ghi âm mỗi lượt (tương đối với thư mục gốc) |
-| `HISTORY_DB` | `data/history.db` | `data/history.db` | File SQLite lưu lịch sử luyện tập (tương đối với thư mục gốc, hoặc đường dẫn tuyệt đối). Để trống thì tắt |
+| `HISTORY_DB` | `data/history.db` | `data/history.db` | File SQLite lưu tài khoản và lịch sử luyện tập (tương đối với thư mục gốc, hoặc đường dẫn tuyệt đối). Bắt buộc từ khi có tài khoản: để trống thì server không khởi động |
+| `SIGNUP_ENABLED` | `1` | không đặt | `0` = tắt trang đăng ký, chỉ admin tạo tài khoản (xem [features/accounts.md](features/accounts.md)) |
+| `APP_URL` | trống | | Địa chỉ mở app, ví dụ `https://192.168.0.2:8000`, dùng cho link trong email. Bắt buộc khi có `SMTP_HOST` (không dựng link theo header `Host` vì header đó giả được) |
+| `SMTP_HOST` / `SMTP_PORT` | trống / `587` | | Máy chủ gửi email. Trống thì email chỉ in ra terminal của server |
+| `SMTP_SECURITY` | `starttls` | | `starttls` (cổng 587), `ssl` (cổng 465) hoặc `none` |
+| `SMTP_USER` / `SMTP_PASSWORD` / `SMTP_FROM` | trống | | Tài khoản SMTP. Gmail dùng App Password. `SMTP_FROM` trống thì dùng `SMTP_USER` |
 | `TTS_VOICE` / `TTS_RATE` | `en-US-JennyNeural` / `-10%` | giống mặc định | |
 | `TTS_TEACHER_VOICE` | `en-US-AvaNeural` | giống mặc định | Giọng giáo viên ở phần bài giảng, khác giọng người phỏng vấn (xem [features/lesson.md](features/lesson.md)) |
 | `SERVER_HOST` / `SERVER_PORT` | `127.0.0.1` / `8000` | `0.0.0.0` / `8000` | Chỉ dùng khi chạy bằng `run` hoặc `python -m app`. `0.0.0.0` = thiết bị khác trong LAN vào được |

@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import asyncio
 
-from fastapi import APIRouter, HTTPException, Request, Response
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 
+from app.api.deps import current_user
 from app.assessment import drills
 from app.services import history, recordings, stt, tts
 
@@ -20,13 +21,13 @@ MINE_SET = {
 }
 
 
-def _all_sets() -> list[dict]:
-    return [*drills.sets, {**MINE_SET, "sentences": drills.personal_sentences(history.list_readings())}]
+def _all_sets(uid: int) -> list[dict]:
+    return [*drills.sets, {**MINE_SET, "sentences": drills.personal_sentences(history.list_readings(uid))}]
 
 
-def _find(set_id: str, sentence_id: str) -> dict:
+def _find(uid: int, set_id: str, sentence_id: str) -> dict:
     if set_id == drills.MINE:
-        readings = history.list_readings()
+        readings = history.list_readings(uid)
         x = next((x for x in drills.personal_sentences(readings) if x["id"] == sentence_id), None)
         if x:
             return x
@@ -63,10 +64,10 @@ def _best(x: dict, by_text: dict[str, list[dict]]) -> dict | None:
 
 
 @router.get("")
-async def drill_state() -> dict:
+async def drill_state(user: dict = Depends(current_user)) -> dict:
     """Sets with their sentences and, per set, recent focus-word accuracy and the best reading of each
     sentence (`best`: sentence id -> result), so past readings show again when the page opens."""
-    attempts = history.list_drills()
+    attempts = history.list_drills(user["id"])
     _link_old_recordings(attempts)
     by_set: dict[str, list[dict]] = {}
     by_text: dict[str, list[dict]] = {}
@@ -74,7 +75,7 @@ async def drill_state() -> dict:
         by_set.setdefault(a["set_id"], []).append(a)
         by_text.setdefault(a["target"], []).append(a)
     sets = []
-    for s in _all_sets():
+    for s in _all_sets(user["id"]):
         best = {x["id"]: b for x in s["sentences"] if (b := _best(x, by_text))}
         sets.append({**s, **drills.focus_accuracy(by_set.get(s["id"], [])), "best": best})
     return {
@@ -86,15 +87,17 @@ async def drill_state() -> dict:
 
 
 @router.get("/{set_id}/{sentence_id}/audio")
-async def drill_audio(set_id: str, sentence_id: str, slow: bool = False) -> Response:
-    x = _find(set_id, sentence_id)
+async def drill_audio(
+    set_id: str, sentence_id: str, slow: bool = False, user: dict = Depends(current_user)
+) -> Response:
+    x = _find(user["id"], set_id, sentence_id)
     audio = await tts.cached_tts(x["text"], tts.SLOW_RATE if slow else None)
     return Response(audio, media_type="audio/mpeg")
 
 
 @router.post("/{set_id}/{sentence_id}")
-async def drill_submit(set_id: str, sentence_id: str, request: Request) -> dict:
-    x = _find(set_id, sentence_id)
+async def drill_submit(set_id: str, sentence_id: str, request: Request, user: dict = Depends(current_user)) -> dict:
+    x = _find(user["id"], set_id, sentence_id)
     path = stt.save_recording(await request.body())
     try:
         # No initial prompt: vocabulary hints would pull Whisper towards the expected words and hide
@@ -105,6 +108,7 @@ async def drill_submit(set_id: str, sentence_id: str, request: Request) -> dict:
     report = drills.score(x["text"], x["focus"], result["text"])
     if result["text"]:  # an empty reading is a microphone problem, not a pronunciation result
         history.add_drill(
+            user["id"],
             {
                 "set_id": set_id,
                 "target": x["text"],

@@ -51,18 +51,18 @@ def check_attempt(card: dict, heard: str) -> dict:
     }
 
 
-def sync(today: date) -> int:
-    """Create cards for NOTEs and skipped phrases that do not have one yet; returns how many."""
+def sync(uid: int, today: date) -> int:
+    """Create the user's cards for NOTEs and skipped phrases that do not have one yet; returns how many."""
     added = 0
-    for t in history.note_turns_without_card():
+    for t in history.note_turns_without_card(uid):
         if worth_a_card(t["answer"], t["note"]):
             card = {
                 "kind": "note", "session_id": t["session_id"], "turn_id": t["turn_id"],
                 "unit_id": t["unit_id"], "question": t["question"], "said": t["answer"],
                 "target": t["note"], "due": today.isoformat(),
             }  # fmt: skip
-            added += history.add_card(card) is not None
-    for s in history.completed_sessions_used_phrases():
+            added += history.add_card(uid, card) is not None
+    for s in history.completed_sessions_used_phrases(uid):
         unit = units_by_id.get(s["unit_id"])
         if not unit:
             continue
@@ -75,5 +75,5 @@ def sync(today: date) -> int:
                 "kind": "phrase", "session_id": s["session_id"], "unit_id": s["unit_id"],
                 "phrase_index": i, "question": q["ask"], "target": p["say"], "due": today.isoformat(),
             }  # fmt: skip
-            added += history.add_card(card) is not None
+            added += history.add_card(uid, card) is not None
     return added

@@ -3,6 +3,7 @@
 Người dùng là lập trình viên Java người Việt, hiểu tiếng Anh tốt nhưng nói chưa trôi chảy.
 App tạo các buổi hội thoại có kịch bản (trò chuyện, tình huống công việc, phỏng vấn): học câu với giáo viên (bài giảng),
 nghe câu hỏi, nói, xem cách nói tự nhiên hơn (NOTE), nói lại, rồi ôn lại các NOTE theo lịch ngắt quãng. Bài kiểm tra nói 2 phút đo tiến bộ bằng số.
+Nhiều người dùng chung một server: mỗi người có tài khoản và lịch sử riêng; quản trị viên quản lý người dùng.
 Đây là code chính thức của sản phẩm, nhánh `main` trên `hanhathuy2612/speaking-english-ai`.
 App Angular cũ được giữ ở nhánh `old_main` của repo đó, chỉ dùng để tham khảo ý tưởng (topic, roadmap, đóng gói Android
 bằng Capacitor), không ghép code vào. Không đưa lại các cách làm đã bỏ của app đó: LLM tự dẫn dắt buổi nói, LLM chấm điểm, câu mẫu đọc thành tiếng
@@ -19,27 +20,34 @@ backend/
     main.py              # tạo FastAPI app, nạp Whisper lúc khởi động, gắn router, phục vụ frontend
     __main__.py          # python -m app: chạy uvicorn với SERVER_*/SSL_* trong .env (run.cmd ở thư mục gốc gọi file này)
     core/                # config.py (đọc .env, đường dẫn), cuda.py (DLL CUDA trên Windows)
-    api/routes/          # ws.py (WebSocket /ws), units.py (+ /api/stages), lessons.py (bài giảng), review.py, drills.py, fluency.py, check.py, bench.py, history.py (/api/...)
-    services/            # stt.py (Whisper), tts.py (edge-tts + cache), llm.py (LM Studio), history.py (SQLite), recordings.py (file ghi âm cũ)
+    api/deps.py          # current_user, require_admin, ws_user: đăng nhập và vai trò
+    api/routes/          # ws.py (WebSocket /ws), units.py (+ /api/stages), lessons.py (bài giảng), review.py, drills.py, fluency.py, check.py, bench.py, history.py (/api/...),
+                         #   auth.py (đăng nhập, đăng ký, email), admin_users.py (quản lý người dùng)
+    services/            # stt.py (Whisper), tts.py (edge-tts + cache), llm.py (LM Studio), db.py (file SQLite), accounts.py (tài khoản, phiên),
+                         #   history.py (lịch sử theo user_id), mailer.py (SMTP), recordings.py (file ghi âm cũ)
     interview/           # session.py (trạng thái, next_step), prompts.py, steps.py (ý để nói dài hơn), turn.py (một lượt), shadow.py (nói lại), retell.py (trả lời lại), units.py, lesson.py (bài giảng), review.py (thẻ ôn)
     assessment/          # không dùng LLM: metrics.py (đo), check.py (kiểm tra 2 phút), drills.py (phát âm), fluency.py (4–3–2), stages.py (mở giai đoạn)
     utils/               # parsing.py, compare.py (hàm thuần), ws.py (Conn)
     data/                # units.json (chủ đề + bài), stages.json, drills.json, check_prompts.json, fluency_prompts.json, bench_sentences.json
-  scripts/               # replay.py (so prompt), stt_bench.py (đo STT), make_cert.py (HTTPS cho LAN)
+  scripts/               # replay.py (so prompt), stt_bench.py (đo STT), make_cert.py (HTTPS cho LAN), create_user.py (tạo tài khoản, admin đầu tiên)
   tests/                 # pytest
   pyproject.toml, requirements*.txt
 frontend/                # React + TypeScript + Vite; build vào frontend/dist (backend phục vụ)
   src/
-    main.tsx             # React Router: / , /lesson/:unitId , /review , /roadmap , /sounds , /fluency , /check , /history , /bench
-    api/types.ts         # kiểu dữ liệu API + giao thức WebSocket
+    main.tsx             # React Router: / , /lesson/:unitId , /review , /roadmap , /sounds , /fluency , /check , /history , /account ; admin: /bench , /admin/... ;
+                         #   chưa đăng nhập: /login , /signup , /forgot , /verify , /reset
+    api/                 # types.ts (kiểu dữ liệu API + giao thức WebSocket), http.ts (gọi JSON, 401 thì về trang đăng nhập)
+    auth/                # AuthContext (người đang đăng nhập)
     components/          # AppBar (+ thanh tab trên điện thoại), Icons, ui (Chip, StatusLine), WordDiff, Recorder, Sheet, Lead
     hooks/               # useMic (ghi âm bấm-bấm), useAudioQueue (phát MP3), useTeacherVoice (giọng giáo viên)
-    features/            # practice/ (useInterview + các component), lesson/ (bài giảng), review/, roadmap/, sounds/, fluency/, check/, history/, bench/
+    features/            # practice/ (useInterview + các component), lesson/ (bài giảng), review/, roadmap/, sounds/, fluency/, check/, history/, bench/,
+                         #   auth/ (đăng nhập, đăng ký), account/, admin/
     lib/                 # hàm thuần + test Vitest
-    styles/              # base.css (token, component chung, bảng), practice.css, lesson.css, review.css, roadmap.css, sounds.css, fluency.css, check.css, history.css, bench.css
+    styles/              # base.css (token, component chung, bảng), practice.css, lesson.css, review.css, roadmap.css, sounds.css, fluency.css, check.css, history.css, bench.css,
+                         #   auth.css, admin.css
 docs/                    # tài liệu theo tính năng (bảng bên dưới)
 recordings/              # giọng nói thật của người dùng, không commit
-data/                    # history.db: lịch sử luyện tập của người dùng, không commit
+data/                    # history.db: tài khoản và lịch sử luyện tập của người dùng, không commit
 ```
 
 Lớp phụ thuộc một chiều: `api` -> `interview` / `assessment` -> `services` / `utils` -> `core`. `utils/parsing.py` không phụ thuộc gì (dễ test).
@@ -53,7 +61,8 @@ Backend (từ `backend/`):
 uvicorn app.main:app --port 8000      # app của người dùng; agent thử nghiệm ở cổng 8001
 python -m app                         # như trên nhưng đọc SERVER_HOST/PORT, SSL_* trong .env (LAN + HTTPS); ở thư mục gốc: run
 python -m pytest                      # test backend
-python -m scripts.replay answers.txt --runs 3 --url ws://localhost:8001/ws
+python -m scripts.create_user you@example.com --admin   # tạo tài khoản (admin đầu tiên nhận lịch sử cũ)
+python -m scripts.replay answers.txt --runs 3 --url ws://localhost:8001/ws --email admin@test.local
 python -m scripts.stt_bench --config large-v3-turbo,cuda,float16,3 --show
 python -m scripts.make_cert 192.168.0.2   # HTTPS cho thiết bị trong LAN, xem docs/dev-environment.md
 ```
@@ -89,6 +98,7 @@ npm run format     # Prettier; npm run format:check chỉ kiểm tra
 | Nói dài 4–3–2: kể một chuyện 3 lần, 4/3/2 phút | [docs/features/fluency-432.md](docs/features/fluency-432.md) | `assessment/fluency.py`, `api/routes/fluency.py`, `frontend/src/features/fluency/` |
 | Chế độ trò chuyện: AI đóng vai đồng nghiệp, trưởng nhóm, khách hàng… (`role`, `partner`) | [docs/features/conversation-mode.md](docs/features/conversation-mode.md) | `interview/prompts.py`, `data/units.json` (chủ đề `daily`, `workplace`) |
 | Bài kiểm tra nói 2 phút: tiêu chí, ngập ngừng giữa câu, trang `/check` | [docs/features/speaking-check.md](docs/features/speaking-check.md) | `assessment/check.py`, `api/routes/check.py`, `frontend/src/features/check/` |
+| Tài khoản: đăng nhập (cookie), vai trò user/admin, đăng ký + xác nhận email, quên mật khẩu, dữ liệu theo từng người, quản lý người dùng | [docs/features/accounts.md](docs/features/accounts.md) | `services/accounts.py`, `api/deps.py`, `api/routes/auth.py`, `api/routes/admin_users.py`, `services/mailer.py`, `frontend/src/auth/`, `frontend/src/features/auth/`, `frontend/src/features/admin/` |
 | Lịch sử luyện tập, trang Tiến bộ, biểu đồ xu hướng | [docs/features/session-history.md](docs/features/session-history.md) | `services/history.py`, `api/routes/history.py`, `frontend/src/features/history/` |
 | Đo độ chính xác STT, trang đọc theo câu mẫu | [docs/features/stt-benchmark.md](docs/features/stt-benchmark.md) | `scripts/stt_bench.py`, `api/routes/bench.py`, `frontend/src/features/bench/` |
 | Giao diện React: cấu trúc, luồng dữ liệu, hệ thiết kế, cài lên điện thoại (PWA) | [docs/features/frontend.md](docs/features/frontend.md) | `frontend/src/` |
@@ -110,6 +120,8 @@ npm run format     # Prettier; npm run format:check chỉ kiểm tra
 - Giữ code đơn giản. Frontend dùng React + TypeScript, không thêm thư viện UI hay state manager khi chưa thật cần; dependency mới phải ghim phiên bản và `npm audit` sạch. Giữ hướng phụ thuộc giữa các lớp backend như trên.
 - Đổi prompt thì kiểm chứng bằng `scripts/replay.py`. Đổi STT thì đo bằng `scripts/stt_bench.py`. Đổi frontend thì `npm run format`, rồi `npm run build` + `npm test` phải qua. Không đoán.
 - **Cổng 8000 là server của người dùng.** Thử nghiệm ở cổng 8001 với `HISTORY_DB` trỏ sang file tạm (không ghi lẫn vào lịch sử thật), không tắt `python.exe` theo tên, không xóa `recordings/` hay `data/`.
+  App cần đăng nhập: tạo tài khoản thử trong DB tạm bằng `scripts/create_user.py` (mật khẩu qua `NEW_USER_PASSWORD`), xem docs/dev-environment.md.
+- **Dữ liệu của người học luôn lọc theo `user_id`.** Hàm đọc mới trong `services/history.py` nhận `uid` đầu tiên; route lấy nó từ `Depends(current_user)`. Id do client gửi lên (buổi tập, thẻ, file ghi âm) phải kiểm tra chủ sở hữu.
 - **Sửa tính năng nào thì cập nhật file docs tương ứng trong cùng commit.** Thêm tính năng mới thì thêm file trong `docs/features/` và một dòng vào bảng trên.
 
 ## Git và commit

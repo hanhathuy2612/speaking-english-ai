@@ -16,7 +16,9 @@ Mỗi lượt trả lời được ghi vào một file SQLite cục bộ. Trang 
 
 ## Dữ liệu
 
-File mặc định: `data/history.db` ở thư mục gốc (biến `HISTORY_DB`, để trống thì tắt). Không commit (`/data/` trong `.gitignore`).
+File mặc định: `data/history.db` ở thư mục gốc (biến `HISTORY_DB`, bắt buộc vì tài khoản cũng lưu ở đây). Không commit (`/data/` trong `.gitignore`).
+
+Mỗi người học chỉ thấy lịch sử của mình: các bảng có `user_id`, mọi hàm đọc nhận `uid` đầu tiên, và file ghi âm chỉ phát cho chủ của nó. Xem [accounts.md](accounts.md).
 
 - **`sessions`:** một dòng cho mỗi lần làm bài. Chỉ được tạo **khi có câu trả lời đầu tiên**, nên mở bài rồi bỏ đi không để lại phiên rỗng. `completed` = 1 khi đã hỏi hết câu.
 - **`turns`:** một dòng cho mỗi lượt trả lời. Ghi: câu hỏi, câu trả lời, nguồn (`voice`/`text`), cờ `unclear`, số từ, tốc độ, số lần ngắt dài, `avg_logprob` và `no_speech` của Whisper, các mẫu câu dùng trong lượt, NOTE, cờ RETRY, độ trễ.
@@ -72,4 +74,4 @@ Lượt gõ chữ được tính vào số lượt và mẫu câu, nhưng không
 
 ## Khi thử nghiệm
 
-Server thử (cổng 8001) **phải** trỏ `HISTORY_DB` sang file tạm hoặc để trống, nếu không sẽ ghi lẫn vào lịch sử thật của người dùng. Xem [dev-environment.md](../dev-environment.md).
+Server thử (cổng 8001) **phải** trỏ `HISTORY_DB` sang file tạm, nếu không sẽ ghi lẫn vào lịch sử thật của người dùng. Xem [dev-environment.md](../dev-environment.md).

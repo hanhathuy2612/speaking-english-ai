@@ -192,6 +192,25 @@ svg {
     min-height: 44px;
   }
 }
+.account-link[aria-current="page"] {
+  color: var(--primary);
+}
+.account-name {
+  max-width: 12em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@media (max-width: 1240px) {
+  .account-name {
+    display: none; /* the icon is enough next to the menu button */
+  }
+}
+@media (max-width: 760px) {
+  .account-link {
+    display: none; /* on phones "Tài khoản" is under the tab bar's "Thêm" */
+  }
+}
 @media (max-width: 560px) {
   .nav-toggle-label {
     display: none;

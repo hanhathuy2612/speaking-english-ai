@@ -13,12 +13,14 @@ import sys
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.responses import FileResponse, HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
 
-from app.api.routes import bench, check, drills, fluency, history, lessons, review, units, ws
+from app.api.deps import current_user, require_admin
+from app.api.routes import admin_users, auth, bench, check, drills, fluency, history, lessons, review, units, ws
 from app.core.config import FRONTEND_DIST
+from app.services import accounts, db
 from app.services import history as history_store
 from app.services import stt
 
@@ -28,24 +30,28 @@ sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
-    history_store.init()  # create the SQLite tables if needed
+    if not db.enabled():
+        raise SystemExit("HISTORY_DB is empty: accounts are stored there, set it to a file (see .env.example).")
+    accounts.init()  # create the SQLite tables if needed
+    history_store.init()
     stt.load()  # load Whisper once at startup
     yield
 
 
 app = FastAPI(title="Speaking demo", lifespan=lifespan)
-app.include_router(units.router)
-app.include_router(bench.router)
-app.include_router(check.router)
-app.include_router(drills.router)
-app.include_router(fluency.router)
-app.include_router(review.router)
-app.include_router(lessons.router)
-app.include_router(history.router)
+# Every API route needs a logged-in user (docs/features/accounts.md); /ws checks the cookie itself.
+app.include_router(auth.router)
+for _router in (units.router, check.router, drills.router, fluency.router, review.router, lessons.router, history.router):
+    app.include_router(_router, dependencies=[Depends(current_user)])
+for _router in (admin_users.router, bench.router):
+    app.include_router(_router, dependencies=[Depends(require_admin)])
 app.include_router(ws.router)
 # The React app (frontend/, built into frontend/dist) is a single page: every page route returns
 # index.html and React Router picks the view. Hashed JS/CSS bundles are served from /assets.
-SPA_ROUTES = ["/", "/review", "/roadmap", "/sounds", "/fluency", "/check", "/history", "/bench", "/lesson/{unit_id}"]
+SPA_ROUTES = [
+    "/", "/review", "/roadmap", "/sounds", "/fluency", "/check", "/history", "/bench", "/lesson/{unit_id}",
+    "/login", "/signup", "/verify", "/forgot", "/reset", "/account", "/admin", "/admin/{rest:path}",
+]
 # Files from frontend/public, copied to the root of dist: the PWA manifest and its icons.
 PUBLIC_FILES = [
     "manifest.webmanifest", "favicon.ico", "icon.svg", "icon-192.png", "icon-512.png", "icon-maskable-512.png", "apple-touch-icon.png",

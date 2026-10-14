@@ -14,6 +14,7 @@ STATE_FIELDS = ("q", "asked", "followups", "retries", "done", "history", "used",
 @dataclass
 class Session:
     unit: dict
+    user_id: int = 0  # the logged-in learner (accounts.users); history rows are saved under it
     q: int = 0  # index of the current main question
     asked: str = ""  # question awaiting an answer (main, follow-up or re-ask)
     followups: int = 0

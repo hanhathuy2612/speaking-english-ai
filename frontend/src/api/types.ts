@@ -391,3 +391,17 @@ export type HistoryTurn = {
   wpm_speaking: number | null;
   audio_url: string | null; // the kept recording, when SAVE_AUDIO_DIR is set
 };
+
+// ----- Accounts (docs/features/accounts.md) -----
+
+export type Role = "user" | "admin";
+
+export type User = {
+  id: number;
+  email: string;
+  name: string;
+  role: Role;
+  verified: boolean;
+  disabled: boolean;
+  created_at: string;
+};

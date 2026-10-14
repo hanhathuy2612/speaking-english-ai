@@ -6,8 +6,9 @@ import asyncio
 import uuid
 from collections import Counter
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 
+from app.api.deps import current_user
 from app.assessment import fluency
 from app.assessment.metrics import measure
 from app.core.config import STT_VOCAB
@@ -17,9 +18,9 @@ router = APIRouter(prefix="/api/fluency", tags=["fluency"])
 
 
 @router.get("")
-async def fluency_state(exclude: str | None = None) -> dict:
+async def fluency_state(exclude: str | None = None, user: dict = Depends(current_user)) -> dict:
     """A fresh prompt (least used, not `exclude`), the round lengths and past exercises."""
-    runs = fluency.group_runs(history.list_fluency_rounds())
+    runs = fluency.group_runs(history.list_fluency_rounds(user["id"]))
     used = Counter(r["prompt_id"] for r in runs)
     return {
         "enabled": history.enabled(),
@@ -30,7 +31,9 @@ async def fluency_state(exclude: str | None = None) -> dict:
 
 
 @router.post("/{prompt_id}/{round_no}")
-async def fluency_submit(prompt_id: str, round_no: int, request: Request, run: str | None = None) -> dict:
+async def fluency_submit(
+    prompt_id: str, round_no: int, request: Request, run: str | None = None, user: dict = Depends(current_user)
+) -> dict:
     """One round. Round 1 starts a new exercise and returns its `run` id; rounds 2 and 3 pass it back."""
     prompt = fluency.prompts_by_id.get(prompt_id)
     if not prompt or not 1 <= round_no <= len(fluency.ROUNDS):
@@ -47,6 +50,7 @@ async def fluency_submit(prompt_id: str, round_no: int, request: Request, run: s
     m = measure(result["words"], not_english)
     judged = m["measurable"]
     history.add_fluency_round(
+        user["id"],
         {
             "run": run,
             "round": round_no,

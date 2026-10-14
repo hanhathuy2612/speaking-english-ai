@@ -157,3 +157,10 @@ export const TargetIcon = ({ size = 15 }: P) => (
     <circle cx="12" cy="12" r="1" />
   </svg>
 );
+
+export const UserIcon = ({ size = 18 }: P) => (
+  <svg {...stroke(size)}>
+    <circle cx="12" cy="8" r="4" />
+    <path d="M4 21a8 8 0 0 1 16 0" />
+  </svg>
+);

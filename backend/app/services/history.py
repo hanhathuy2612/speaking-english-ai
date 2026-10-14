@@ -1,28 +1,57 @@
 """Practice history in a local SQLite file, so progress can be tracked across sessions.
 
 One row per session and one row per turn (typed, spoken or unclear). Aggregates are computed
-on read, so undoing a turn only needs to delete its row. Disabled when HISTORY_DB is empty
-(agents run test servers that way so they do not pollute the user's history).
-See docs/features/session-history.md.
+on read, so undoing a turn only needs to delete its row. Every learner's rows carry their
+`user_id` (sessions, checks, drills, fluency rounds, cards, lesson reads); turns, shadowing and
+retell attempts belong to a session, card reviews to a card. Functions that read take the user id
+first, so one learner never sees another's history. Disabled when HISTORY_DB is empty (tests).
+See docs/features/session-history.md and docs/features/accounts.md.
 """
 
 from __future__ import annotations
 
 import json
+import shutil
 import sqlite3
 from contextlib import closing
 from datetime import datetime
 
 from app.core import config
+from app.services import db
 
-SCHEMA = """
+USER = "user_id INTEGER REFERENCES users(id) ON DELETE CASCADE"  # NULL: saved before accounts existed
+
+CARDS = f"""
+CREATE TABLE IF NOT EXISTS {{name}} (
+    id INTEGER PRIMARY KEY,
+    created_at TEXT NOT NULL,
+    kind TEXT NOT NULL,                -- 'note' | 'phrase' (docs/features/review.md)
+    session_id INTEGER REFERENCES sessions(id) ON DELETE CASCADE,
+    turn_id INTEGER UNIQUE REFERENCES turns(id) ON DELETE CASCADE,  -- note cards: undo removes them
+    unit_id TEXT NOT NULL,
+    phrase_index INTEGER,              -- phrase cards
+    question TEXT NOT NULL,
+    said TEXT,                         -- note cards: the learner's original answer
+    target TEXT NOT NULL,              -- the NOTE, or the phrase to use
+    box INTEGER NOT NULL DEFAULT 0,    -- Leitner box: 0 = new or forgotten
+    due TEXT NOT NULL,                 -- YYYY-MM-DD
+    reviews INTEGER NOT NULL DEFAULT 0,
+    lapses INTEGER NOT NULL DEFAULT 0,
+    suspended INTEGER NOT NULL DEFAULT 0,
+    {USER},
+    UNIQUE (user_id, unit_id, phrase_index)
+);
+"""
+
+SCHEMA = f"""
 CREATE TABLE IF NOT EXISTS sessions (
     id INTEGER PRIMARY KEY,
     unit_id TEXT NOT NULL,
     unit_title TEXT NOT NULL,
     phrase_total INTEGER NOT NULL,
     started_at TEXT NOT NULL,
-    completed INTEGER NOT NULL DEFAULT 0
+    completed INTEGER NOT NULL DEFAULT 0,
+    {USER}
 );
 CREATE TABLE IF NOT EXISTS turns (
     id INTEGER PRIMARY KEY,
@@ -87,7 +116,8 @@ CREATE TABLE IF NOT EXISTS checks (
     not_english INTEGER NOT NULL,
     avg_logprob REAL,
     passed INTEGER NOT NULL,           -- targets met (docs/features/speaking-check.md)
-    total INTEGER NOT NULL             -- number of targets
+    total INTEGER NOT NULL,            -- number of targets
+    {USER}
 );
 CREATE TABLE IF NOT EXISTS drills (
     id INTEGER PRIMARY KEY,
@@ -100,7 +130,8 @@ CREATE TABLE IF NOT EXISTS drills (
     focus_correct INTEGER NOT NULL,    -- focus words heard correctly
     focus_total INTEGER NOT NULL,
     avg_logprob REAL,
-    audio TEXT                         -- recording file name in SAVE_AUDIO_DIR, for "Nghe lại"
+    audio TEXT,                        -- recording file name in SAVE_AUDIO_DIR, for "Nghe lại"
+    {USER}
 );
 CREATE TABLE IF NOT EXISTS fluency (
     id INTEGER PRIMARY KEY,
@@ -116,26 +147,10 @@ CREATE TABLE IF NOT EXISTS fluency (
     wpm_speaking INTEGER,              -- NULL when not measurable, like checks
     hesitations INTEGER NOT NULL,
     hesitations_per_100 REAL,
-    not_english INTEGER NOT NULL
+    not_english INTEGER NOT NULL,
+    {USER}
 );
-CREATE TABLE IF NOT EXISTS cards (
-    id INTEGER PRIMARY KEY,
-    created_at TEXT NOT NULL,
-    kind TEXT NOT NULL,                -- 'note' | 'phrase' (docs/features/review.md)
-    session_id INTEGER REFERENCES sessions(id) ON DELETE CASCADE,
-    turn_id INTEGER UNIQUE REFERENCES turns(id) ON DELETE CASCADE,  -- note cards: undo removes them
-    unit_id TEXT NOT NULL,
-    phrase_index INTEGER,              -- phrase cards
-    question TEXT NOT NULL,
-    said TEXT,                         -- note cards: the learner's original answer
-    target TEXT NOT NULL,              -- the NOTE, or the phrase to use
-    box INTEGER NOT NULL DEFAULT 0,    -- Leitner box: 0 = new or forgotten
-    due TEXT NOT NULL,                 -- YYYY-MM-DD
-    reviews INTEGER NOT NULL DEFAULT 0,
-    lapses INTEGER NOT NULL DEFAULT 0,
-    suspended INTEGER NOT NULL DEFAULT 0,
-    UNIQUE (unit_id, phrase_index)
-);
+{CARDS.format(name="cards")}
 CREATE TABLE IF NOT EXISTS card_reviews (
     id INTEGER PRIMARY KEY,
     card_id INTEGER NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
@@ -154,54 +169,99 @@ CREATE TABLE IF NOT EXISTS lesson_reads (
     heard TEXT NOT NULL,
     correct INTEGER NOT NULL,          -- reference tokens heard correctly
     total INTEGER NOT NULL,
-    avg_logprob REAL
+    avg_logprob REAL,
+    {USER}
 );
 CREATE TABLE IF NOT EXISTS lessons (
     id INTEGER PRIMARY KEY,
     created_at TEXT NOT NULL,          -- when the learner reached the end of the lesson part
-    unit_id TEXT NOT NULL
+    unit_id TEXT NOT NULL,
+    {USER}
 );
 """
 
+OWNED = ("sessions", "checks", "drills", "fluency", "cards", "lesson_reads", "lessons")  # tables with user_id
 # (table, column, type) added to older databases
-MIGRATIONS = [("turns", "audio", "TEXT"), ("drills", "audio", "TEXT")]
+MIGRATIONS = [("turns", "audio", "TEXT"), ("drills", "audio", "TEXT")] + [(t, "user_id", USER) for t in OWNED]
+INDEXES = [f"CREATE INDEX IF NOT EXISTS {t}_user ON {t}(user_id)" for t in OWNED]
+
+enabled = db.enabled
+_connect = db.connect
 
 
-def enabled() -> bool:
-    return bool(config.HISTORY_DB)
+def _columns(conn: sqlite3.Connection, table: str) -> set[str]:
+    return {r[1] for r in conn.execute(f"PRAGMA table_info({table})")}
 
 
-def _connect() -> sqlite3.Connection:
+def _backup_before_accounts() -> None:
+    """Copy a database written before accounts existed, once, before it is migrated."""
     path = config.ROOT_DIR / config.HISTORY_DB
-    path.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(path)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA foreign_keys = ON")
-    return conn
+    if not path.is_file():
+        return
+    with closing(sqlite3.connect(path)) as conn:
+        old = "sessions" in {r[0] for r in conn.execute("SELECT name FROM sqlite_master")} and (
+            "user_id" not in _columns(conn, "sessions")
+        )
+    backup = path.with_name(path.name + ".before-accounts")
+    if old and not backup.exists():
+        shutil.copy2(path, backup)
+        print(f"Backed up the history database to {backup} before adding accounts.")
+
+
+def _rebuild_cards(conn: sqlite3.Connection) -> None:
+    """Phrase cards were unique per (unit, phrase); with accounts they are unique per learner.
+    SQLite cannot change a UNIQUE constraint in place, so the table is copied (sqlite.org/lang_altertable.html)."""
+    sql = conn.execute("SELECT sql FROM sqlite_master WHERE name = 'cards'").fetchone()[0]
+    if "UNIQUE (user_id, unit_id, phrase_index)" in sql:
+        return
+    cols = ", ".join(sorted(_columns(conn, "cards")))
+    conn.execute("PRAGMA foreign_keys = OFF")  # dropping cards must not cascade to card_reviews
+    try:
+        with conn:
+            conn.execute(CARDS.format(name="cards_new"))
+            conn.execute(f"INSERT INTO cards_new ({cols}) SELECT {cols} FROM cards")
+            conn.execute("DROP TABLE cards")
+            conn.execute("ALTER TABLE cards_new RENAME TO cards")
+    finally:
+        conn.execute("PRAGMA foreign_keys = ON")
 
 
 def init() -> None:
     if not enabled():
         return
+    _backup_before_accounts()
+    with closing(_connect()) as conn:
+        with conn:
+            conn.executescript(SCHEMA)
+            # Columns added after a table existed: CREATE TABLE IF NOT EXISTS does not add them.
+            for table, column, kind in MIGRATIONS:
+                if column not in _columns(conn, table):
+                    conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {kind}")
+        _rebuild_cards(conn)
+        with conn:
+            for sql in INDEXES:
+                conn.execute(sql)
+
+
+def claim_unowned(uid: int) -> int:
+    """Give the rows saved before accounts existed (user_id NULL) to this user; returns how many."""
+    if not enabled():
+        return 0
     with closing(_connect()) as conn, conn:
-        conn.executescript(SCHEMA)
-        # Columns added after a table existed: CREATE TABLE IF NOT EXISTS does not add them.
-        for table, column, kind in MIGRATIONS:
-            if column not in {r[1] for r in conn.execute(f"PRAGMA table_info({table})")}:
-                conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {kind}")
+        return sum(conn.execute(f"UPDATE {t} SET user_id = ? WHERE user_id IS NULL", (uid,)).rowcount for t in OWNED)
 
 
 def _now() -> str:
     return datetime.now().isoformat(timespec="seconds")
 
 
-def start_session(unit: dict) -> int | None:
+def start_session(uid: int, unit: dict) -> int | None:
     if not enabled():
         return None
     with closing(_connect()) as conn, conn:
         cur = conn.execute(
-            "INSERT INTO sessions (unit_id, unit_title, phrase_total, started_at) VALUES (?, ?, ?, ?)",
-            (unit["id"], unit["title"], len(unit["phrases"]), _now()),
+            "INSERT INTO sessions (unit_id, unit_title, phrase_total, started_at, user_id) VALUES (?, ?, ?, ?, ?)",
+            (unit["id"], unit["title"], len(unit["phrases"]), _now(), uid),
         )
         return cur.lastrowid
 
@@ -264,14 +324,11 @@ def set_completed(session_id: int | None, completed: bool) -> None:
         )
 
 
-def delete_session(session_id: int) -> bool:
+def delete_session(uid: int, session_id: int) -> bool:
     if not enabled():
         return False
     with closing(_connect()) as conn, conn:
-        return (
-            conn.execute("DELETE FROM sessions WHERE id = ?", (session_id,)).rowcount
-            > 0
-        )
+        return conn.execute("DELETE FROM sessions WHERE id = ? AND user_id = ?", (session_id, uid)).rowcount > 0
 
 
 def _summarize(
@@ -319,16 +376,17 @@ def _summarize(
     }
 
 
-def list_sessions() -> list[dict]:
-    """Sessions with at least one answered turn, oldest first."""
+def list_sessions(uid: int) -> list[dict]:
+    """The user's sessions with at least one answered turn, oldest first."""
     if not enabled():
         return []
+    mine = "session_id IN (SELECT id FROM sessions WHERE user_id = ?)"
     with closing(_connect()) as conn:
         sessions = conn.execute(
-            "SELECT * FROM sessions ORDER BY started_at, id"
+            "SELECT * FROM sessions WHERE user_id = ? ORDER BY started_at, id", (uid,)
         ).fetchall()
-        turns = conn.execute("SELECT * FROM turns ORDER BY id").fetchall()
-        shadows = conn.execute("SELECT * FROM shadows ORDER BY id").fetchall()
+        turns = conn.execute(f"SELECT * FROM turns WHERE {mine} ORDER BY id", (uid,)).fetchall()
+        shadows = conn.execute(f"SELECT * FROM shadows WHERE {mine} ORDER BY id", (uid,)).fetchall()
     by_session: dict[int, list[sqlite3.Row]] = {}
     for t in turns:
         by_session.setdefault(t["session_id"], []).append(t)
@@ -339,14 +397,13 @@ def list_sessions() -> list[dict]:
     return [s for s in out if s["turns"]]
 
 
-def session_turns(session_id: int) -> list[dict]:
-    if not enabled():
-        return []
-    with closing(_connect()) as conn:
-        rows = conn.execute(
-            "SELECT * FROM turns WHERE session_id = ? ORDER BY id", (session_id,)
-        ).fetchall()
-    return [{**dict(r), "used_phrases": json.loads(r["used_phrases"])} for r in rows]
+def session_turns(uid: int, session_id: int) -> list[dict]:
+    rows = _rows(
+        "SELECT t.* FROM turns t JOIN sessions s ON s.id = t.session_id "
+        "WHERE t.session_id = ? AND s.user_id = ? ORDER BY t.id",
+        (session_id, uid),
+    )
+    return [{**r, "used_phrases": json.loads(r["used_phrases"])} for r in rows]
 
 
 def set_turn_audio(audio: dict[int, str]) -> None:
@@ -358,41 +415,19 @@ def set_turn_audio(audio: dict[int, str]) -> None:
 
 
 def turn_audio_names() -> set[str]:
-    """Recording names already linked to a turn."""
+    """Recording names already linked to a turn, of any user (so no file is linked twice)."""
     return {r["audio"] for r in _rows("SELECT audio FROM turns WHERE audio IS NOT NULL")}
 
 
-def unit_stats() -> dict[str, dict]:
+def unit_stats(uid: int) -> dict[str, dict]:
     """Per unit: sessions with at least one answer, completed sessions, latest start time."""
     stats: dict[str, dict] = {}
-    for s in list_sessions():
+    for s in list_sessions(uid):
         st = stats.setdefault(s["unit_id"], {"sessions": 0, "completed": 0, "last_at": None})
         st["sessions"] += 1
         st["completed"] += s["completed"]
         st["last_at"] = max(st["last_at"] or "", s["started_at"])
     return stats
-
-
-def add_check(check: dict) -> int | None:
-    """One speaking check (docs/features/speaking-check.md); keys match the `checks` columns."""
-    if not enabled():
-        return None
-    cols = ["created_at", *check]
-    with closing(_connect()) as conn, conn:
-        cur = conn.execute(
-            f"INSERT INTO checks ({', '.join(cols)}) VALUES ({', '.join('?' * len(cols))})",
-            (_now(), *check.values()),
-        )
-        return cur.lastrowid
-
-
-def list_checks() -> list[dict]:
-    """All speaking checks, oldest first."""
-    if not enabled():
-        return []
-    with closing(_connect()) as conn:
-        rows = conn.execute("SELECT * FROM checks ORDER BY created_at, id").fetchall()
-    return [{**dict(r), "not_english": bool(r["not_english"])} for r in rows]
 
 
 def _insert(table: str, row: dict) -> int | None:
@@ -407,21 +442,32 @@ def _insert(table: str, row: dict) -> int | None:
         return cur.lastrowid
 
 
-def _rows(sql: str) -> list[dict]:
+def _rows(sql: str, args: tuple = ()) -> list[dict]:
     if not enabled():
         return []
     with closing(_connect()) as conn:
-        return [dict(r) for r in conn.execute(sql).fetchall()]
+        return [dict(r) for r in conn.execute(sql, args).fetchall()]
 
 
-def add_drill(attempt: dict) -> int | None:
+def add_check(uid: int, check: dict) -> int | None:
+    """One speaking check (docs/features/speaking-check.md); keys match the `checks` columns."""
+    return _insert("checks", {**check, "user_id": uid})
+
+
+def list_checks(uid: int) -> list[dict]:
+    """The user's speaking checks, oldest first."""
+    rows = _rows("SELECT * FROM checks WHERE user_id = ? ORDER BY created_at, id", (uid,))
+    return [{**r, "not_english": bool(r["not_english"])} for r in rows]
+
+
+def add_drill(uid: int, attempt: dict) -> int | None:
     """One pronunciation drill reading; keys match the `drills` columns."""
-    return _insert("drills", attempt)
+    return _insert("drills", {**attempt, "user_id": uid})
 
 
-def list_drills() -> list[dict]:
-    """All drill readings, oldest first."""
-    return _rows("SELECT * FROM drills ORDER BY created_at, id")
+def list_drills(uid: int) -> list[dict]:
+    """The user's drill readings, oldest first."""
+    return _rows("SELECT * FROM drills WHERE user_id = ? ORDER BY created_at, id", (uid,))
 
 
 def set_drill_audio(audio: dict[int, str]) -> None:
@@ -433,7 +479,7 @@ def set_drill_audio(audio: dict[int, str]) -> None:
 
 
 def recording_names() -> set[str]:
-    """Recording names already linked to a turn or a drill reading."""
+    """Recording names already linked to a turn or a drill reading, of any user."""
     rows = _rows(
         "SELECT audio FROM turns WHERE audio IS NOT NULL "
         "UNION SELECT audio FROM drills WHERE audio IS NOT NULL"
@@ -441,109 +487,119 @@ def recording_names() -> set[str]:
     return {r["audio"] for r in rows}
 
 
-def list_readings() -> list[dict]:
-    """Every sentence read aloud against a reference (shadowing, drills, lessons), oldest first."""
+def owns_recording(uid: int, name: str) -> bool:
+    """Whether a kept recording is one of this user's answers or drill readings."""
+    return bool(
+        _rows(
+            "SELECT 1 FROM turns t JOIN sessions s ON s.id = t.session_id WHERE t.audio = ? AND s.user_id = ? "
+            "UNION SELECT 1 FROM drills WHERE audio = ? AND user_id = ?",
+            (name, uid, name, uid),
+        )
+    )
+
+
+def list_readings(uid: int) -> list[dict]:
+    """Every sentence the user read aloud against a reference (shadowing, drills, lessons), oldest first."""
     rows = _rows(
-        "SELECT created_at, 0 AS src, id, target, heard, correct, total FROM shadows "
-        "UNION ALL SELECT created_at, 1 AS src, id, target, heard, correct, total FROM drills "
-        "UNION ALL SELECT created_at, 2 AS src, id, target, heard, correct, total FROM lesson_reads "
-        "ORDER BY created_at, src, id"  # timestamps have one-second resolution
+        "SELECT a.created_at, 0 AS src, a.id, a.target, a.heard, a.correct, a.total FROM shadows a "
+        "JOIN sessions s ON s.id = a.session_id WHERE s.user_id = ? "
+        "UNION ALL SELECT created_at, 1 AS src, id, target, heard, correct, total FROM drills WHERE user_id = ? "
+        "UNION ALL SELECT created_at, 2 AS src, id, target, heard, correct, total FROM lesson_reads WHERE user_id = ? "
+        "ORDER BY created_at, src, id",  # timestamps have one-second resolution
+        (uid, uid, uid),
     )
     return [{k: r[k] for k in ("created_at", "target", "heard", "correct", "total")} for r in rows]
 
 
-def add_lesson_read(attempt: dict) -> int | None:
+def add_lesson_read(uid: int, attempt: dict) -> int | None:
     """One lesson sentence read aloud; keys match the `lesson_reads` columns."""
-    return _insert("lesson_reads", attempt)
+    return _insert("lesson_reads", {**attempt, "user_id": uid})
 
 
-def finish_lesson(unit_id: str) -> int | None:
+def finish_lesson(uid: int, unit_id: str) -> int | None:
     """The learner reached the end of a unit's lesson part."""
-    return _insert("lessons", {"unit_id": unit_id})
+    return _insert("lessons", {"unit_id": unit_id, "user_id": uid})
 
 
-def lesson_counts() -> dict[str, int]:
-    """Per unit: how many times its lesson part was finished."""
-    return {r["unit_id"]: r["n"] for r in _rows("SELECT unit_id, COUNT(*) AS n FROM lessons GROUP BY unit_id")}
+def lesson_counts(uid: int) -> dict[str, int]:
+    """Per unit: how many times the user finished its lesson part."""
+    rows = _rows("SELECT unit_id, COUNT(*) AS n FROM lessons WHERE user_id = ? GROUP BY unit_id", (uid,))
+    return {r["unit_id"]: r["n"] for r in rows}
 
 
-def add_fluency_round(row: dict) -> int | None:
+def add_fluency_round(uid: int, row: dict) -> int | None:
     """One round of a 4/3/2 exercise; keys match the `fluency` columns."""
-    return _insert("fluency", row)
+    return _insert("fluency", {**row, "user_id": uid})
 
 
-def list_fluency_rounds() -> list[dict]:
-    """All 4/3/2 rounds, oldest first."""
-    rows = _rows("SELECT * FROM fluency ORDER BY created_at, id")
+def list_fluency_rounds(uid: int) -> list[dict]:
+    """The user's 4/3/2 rounds, oldest first."""
+    rows = _rows("SELECT * FROM fluency WHERE user_id = ? ORDER BY created_at, id", (uid,))
     return [{**r, "not_english": bool(r["not_english"])} for r in rows]
 
 
 # ----- Review cards (docs/features/review.md) -----
 
 
-def note_turns_without_card() -> list[dict]:
-    """Clear answers that got a NOTE and have no review card yet, oldest first."""
+def note_turns_without_card(uid: int) -> list[dict]:
+    """The user's clear answers that got a NOTE and have no review card yet, oldest first."""
     return _rows(
         "SELECT t.id AS turn_id, t.session_id, s.unit_id, t.question, t.answer, t.note, t.created_at "
         "FROM turns t JOIN sessions s ON s.id = t.session_id "
         "LEFT JOIN cards c ON c.turn_id = t.id "
-        "WHERE c.id IS NULL AND t.unclear = 0 AND t.note IS NOT NULL AND t.note != '' ORDER BY t.id"
+        "WHERE s.user_id = ? AND c.id IS NULL AND t.unclear = 0 AND t.note IS NOT NULL AND t.note != '' "
+        "ORDER BY t.id",
+        (uid,),
     )
 
 
-def completed_sessions_used_phrases() -> list[dict]:
-    """Completed sessions with the phrase indices used in any answer: [{session_id, unit_id, used}]."""
+def completed_sessions_used_phrases(uid: int) -> list[dict]:
+    """The user's completed sessions with the phrase indices used in any answer: [{session_id, unit_id, used}]."""
     out: dict[int, dict] = {}
     for r in _rows(
         "SELECT s.id, s.unit_id, t.used_phrases FROM sessions s JOIN turns t ON t.session_id = s.id "
-        "WHERE s.completed = 1 AND t.unclear = 0 ORDER BY s.id"
+        "WHERE s.user_id = ? AND s.completed = 1 AND t.unclear = 0 ORDER BY s.id",
+        (uid,),
     ):
         row = out.setdefault(r["id"], {"session_id": r["id"], "unit_id": r["unit_id"], "used": set()})
         row["used"] |= set(json.loads(r["used_phrases"]))
     return list(out.values())
 
 
-def add_card(card: dict) -> int | None:
-    """Insert a card unless one already exists for the same turn or (unit, phrase)."""
+def add_card(uid: int, card: dict) -> int | None:
+    """Insert a card unless the user already has one for the same turn or (unit, phrase)."""
     if not enabled():
         return None
-    cols = ["created_at", *card]
+    row = {**card, "user_id": uid}
+    cols = ["created_at", *row]
     with closing(_connect()) as conn, conn:
         cur = conn.execute(
             f"INSERT OR IGNORE INTO cards ({', '.join(cols)}) VALUES ({', '.join('?' * len(cols))})",
-            (_now(), *card.values()),
+            (_now(), *row.values()),
         )
         return cur.lastrowid if cur.rowcount else None
 
 
-def list_cards(due_by: str | None = None, session_id: int | None = None) -> list[dict]:
-    """Active cards, oldest due first: due on or before `due_by`, or all cards of one session."""
-    if not enabled():
-        return []
-    where, args = ["suspended = 0"], []
+def list_cards(uid: int, due_by: str | None = None, session_id: int | None = None) -> list[dict]:
+    """The user's active cards, oldest due first: due on or before `due_by`, or all cards of one session."""
+    where, args = ["user_id = ?", "suspended = 0"], [uid]
     if due_by is not None:
         where.append("due <= ?")
         args.append(due_by)
     if session_id is not None:
         where.append("session_id = ?")
         args.append(session_id)
-    with closing(_connect()) as conn:
-        rows = conn.execute(
-            f"SELECT * FROM cards WHERE {' AND '.join(where)} ORDER BY due, id", args
-        ).fetchall()
-    return [dict(r) for r in rows]
+    return _rows(f"SELECT * FROM cards WHERE {' AND '.join(where)} ORDER BY due, id", tuple(args))
 
 
-def get_card(card_id: int) -> dict | None:
-    if not enabled():
-        return None
-    with closing(_connect()) as conn:
-        row = conn.execute("SELECT * FROM cards WHERE id = ?", (card_id,)).fetchone()
-    return dict(row) if row else None
+def get_card(uid: int, card_id: int) -> dict | None:
+    rows = _rows("SELECT * FROM cards WHERE id = ? AND user_id = ?", (card_id, uid))
+    return rows[0] if rows else None
 
 
 def grade_card(card_id: int, box: int, due: str, result: str, attempt: dict) -> None:
-    """Store the learner's grade and the new schedule. `attempt`: heard, correct, total (or empty)."""
+    """Store the learner's grade and the new schedule. `attempt`: heard, correct, total (or empty).
+    The caller checked the card is theirs (get_card)."""
     if not enabled():
         return
     with closing(_connect()) as conn, conn:
@@ -559,21 +615,26 @@ def grade_card(card_id: int, box: int, due: str, result: str, attempt: dict) -> 
 
 
 def suspend_card(card_id: int) -> bool:
+    """The caller checked the card is theirs (get_card)."""
     if not enabled():
         return False
     with closing(_connect()) as conn, conn:
         return conn.execute("UPDATE cards SET suspended = 1 WHERE id = ?", (card_id,)).rowcount > 0
 
 
-def card_stats(today: str, since: str, learned_box: int = 4) -> dict:
-    """Counts for the review page: due today, active, learned (box >= learned_box), reviews since `since`."""
+def card_stats(uid: int, today: str, since: str, learned_box: int = 4) -> dict:
+    """The user's counts for the review page: due today, active, learned (box >= learned_box),
+    reviews since `since`."""
     if not enabled():
         return {"due": 0, "active": 0, "learned": 0, "reviews": 0, "good": 0}
     with closing(_connect()) as conn:
         c = conn.execute(
-            "SELECT SUM(due <= ?), COUNT(*), SUM(box >= ?) FROM cards WHERE suspended = 0", (today, learned_box)
+            "SELECT SUM(due <= ?), COUNT(*), SUM(box >= ?) FROM cards WHERE user_id = ? AND suspended = 0",
+            (today, learned_box, uid),
         ).fetchone()
         r = conn.execute(
-            "SELECT COUNT(*), SUM(result = 'good') FROM card_reviews WHERE created_at >= ?", (since,)
+            "SELECT COUNT(*), SUM(r.result = 'good') FROM card_reviews r JOIN cards c ON c.id = r.card_id "
+            "WHERE c.user_id = ? AND r.created_at >= ?",
+            (uid, since),
         ).fetchone()
     return {"due": c[0] or 0, "active": c[1] or 0, "learned": c[2] or 0, "reviews": r[0] or 0, "good": r[1] or 0}

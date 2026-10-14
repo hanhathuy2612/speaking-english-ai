@@ -18,9 +18,9 @@ from app.utils.ws import Conn
 _background: set[asyncio.Task] = set()
 
 
-async def start_session(conn: Conn, unit: dict) -> Session:
+async def start_session(conn: Conn, unit: dict, user_id: int) -> Session:
     first = unit["questions"][0]["ask"]
-    session = Session(unit=unit, asked=first)
+    session = Session(unit=unit, user_id=user_id, asked=first)
     public = {k: unit[k] for k in ("id", "title", "goal", "scenario")} | {
         "phrases": [{"say": p["say"]} for p in unit["phrases"]],
         "stt": stt.label,
@@ -41,7 +41,7 @@ async def start_session(conn: Conn, unit: dict) -> Session:
 def _history_id(s: Session) -> int | None:
     """Create the history row on the first answer, so opening a unit never leaves empty sessions."""
     if s.history_id is None:
-        s.history_id = history.start_session(s.unit)
+        s.history_id = history.start_session(s.user_id, s.unit)
     return s.history_id
 
 

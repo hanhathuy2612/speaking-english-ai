@@ -13,6 +13,7 @@ import type {
   Topic,
   UnitsResponse,
 } from "../../api/types";
+import { AUTH_EXPIRED } from "../../api/http";
 import type { Status } from "../../components/ui";
 import { useAudioQueue } from "../../hooks/useAudioQueue";
 import { useRecordings } from "../../hooks/useRecordings";
@@ -246,8 +247,10 @@ export function useInterview(requestedUnit: string | null) {
         sock.send(JSON.stringify({ type: "start", unit: first }));
       }
     };
-    sock.onclose = () => {
-      if (!closedByUs)
+    sock.onclose = (e) => {
+      if (e.code === 4401)
+        window.dispatchEvent(new Event(AUTH_EXPIRED)); // login gone: back to /login
+      else if (!closedByUs)
         dispatch({
           type: "status",
           status: { text: "Mất kết nối với máy chủ. Tải lại trang để thử lại.", state: "error" },

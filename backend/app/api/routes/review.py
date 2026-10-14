@@ -6,9 +6,10 @@ import asyncio
 from datetime import date, timedelta
 from typing import Literal
 
-from fastapi import APIRouter, HTTPException, Request, Response
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import BaseModel
 
+from app.api.deps import current_user
 from app.core.config import STT_VOCAB
 from app.interview import review
 from app.interview.units import units_by_id
@@ -29,51 +30,50 @@ def _card(c: dict) -> dict:
     }  # fmt: skip
 
 
-def _stats(today: date) -> dict:
-    s = history.card_stats(today.isoformat(), (today - timedelta(days=30)).isoformat(), review.LEARNED_BOX)
+def _stats(uid: int, today: date) -> dict:
+    s = history.card_stats(uid, today.isoformat(), (today - timedelta(days=30)).isoformat(), review.LEARNED_BOX)
     return {**s, "recall": round(s["good"] / s["reviews"] * 100) if s["reviews"] else None}
 
 
 @router.get("")
-async def review_state(session: int | None = None) -> dict:
+async def review_state(session: int | None = None, user: dict = Depends(current_user)) -> dict:
     """Cards to review: all cards of one session (`?session=`, end-of-session review),
     otherwise the cards due today, at most one round."""
-    today = date.today()
-    review.sync(today)
+    today, uid = date.today(), user["id"]
+    review.sync(uid, today)
     if session is not None:
-        cards = history.list_cards(session_id=session)
+        cards = history.list_cards(uid, session_id=session)
     else:
-        cards = history.list_cards(due_by=today.isoformat())[:ROUND]
-    return {"enabled": history.enabled(), "stats": _stats(today), "cards": [_card(c) for c in cards]}
+        cards = history.list_cards(uid, due_by=today.isoformat())[:ROUND]
+    return {"enabled": history.enabled(), "stats": _stats(uid, today), "cards": [_card(c) for c in cards]}
 
 
 @router.get("/count")
-async def review_count() -> dict:
+async def review_count(user: dict = Depends(current_user)) -> dict:
     """Cards due today, for the badge in the navigation."""
     today = date.today()
-    review.sync(today)
-    return {"due": history.card_stats(today.isoformat(), today.isoformat())["due"]}
+    review.sync(user["id"], today)
+    return {"due": history.card_stats(user["id"], today.isoformat(), today.isoformat())["due"]}
 
 
-def _get(card_id: int) -> dict:
-    card = history.get_card(card_id)
+def _get(card_id: int, user: dict = Depends(current_user)) -> dict:
+    """The card in the path, when it is the user's (a route dependency)."""
+    card = history.get_card(user["id"], card_id)
     if not card:
         raise HTTPException(404)
     return card
 
 
 @router.get("/{card_id}/audio")
-async def review_audio(card_id: int) -> Response:
+async def review_audio(card: dict = Depends(_get)) -> Response:
     """The NOTE (or the phrase) read aloud."""
-    card = _get(card_id)
     return Response(await tts.cached_tts(card["target"]), media_type="audio/mpeg")
 
 
 @router.post("/{card_id}/attempt")
-async def review_attempt(card_id: int, request: Request) -> dict:
+async def review_attempt(request: Request, card: dict = Depends(_get)) -> dict:
     """Transcribe one spoken attempt and run the objective checks. Nothing is stored here:
     the learner's grade (POST .../grade) is what moves the card."""
-    card = _get(card_id)
     path = stt.save_recording(await request.body())
     try:
         result = await asyncio.to_thread(stt.transcribe, path, STT_VOCAB)
@@ -90,16 +90,14 @@ class Grade(BaseModel):
 
 
 @router.post("/{card_id}/grade")
-async def review_grade(card_id: int, grade: Grade) -> dict:
-    card = _get(card_id)
+async def review_grade(grade: Grade, card: dict = Depends(_get)) -> dict:
     box, due = review.schedule(card["box"], grade.result, date.today())
-    history.grade_card(card_id, box, due.isoformat(), grade.result, grade.model_dump(exclude={"result"}))
+    history.grade_card(card["id"], box, due.isoformat(), grade.result, grade.model_dump(exclude={"result"}))
     return {"box": box, "due": due.isoformat()}
 
 
 @router.post("/{card_id}/suspend")
-async def review_suspend(card_id: int) -> dict:
+async def review_suspend(card: dict = Depends(_get)) -> dict:
     """Drop a card for good (for example a NOTE that is not worth learning)."""
-    _get(card_id)
-    history.suspend_card(card_id)
+    history.suspend_card(card["id"])
     return {"ok": True}

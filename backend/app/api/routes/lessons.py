@@ -7,8 +7,9 @@ from __future__ import annotations
 
 import asyncio
 
-from fastapi import APIRouter, HTTPException, Request, Response
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 
+from app.api.deps import current_user
 from app.core import config
 from app.interview import lesson
 from app.interview.units import units_by_id
@@ -26,9 +27,9 @@ def _unit(unit_id: str) -> dict:
 
 
 @router.get("/{unit_id}")
-async def get_lesson(unit_id: str) -> dict:
+async def get_lesson(unit_id: str, user: dict = Depends(current_user)) -> dict:
     unit = _unit(unit_id)
-    return {**lesson.public(unit), "finished": history.lesson_counts().get(unit_id, 0)}
+    return {**lesson.public(unit), "finished": history.lesson_counts(user["id"]).get(unit_id, 0)}
 
 
 @router.get("/{unit_id}/audio/{key}")
@@ -41,7 +42,7 @@ async def lesson_audio(unit_id: str, key: str) -> Response:
 
 
 @router.post("/{unit_id}/read/{index}")
-async def read_sentence(unit_id: str, index: int, request: Request) -> dict:
+async def read_sentence(unit_id: str, index: int, request: Request, user: dict = Depends(current_user)) -> dict:
     sentences = _unit(unit_id)["lesson"]["sentences"]
     if not 0 <= index < len(sentences):
         raise HTTPException(404)
@@ -55,6 +56,7 @@ async def read_sentence(unit_id: str, index: int, request: Request) -> dict:
     diff = compare(target, result["text"])
     if result["text"]:  # an empty reading is a microphone problem, not a pronunciation result
         history.add_lesson_read(
+            user["id"],
             {
                 "unit_id": unit_id,
                 "sentence": index,
@@ -69,7 +71,7 @@ async def read_sentence(unit_id: str, index: int, request: Request) -> dict:
 
 
 @router.post("/{unit_id}/finish")
-async def finish(unit_id: str) -> dict:
+async def finish(unit_id: str, user: dict = Depends(current_user)) -> dict:
     _unit(unit_id)
-    history.finish_lesson(unit_id)
-    return {"finished": history.lesson_counts().get(unit_id, 0)}
+    history.finish_lesson(user["id"], unit_id)
+    return {"finished": history.lesson_counts(user["id"]).get(unit_id, 0)}

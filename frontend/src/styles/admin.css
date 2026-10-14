@@ -1,0 +1,78 @@
+/* Admin pages (/admin/users, /admin/content, /admin/units/:id). */
+.admin {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 28px 20px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.admin h1 {
+  font-size: 22px;
+  font-weight: 650;
+}
+.admin-nav {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.admin-nav [aria-current="page"] {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+.admin-card {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.admin-card h2 {
+  font-size: 16px;
+  font-weight: 650;
+}
+.admin-hint {
+  color: var(--text-2);
+  font-size: 14px;
+}
+.admin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px 16px;
+  align-items: start;
+}
+.admin-message {
+  margin-top: 8px;
+  color: var(--text-2);
+  font-size: 14px;
+}
+.admin-user-name {
+  font-weight: 600;
+}
+.admin-user-email {
+  font-size: 13px;
+  color: var(--text-3);
+}
+.admin-role {
+  height: 32px;
+  width: auto;
+}
+.admin-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+/* The table's shared rule dims buttons for "delete"; admin actions are ordinary buttons. */
+.admin td .btn {
+  color: var(--text);
+}
+.admin td .btn:hover {
+  color: var(--primary);
+}
+tr.muted td {
+  color: var(--text-3);
+}
+@media (max-width: 560px) {
+  .admin {
+    padding: 20px 16px 40px;
+  }
+}

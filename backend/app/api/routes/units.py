@@ -3,8 +3,9 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
+from app.api.deps import current_user
 from app.assessment import drills, fluency, stages
 from app.interview.units import topics, units
 from app.services import history
@@ -18,10 +19,10 @@ if _errors:
     raise ValueError("Invalid stages.json:\n" + "\n".join(_errors))
 
 
-def _stats() -> dict[str, dict]:
+def _stats(uid: int) -> dict[str, dict]:
     """Practice status per unit. A unit with a lesson is done only when both parts are: the lesson
     was finished once and a role-play reached the last question (docs/features/lesson.md)."""
-    stats, lessons = history.unit_stats(), history.lesson_counts()
+    stats, lessons = history.unit_stats(uid), history.lesson_counts(uid)
     out = {}
     for u in units:
         st = {**stats.get(u["id"], NO_STATS), "lesson": "lesson" in u, "lesson_done": lessons.get(u["id"], 0)}
@@ -51,18 +52,18 @@ def _topics(stats: dict[str, dict], open_topics: set[str]) -> list[dict]:
     ]
 
 
-def _report(stats: dict[str, dict]) -> list[dict]:
-    """Stages evaluated against the history store."""
+def _report(uid: int, stats: dict[str, dict]) -> list[dict]:
+    """Stages evaluated against the user's history."""
     topic_units: dict[str, list[str]] = {}
     for u in units:
         topic_units.setdefault(u["topic"], []).append(u["id"])
-    runs = fluency.group_runs(history.list_fluency_rounds())
+    runs = fluency.group_runs(history.list_fluency_rounds(uid))
     evidence = {
         "completed": {uid for uid, st in stats.items() if st["done"]},
         "topic_units": topic_units,
-        "drill_attempts": history.list_drills(),
+        "drill_attempts": history.list_drills(uid),
         "drill_set_ids": [s["id"] for s in drills.sets],
-        "checks": history.list_checks(),
+        "checks": history.list_checks(uid),
         "fluency_runs": sum(r["complete"] for r in runs),
     }
     return stages.evaluate(stages.stages, evidence)
@@ -79,17 +80,17 @@ def _next_unit(topic_list: list[dict]) -> str | None:
 
 
 @router.get("/units")
-async def list_units() -> dict:
-    stats = _stats()
-    topic_list = _topics(stats, stages.open_topics(_report(stats)))
+async def list_units(user: dict = Depends(current_user)) -> dict:
+    stats = _stats(user["id"])
+    topic_list = _topics(stats, stages.open_topics(_report(user["id"], stats)))
     return {"topics": topic_list, "next_unit": _next_unit(topic_list)}
 
 
 @router.get("/stages")
-async def list_stages() -> dict:
+async def list_stages(user: dict = Depends(current_user)) -> dict:
     """Stages in order with status and requirements; topics carry their units' status."""
-    stats = _stats()
-    report = _report(stats)
+    stats = _stats(user["id"])
+    report = _report(user["id"], stats)
     by_id = {t["id"]: t for t in _topics(stats, stages.open_topics(report))}
     return {
         "stages": [{**s, "topics": [by_id[t] for t in s.get("topics", [])]} for s in report],

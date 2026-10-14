@@ -46,6 +46,18 @@ SAVE_AUDIO_DIR = os.getenv("SAVE_AUDIO_DIR", "")  # relative to the project root
 # ----- Practice history (SQLite) -----
 HISTORY_DB = os.getenv("HISTORY_DB", "data/history.db")  # relative to the project root; empty disables
 
+# ----- Accounts and email (docs/features/accounts.md) -----
+SIGNUP_ENABLED = os.getenv("SIGNUP_ENABLED", "1") == "1"  # 0: only admins create accounts
+# Address the links in emails point to, e.g. https://192.168.0.2:8000. Required when SMTP_HOST is
+# set: the request's Host header could be forged to send a reset link to another site.
+APP_URL = os.getenv("APP_URL", "").rstrip("/")
+SMTP_HOST = os.getenv("SMTP_HOST", "")  # empty: emails are printed to the console instead
+SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
+SMTP_SECURITY = os.getenv("SMTP_SECURITY", "starttls")  # starttls | ssl | none
+SMTP_USER = os.getenv("SMTP_USER", "")
+SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
+SMTP_FROM = os.getenv("SMTP_FROM", "")  # defaults to SMTP_USER
+
 # ----- TTS (edge-tts) -----
 TTS_VOICE = os.getenv("TTS_VOICE", "en-US-JennyNeural")
 TTS_RATE = os.getenv("TTS_RATE", "-10%")

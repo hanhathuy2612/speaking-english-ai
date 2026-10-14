@@ -8,7 +8,7 @@ Windows 11, Python 3.11 (venv tại `.venv`), Node 22 / npm 12. GPU RTX 3060 12 
 |---|---|
 | Test backend (không cần model) | `python -m pytest` (trong `backend/`) |
 | Test và build frontend | `npm test`, `npm run build` (trong `frontend/`) |
-| Kiểm chứng prompt | `python -m scripts.replay answers.txt --runs 3 --url ws://localhost:8001/ws` |
+| Kiểm chứng prompt | `python -m scripts.replay answers.txt --runs 3 --url ws://localhost:8001/ws --email admin@test.local` (mật khẩu trong `REPLAY_PASSWORD`) |
 | Đo STT | `python -m scripts.stt_bench --config ...` (xem [stt-benchmark.md](features/stt-benchmark.md)) |
 | Thử giao diện | `npm run build` rồi mở `http://localhost:8001`, hoặc `BACKEND_URL=http://localhost:8001 npm run dev` rồi mở `http://localhost:5173`. Ô gõ chữ cho phép thử mà không cần micro. |
 
@@ -20,7 +20,15 @@ Windows 11, Python 3.11 (venv tại `.venv`), Node 22 / npm 12. GPU RTX 3060 12 
 HISTORY_DB=<thư mục tạm>/hist.db SAVE_AUDIO_DIR= uvicorn app.main:app --port 8001
 ```
 
-  Biến môi trường đặt sẵn được ưu tiên hơn `.env`. Để `HISTORY_DB=` trống nếu không cần lịch sử.
+  Biến môi trường đặt sẵn được ưu tiên hơn `.env`. `HISTORY_DB` không để trống được (tài khoản lưu ở đó).
+
+- **Mọi trang và API đều cần đăng nhập** ([accounts.md](features/accounts.md)). Tạo tài khoản thử trong DB tạm trước khi chạy server, mật khẩu đặt qua biến môi trường để không phải gõ:
+
+```
+HISTORY_DB=<thư mục tạm>/hist.db NEW_USER_PASSWORD=<mật khẩu thử> python -m scripts.create_user admin@test.local --admin
+```
+
+  Thử bằng script thì đăng nhập qua `POST /api/auth/login` rồi gửi kèm cookie `sid` (`replay.py` đã làm việc này). Để trống `SMTP_HOST` và `APP_URL`: email xác nhận in ra log server, link trỏ về chính server thử.
 
 - Chỉ dừng đúng tiến trình đang giữ cổng 8001. **Không bao giờ tắt `python.exe` theo tên** vì có thể tắt cả tiến trình của người dùng:
 

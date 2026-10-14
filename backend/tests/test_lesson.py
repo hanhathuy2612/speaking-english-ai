@@ -67,11 +67,11 @@ def test_a_unit_with_a_lesson_is_done_only_after_both_parts(monkeypatch):
     from app.services import history
 
     played = {"sessions": 1, "completed": 1, "last_at": "2026-10-14T10:00:00"}
-    monkeypatch.setattr(history, "unit_stats", lambda: {"tell-me-about-yourself": played, "weekend": played})
-    monkeypatch.setattr(history, "lesson_counts", lambda: {})
-    stats = route._stats()
+    monkeypatch.setattr(history, "unit_stats", lambda uid: {"tell-me-about-yourself": played, "weekend": played})
+    monkeypatch.setattr(history, "lesson_counts", lambda uid: {})
+    stats = route._stats(1)
     assert stats["weekend"]["done"] is True  # no lesson: the role-play is enough
     assert stats["tell-me-about-yourself"]["done"] is False
     assert stats["current-project"]["done"] is False and stats["current-project"]["lesson"] is True
-    monkeypatch.setattr(history, "lesson_counts", lambda: {"tell-me-about-yourself": 1})
-    assert route._stats()["tell-me-about-yourself"]["done"] is True
+    monkeypatch.setattr(history, "lesson_counts", lambda uid: {"tell-me-about-yourself": 1})
+    assert route._stats(1)["tell-me-about-yourself"]["done"] is True

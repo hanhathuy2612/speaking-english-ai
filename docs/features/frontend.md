@@ -14,13 +14,16 @@ React 19 + TypeScript + Vite, định tuyến bằng React Router 7. Không có 
 | `npm run format` | Prettier định dạng lại toàn bộ `frontend/` (TS, TSX, CSS, JSON) |
 | `npm run format:check` | Chỉ kiểm tra, báo file chưa đúng định dạng, không sửa |
 
-Backend phục vụ bản build: `/`, `/lesson/<id>`, `/review`, `/roadmap`, `/sounds`, `/fluency`, `/check`, `/history`, `/bench` đều trả `dist/index.html`, React Router chọn trang; JS/CSS nằm dưới `/assets`; manifest và icon PWA (từ `public/`) nằm ở gốc. Chưa build thì các trang này trả hướng dẫn build (HTTP 503). Xem `backend/app/main.py`.
+Backend phục vụ bản build: `/`, `/lesson/<id>`, `/review`, `/roadmap`, `/sounds`, `/fluency`, `/check`, `/history`, `/bench`, `/login`, `/signup`, `/verify`, `/forgot`, `/reset`, `/account`, `/admin/...` đều trả `dist/index.html`, React Router chọn trang; JS/CSS nằm dưới `/assets`; manifest và icon PWA (từ `public/`) nằm ở gốc. Chưa build thì các trang này trả hướng dẫn build (HTTP 503). Xem `backend/app/main.py`.
 
 ## Cấu trúc `src/`
 
 ```
-main.tsx                    # gắn React Router: / , /review , /roadmap , /sounds , /fluency , /check , /history , /bench; import base.css trước các trang
+main.tsx                    # gắn React Router: / , /review , /roadmap , /sounds , /fluency , /check , /history , /account; admin: /bench , /admin/...;
+                            #   chưa đăng nhập chỉ có /login , /signup , /forgot , /verify , /reset (xem accounts.md); import base.css trước các trang
 api/types.ts                # kiểu dữ liệu của API và giao thức WebSocket
+api/http.ts                 # api(): gọi JSON, ném ApiError với câu lỗi của server; watchExpiredLogin(): API trả 401 thì về trang đăng nhập
+auth/AuthContext.tsx        # AuthProvider, useAuth (user, login, logout), useUser (trang chỉ hiện khi đã đăng nhập)
 lib/format.ts               # hàm thuần: fmtDate, fmtNum, niceMax, latestWithDelta (+ format.test.ts)
 lib/roadmap.ts              # hàm thuần: allUnits, pickUnit, unitState, unitLink (+ roadmap.test.ts)
 lib/lesson.ts               # hàm thuần: afterReading, sentenceKeys (+ lesson.test.ts)
@@ -52,8 +55,12 @@ features/
   fluency/                  # FluencyPage.tsx: nói dài 4–3–2 (xem fluency-432.md)
   check/                    # CheckPage.tsx (xem speaking-check.md)
   history/                  # HistoryPage.tsx, LineChart.tsx (biểu đồ SVG)
-  bench/                    # BenchPage.tsx
-styles/                     # base.css (token, component chung, bảng), practice.css, lesson.css, review.css, roadmap.css, sounds.css, fluency.css, check.css, history.css, bench.css
+  bench/                    # BenchPage.tsx (chỉ admin)
+  auth/                     # LoginPage.tsx, EmailPages.tsx (đăng ký, xác nhận email, quên/đặt lại mật khẩu), AuthLayout.tsx (khung + ô nhập dùng chung)
+  account/                  # AccountPage.tsx: thông tin, đổi mật khẩu, đăng xuất
+  admin/                    # UsersPage.tsx (người dùng), AdminNav.tsx (xem accounts.md)
+styles/                     # base.css (token, component chung, bảng), practice.css, lesson.css, review.css, roadmap.css, sounds.css, fluency.css, check.css, history.css, bench.css,
+                            #   auth.css (trang đăng nhập, ô nhập .field dùng chung), admin.css
 ```
 
 ## Luồng dữ liệu phòng tập (`useInterview.ts`)

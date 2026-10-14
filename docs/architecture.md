@@ -23,6 +23,8 @@ Trình duyệt (React: useInterview.ts)    Server (backend/app)
 
 ## Giao thức WebSocket `/ws`
 
+Cần đăng nhập: server đọc cookie `sid` lúc bắt tay, không có phiên hợp lệ (hoặc `Origin` khác `Host`) thì đóng với mã 4401. Mọi lịch sử của kết nối lưu dưới `user_id` của người đó (`Session.user_id`). Xem [accounts.md](features/accounts.md).
+
 Trình duyệt gửi:
 
 | Tin | Ý nghĩa |
