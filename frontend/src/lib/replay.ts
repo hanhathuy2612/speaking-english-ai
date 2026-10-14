@@ -5,16 +5,16 @@
  * or stored for this, and they are gone after a page reload.
  *
  * Phone recordings are quiet (peaks around -18 to -27 dBFS measured), so playback goes through a
- * Web Audio gain that brings the peak to a moderate level (a stronger boost sounded too loud on a
- * phone). Only playback changes: the recording sent for recognition is untouched.
+ * Web Audio gain that brings the peak near full scale (a 3x cap was tried and was too quiet).
+ * Only playback changes: the recording sent for recognition is untouched.
  */
 let current: HTMLAudioElement | null = null;
 let ctx: AudioContext | null = null;
 const gains = new Map<string, number>(); // src -> gain, computed once per recording
 
-const TARGET_PEAK = 0.5; // about -6 dBFS
-const MAX_GAIN = 3; // about +10 dB: louder sounded harsh and raised room noise
-const DEFAULT_GAIN = 2; // until the real peak is known (a few ms after start)
+const TARGET_PEAK = 0.9; // about -1 dBFS
+const MAX_GAIN = 12; // about +21 dB: louder would mostly raise room noise
+const DEFAULT_GAIN = 4; // until the real peak is known (a few ms after start)
 
 /** Gain that brings `peak` (0..1) to TARGET_PEAK, never quieter than as recorded, at most MAX_GAIN. */
 export function replayGain(peak: number): number {

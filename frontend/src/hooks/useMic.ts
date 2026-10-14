@@ -4,6 +4,14 @@ import { stopReplay } from "../lib/replay";
 const MIN_BYTES = 3000; // shorter recordings are almost always an accidental tap
 /** Keep recording a little after the stop tap: people tap while still saying the last word. */
 const TAIL_MS = 350;
+/**
+ * Plain microphone capture, like a phone's recorder app. With the browser defaults (echo cancellation,
+ * noise suppression, auto gain) Chrome on Android records like a voice call: quiet (peaks around -18 to
+ * -27 dBFS measured), noise suppression softens final /s/ /t/ (the very sounds the drills score), and an
+ * open call-style microphone can lower playback volume. Echo cancellation is not needed: playback is
+ * stopped whenever recording starts.
+ */
+const AUDIO: MediaTrackConstraints = { echoCancellation: false, noiseSuppression: false, autoGainControl: false };
 
 type Options = {
   onRecorded: (blob: Blob) => void;
@@ -44,7 +52,7 @@ export function useMic({ onRecorded, onStart, onRecording, onTooShort, onError, 
 
   const openStream = useCallback(async () => {
     const live = stream.current?.getAudioTracks().some((t) => t.readyState === "live");
-    if (!live) stream.current = await navigator.mediaDevices.getUserMedia({ audio: true });
+    if (!live) stream.current = await navigator.mediaDevices.getUserMedia({ audio: AUDIO });
     return stream.current!;
   }, []);
 

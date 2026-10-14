@@ -34,7 +34,7 @@ components/                 # dùng chung: AppBar (thanh trên + điều hướn
                             #   Lead (giới thiệu trang: một dòng + "Chi tiết")
 hooks/
   useMic.ts                 # ghi âm (MediaRecorder webm/opus): bấm nút để bắt đầu, bấm lần nữa để gửi (toggle), rung nhẹ trên điện thoại; trên máy tính giữ phím Space để nói.
-                            #   Micro mở một lần và giữ mở khi trang còn hiện; onRecording báo lúc máy thật sự thu; thu thêm 350 ms sau khi bấm dừng (xem pronunciation-drills.md)
+                            #   Micro thô (tắt khử tiếng vọng, lọc ồn, tự chỉnh âm lượng), mở một lần và giữ mở khi trang còn hiện; onRecording báo lúc máy thật sự thu; thu thêm 350 ms sau khi bấm dừng (xem pronunciation-drills.md)
   useAudioQueue.ts          # hàng đợi phát MP3, báo khi một câu bắt đầu phát
   useTeacherVoice.ts        # phát lần lượt các câu của giáo viên ở bài giảng (một thẻ <audio> dùng lại, xem lesson.md)
   useRecordings.ts          # giữ bản ghi dạng object URL cho "Nghe lại", giải phóng khi rời trang
@@ -77,7 +77,7 @@ Mọi chỗ người học nói đều có nút **"Nghe lại"** (`ReplayButton`
 | Tiến bộ | Chi tiết buổi tập (nút "Xem"), mỗi lượt nói một nút. Đây là file lưu trên server (`/api/history/audio/...`), nên nghe được cả buổi cũ (xem [session-history.md](session-history.md)) |
 
 - Ngoài trang Tiến bộ, bản ghi chỉ nằm trong trình duyệt (`URL.createObjectURL` của Blob vừa ghi, `useRecordings`). Không gửi thêm, không lưu thêm gì; tải lại trang hay rời trang thì mất. Phòng tập gắn bản ghi vào tin `transcript` hoặc `shadow_result` đến ngay sau nó (`lastRecording` trong `useInterview.ts`).
-- **Âm lượng khi phát lại:** bản ghi trên điện thoại rất nhỏ (đỉnh khoảng −18 đến −27 dBFS), nên `playReplay` cho tiếng đi qua một `GainNode` (Web Audio) đưa đỉnh lên khoảng −6 dBFS (`replayGain()`, tối đa ×3, không bao giờ nhỏ đi; có test). Bản đầu tiên đưa lên −1 dBFS, tối đa ×12, người dùng thấy to quá nên giảm lại. Mức khuếch đại được tính một lần cho mỗi bản ghi bằng cách giải mã file và tìm đỉnh; trong vài ms đầu dùng ×2. Chỉ đổi lúc phát: file gửi đi nhận dạng giữ nguyên.
+- **Âm lượng khi phát lại:** bản ghi trên điện thoại rất nhỏ (đỉnh khoảng −18 đến −27 dBFS), nên `playReplay` cho tiếng đi qua một `GainNode` (Web Audio) đưa đỉnh lên khoảng −1 dBFS (`replayGain()`, tối đa ×12, không bao giờ nhỏ đi; có test). Đã thử giảm xuống −6 dBFS, tối đa ×3, nhưng nghe lại quá nhỏ trên điện thoại nên giữ mức này. Mức khuếch đại được tính một lần cho mỗi bản ghi bằng cách giải mã file và tìm đỉnh; trong vài ms đầu dùng ×4. Chỉ đổi lúc phát: file gửi đi nhận dạng giữ nguyên.
 - Một trình phát dùng chung (`lib/replay.ts`): bật bản ghi khác thì bản đang phát dừng; bấm micro (`useMic`) cũng dừng, để không thu lại tiếng loa.
 
 ## Hệ thiết kế (`src/styles/base.css`)
