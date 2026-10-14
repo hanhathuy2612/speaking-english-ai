@@ -4,7 +4,7 @@
 
 ```
 Trình duyệt (React: useInterview.ts)    Server (backend/app)
-  giữ nút -> MediaRecorder (webm) ──bytes──> api/routes/ws.py: stt.save_recording -> stt.transcribe (GPU)
+  bấm micro -> MediaRecorder (webm) ──bytes──> api/routes/ws.py: stt.save_recording -> stt.transcribe (GPU)
                                               │ không phải tiếng Anh, nghe không chắc? -> "transcript" unclear, dừng
                                               v
                                             interview/turn.py handle_user_input: lưu snapshot, đếm mẫu câu
@@ -39,7 +39,7 @@ Server gửi:
 
 | Tin | Ý nghĩa |
 |---|---|
-| `started` | Thông tin bài (`goal`, `phrases`, `stt` là nhãn cấu hình STT đang chạy). |
+| `started` | Thông tin bài (`goal`, `phrases`, `stt` là nhãn cấu hình STT đang chạy, `lesson` cho biết bài có bài giảng không). |
 | `status` | `transcribing` hoặc `thinking`. |
 | `transcript` | Chữ nhận dạng, `speech` (chỉ số), `used` (mẫu câu đã dùng), `unclear`, `reason` (`not_english` / `low_confidence` / `null`), `conf`. |
 | `sentence` + khung nhị phân | Một câu AI nói kèm MP3. `role`: `ai` hoặc `model`. |
@@ -55,10 +55,11 @@ Server gửi:
 
 ## HTTP
 
-- `GET /`, `/review`, `/roadmap`, `/sounds`, `/fluency`, `/check`, `/history`, `/bench`: `frontend/dist/index.html` (app React một trang; React Router chọn trang). `/assets/...`: JS/CSS đã build. Chưa build thì trả hướng dẫn (503).
+- `GET /`, `/lesson/<id>`, `/review`, `/roadmap`, `/sounds`, `/fluency`, `/check`, `/history`, `/bench`: `frontend/dist/index.html` (app React một trang; React Router chọn trang). `/assets/...`: JS/CSS đã build. Chưa build thì trả hướng dẫn (503).
 - `/api/history/...`: xem [session-history.md](features/session-history.md).
 - `/api/check`: bài kiểm tra nói, xem [speaking-check.md](features/speaking-check.md).
 - `GET /api/units`, `GET /api/stages`: chủ đề và bài theo thứ tự lộ trình kèm trạng thái đã tập; các giai đoạn kèm tiêu chí và trạng thái mở khóa (`api/routes/units.py`, xem [roadmap.md](features/roadmap.md)).
+- `/api/lessons/...`: bài giảng của một bài (câu của giáo viên, giọng đọc, chấm câu đọc theo, đánh dấu học xong), xem [lesson.md](features/lesson.md).
 - `/api/drills`: luyện phát âm, xem [pronunciation-drills.md](features/pronunciation-drills.md).
 - `/api/fluency`: bài nói dài 4–3–2, xem [fluency-432.md](features/fluency-432.md).
 - `/api/review`: thẻ ôn tập, xem [review.md](features/review.md).

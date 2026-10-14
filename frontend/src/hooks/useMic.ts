@@ -1,4 +1,4 @@
-import { type PointerEvent, useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { stopReplay } from "../lib/replay";
 
 const MIN_BYTES = 3000; // shorter recordings are almost always an accidental tap
@@ -12,8 +12,14 @@ type Options = {
   spaceKey?: boolean;
 };
 
-/** Hold-to-talk microphone recording with MediaRecorder (webm/opus). */
-export function useHoldToTalk({ onRecorded, onStart, onTooShort, onError, spaceKey = true }: Options) {
+/** A short vibration on phones that support it, so you feel recording start and stop. */
+const buzz = (ms: number) => navigator.vibrate?.(ms);
+
+/**
+ * Microphone recording with MediaRecorder (webm/opus).
+ * The button is tap to start, tap again to send (easier than holding on a phone); Space is still held to talk.
+ */
+export function useMic({ onRecorded, onStart, onTooShort, onError, spaceKey = true }: Options) {
   const [recording, setRecording] = useState(false);
   const holding = useRef(false);
   const recorder = useRef<MediaRecorder | null>(null);
@@ -45,6 +51,7 @@ export function useHoldToTalk({ onRecorded, onStart, onTooShort, onError, spaceK
       rec.start();
       recorder.current = rec;
       setRecording(true);
+      buzz(30);
     } catch (err) {
       holding.current = false;
       cb.current.onError?.(err instanceof Error ? err.message : String(err));
@@ -54,6 +61,7 @@ export function useHoldToTalk({ onRecorded, onStart, onTooShort, onError, spaceK
   const stop = useCallback(() => {
     holding.current = false;
     if (!recorder.current) return;
+    buzz(15);
     recorder.current.stop();
     recorder.current = null;
     setRecording(false);
@@ -80,16 +88,9 @@ export function useHoldToTalk({ onRecorded, onStart, onTooShort, onError, spaceK
     };
   }, [spaceKey, start, stop]);
 
-  /** Props for the mic button: press and hold, release (or leave) to stop. */
-  const buttonProps = {
-    onPointerDown: (e: PointerEvent) => {
-      e.preventDefault();
-      void start();
-    },
-    onPointerUp: stop,
-    onPointerLeave: stop,
-    onPointerCancel: stop,
-  };
+  /** Tap to start, tap again to stop. A tap while the microphone is still opening cancels it. */
+  const toggle = useCallback(() => (holding.current ? stop() : void start()), [start, stop]);
+  const buttonProps = { onClick: toggle };
 
-  return { recording, start, stop, buttonProps };
+  return { recording, start, stop, toggle, buttonProps };
 }

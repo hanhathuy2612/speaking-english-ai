@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { CheckReport, CheckRow, CheckState } from "../../api/types";
 import { AppBar } from "../../components/AppBar";
+import { Lead } from "../../components/Lead";
 import { CheckIcon, XIcon } from "../../components/Icons";
 import { Recorder } from "../../components/Recorder";
 import { Chip, type Status } from "../../components/ui";
 import { ReplayButton } from "../../components/ReplayButton";
-import { useHoldToTalk } from "../../hooks/useHoldToTalk";
+import { useMic } from "../../hooks/useMic";
 import { useRecordings } from "../../hooks/useRecordings";
 import { criterionValue, fmtClock } from "../../lib/check";
 import type { WithAudio } from "../../lib/replay";
@@ -156,7 +157,7 @@ export function CheckPage() {
     }
   };
 
-  const mic = useHoldToTalk({
+  const mic = useMic({
     spaceKey: false,
     onStart: () => {
       startedAt.current = Date.now();
@@ -188,10 +189,10 @@ export function CheckPage() {
       <main className="check">
         <div className="check-head">
           <h1>Kiểm tra nói</h1>
-          <p className="check-lead">
+          <Lead className="check-lead" summary="Nói liền 2 phút về một đề chưa chuẩn bị. App chỉ đo bằng số.">
             Nói liền 2 phút về một đề bạn chưa chuẩn bị. App chỉ đo bằng số (thời lượng, tốc độ, số lần ngập ngừng giữa câu,
             có nói toàn tiếng Anh không), không dùng AI chấm. Lần đầu là bài đầu vào; làm lại sau mỗi giai đoạn để xem tiến bộ.
-          </p>
+          </Lead>
         </div>
 
         {data && !data.enabled && (

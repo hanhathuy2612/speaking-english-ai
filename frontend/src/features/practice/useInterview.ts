@@ -325,7 +325,7 @@ export function useInterview(requestedUnit: string | null) {
     beginShadow: () => {
       dispatch({ type: "retellWaiting", waiting: false });
       dispatch({ type: "shadowWaiting", waiting: true });
-      dispatch({ type: "status", status: { text: "Giữ nút micro hoặc phím Space rồi đọc câu mẫu", state: "ready" } });
+      dispatch({ type: "status", status: { text: "Bấm micro rồi đọc câu mẫu", state: "ready" } });
     },
     cancelShadow: () => {
       dispatch({ type: "shadowWaiting", waiting: false });
@@ -336,7 +336,7 @@ export function useInterview(requestedUnit: string | null) {
       dispatch({ type: "retellWaiting", waiting: true });
       dispatch({
         type: "status",
-        status: { text: "Giữ micro hoặc Space rồi trả lời lại câu hỏi, thêm các ý bên dưới", state: "ready" },
+        status: { text: "Bấm micro rồi trả lời lại câu hỏi, thêm các ý gợi ý", state: "ready" },
       });
     },
     cancelRetell: () => {

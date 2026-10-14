@@ -1,6 +1,7 @@
 /* ----- Shell ----- */
 .app {
   height: 100vh;
+  height: calc(100dvh - var(--tabbar-h)); /* phones: the visible height, above the tab bar */
   display: grid;
   grid-template-rows: auto 1fr;
   grid-template-columns: minmax(0, 1fr);
@@ -275,7 +276,7 @@
   color: var(--text-3);
 }
 
-/* ----- Dock: summary, coach, composer ----- */
+/* ----- Dock: target of a re-say, composer ----- */
 .dock {
   padding: 0 24px 20px;
   display: flex;
@@ -288,6 +289,7 @@
   margin: 0 auto;
 }
 .coach {
+  margin-bottom: 20px;
   padding: 14px 16px;
   border-color: color-mix(in srgb, var(--primary) 35%, var(--border));
   background: linear-gradient(var(--primary-soft), var(--surface) 70%);
@@ -486,11 +488,6 @@
   flex-direction: column;
   gap: 6px;
 }
-.composer-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
 .input {
   flex: 1;
   min-width: 0;
@@ -515,38 +512,100 @@
   white-space: nowrap;
 }
 
+/* Link to the unit's lesson part (docs/features/lesson.md) */
+.lesson-link {
+  flex: none;
+}
+.lesson-first {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 16px 24px 0;
+  padding: 12px 14px;
+}
+.lesson-first p {
+  margin: 0;
+  color: var(--text-2);
+}
+
+/* What to say while re-saying the note or answering again (the coach card may be scrolled away) */
+.dock-target {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 8px 8px 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--primary);
+  background: var(--primary-soft);
+}
+.dock-target-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  font-size: 14px;
+  line-height: 1.4;
+  font-weight: 550;
+}
+.dock-target-label {
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--primary);
+}
+
+/* Speech numbers under an answer: one chip, tap for details */
+.chip-btn {
+  cursor: pointer;
+  font: inherit;
+  font-size: 12.5px;
+}
+.undo-btn {
+  color: var(--warning);
+}
+
+/* Goal and phrases: in the left column on wide screens, in a bottom sheet on narrow ones */
+.goals-btn,
+.kbd-btn {
+  display: none;
+}
+.goals-btn.all {
+  color: var(--success);
+  border-color: var(--success);
+}
+.sheet .sidebar {
+  padding: 0;
+  overflow: visible;
+}
+
 /* ----- Responsive ----- */
 @media (max-width: 960px) {
-  .app {
-    height: auto;
-    min-height: 100vh;
-  }
   .layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
-  .sidebar {
-    order: 2;
-    overflow: visible;
-    padding: 16px;
+  .layout > .sidebar {
+    display: none;
+  }
+  .goals-btn {
+    display: inline-flex;
+    flex: none;
   }
   .stage {
     border-left: 0;
   }
   .chat {
-    min-height: 50vh;
-    padding: 20px 16px 8px;
+    padding: 16px 16px 8px;
   }
   .dock {
-    position: sticky;
-    bottom: 0;
-    padding: 8px 16px 16px;
-    background: linear-gradient(transparent, var(--bg) 24px);
+    padding: 8px 12px 12px;
+    gap: 8px;
   }
   .appbar {
     height: auto;
     flex-wrap: wrap;
-    padding: 10px 16px;
-    gap: 10px;
+    padding: 8px 16px;
+    gap: 8px 10px;
   }
   .stt-chip {
     display: none;
@@ -554,9 +613,13 @@
   .progress {
     order: 3;
     width: 100%;
+    flex: 1 1 100%;
   }
 }
 @media (max-width: 560px) {
+  .lesson-first {
+    margin: 12px 16px 0;
+  }
   .brand-name,
   .hint,
   .app .appbar-spacer {
@@ -566,19 +629,44 @@
     flex: 1;
     min-width: 0;
   }
+  /* Phones: status line, then a big centred mic; the text box only after the keyboard button */
   .composer {
-    gap: 12px;
-    padding: 10px;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    grid-template-areas:
+      "input input input"
+      "status status status"
+      "kbd mic .";
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
   }
-  .mic {
-    width: 56px;
-    height: 56px;
+  .composer-main {
+    display: contents;
   }
-  .composer-row {
-    flex-wrap: wrap;
+  .composer .input {
+    grid-area: input;
+    display: none;
+    width: 100%;
+    height: 44px;
   }
-  .composer-row .input {
-    flex-basis: 100%;
+  .composer.typing .input {
+    display: block;
+  }
+  .composer-foot {
+    grid-area: status;
+    justify-content: center;
+  }
+  .kbd-btn {
+    display: inline-flex;
+    grid-area: kbd;
+    justify-self: start;
+  }
+  .composer .mic {
+    grid-area: mic;
+  }
+  .msg .avatar {
+    display: none; /* the name above the bubble is enough; the bubble gets the width */
   }
   .coach {
     padding: 12px;
@@ -606,7 +694,7 @@
     font-size: 15px;
   }
   .msg-body {
-    max-width: 100%;
+    max-width: 92%;
   }
 }
 

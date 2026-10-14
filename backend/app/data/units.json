@@ -690,6 +690,24 @@
       "greeting": "Hi, thanks for coming in today.",
       "closing": "Thank you, that's all my questions for today. It was nice talking to you.",
       "vocab": "software developer, Java, backend, microservices, payment system, chat application, booking system, achievement, responsible for.",
+      "lesson": {
+        "intro": "Hi! I'm your English coach. Today we'll learn six sentences to answer a very common interview question: tell me about yourself. After the lesson, you'll use them in a short interview. Are you ready?",
+        "intro_vi": "Chào bạn! Mình là giáo viên tiếng Anh của bạn. Hôm nay mình học sáu câu để trả lời một câu hỏi phỏng vấn rất phổ biến: hãy giới thiệu về bản thân. Học xong, bạn sẽ dùng chúng trong một buổi phỏng vấn ngắn. Bạn sẵn sàng chưa?",
+        "vocab": [
+          {"word": "current role", "vi": "vị trí hiện tại"},
+          {"word": "responsible for", "vi": "chịu trách nhiệm về"},
+          {"word": "achievement", "vi": "thành tựu"},
+          {"word": "position", "vi": "vị trí (đang tuyển)"}
+        ],
+        "sentences": [
+          {"phrase": 0, "say": "I've been working as a backend developer for five years.", "use": "Let's start with who you are today. This sentence gives your job and your experience in one line.", "use_vi": "Bắt đầu bằng việc bạn là ai hiện nay. Câu này nói nghề và số năm kinh nghiệm chỉ trong một câu."},
+          {"phrase": 1, "say": "I'm responsible for building and maintaining our payment APIs.", "use": "Next, describe your main tasks in your current role.", "use_vi": "Tiếp theo, nói công việc chính ở vị trí hiện tại của bạn."},
+          {"phrase": 2, "say": "One of my main achievements was cutting our API response time in half.", "use": "This one introduces something you're proud of. Add a number if you can.", "use_vi": "Câu này giới thiệu một việc bạn tự hào. Nếu được, hãy thêm một con số."},
+          {"phrase": 3, "say": "What I enjoy most about my work is solving tricky performance problems.", "use": "Interviewers like to hear what motivates you. This sentence tells them what you enjoy.", "use_vi": "Người phỏng vấn muốn biết điều gì tạo động lực cho bạn. Câu này nói bạn thích gì trong công việc."},
+          {"phrase": 4, "say": "I'm looking for a role where I can design larger systems.", "use": "Use this one to say what you want in your next job.", "use_vi": "Dùng câu này để nói bạn muốn gì ở công việc tiếp theo."},
+          {"phrase": 5, "say": "That's why I'm interested in this position.", "use": "Finish with this sentence. It connects your story to the job.", "use_vi": "Kết thúc bằng câu này. Nó nối câu chuyện của bạn với vị trí đang tuyển."}
+        ]
+      },
       "questions": [
         { "ask": "To start, could you tell me a little about yourself?", "phrases": [0], "simple": "Let's keep it simple. What is your job, and how long have you done it?", "steps": [{"hint": "Đang làm gì?", "say": "Right now, I'm working on ..."}, {"hint": "Trước đó", "say": "Before that, I ..."}] },
         { "ask": "What are you mainly responsible for in your current role?", "phrases": [1], "simple": "What do you do in your job? What are your main tasks?", "steps": [{"hint": "Ví dụ công việc", "say": "For example, I ..."}, {"hint": "Làm với ai?", "say": "I also work closely with ..."}] },
@@ -753,6 +771,23 @@
       "greeting": "Let's talk about the project you're working on now.",
       "closing": "Thanks, that gives me a good picture of your project.",
       "vocab": "Spring Boot, microservices, REST API, Kafka, PostgreSQL, Redis, Docker, Kubernetes, AWS, users, sprint, feature.",
+      "lesson": {
+        "intro": "Hi again! Today we'll learn five sentences to describe the project you're working on: what it does, how it's built, your part, the biggest challenge, and what you're proud of. Are you ready?",
+        "intro_vi": "Chào bạn! Hôm nay mình học năm câu để kể về dự án bạn đang làm: sản phẩm làm gì, được xây dựng thế nào, phần của bạn, khó khăn lớn nhất, và điều bạn tự hào. Bạn sẵn sàng chưa?",
+        "vocab": [
+          {"word": "consist of", "vi": "gồm có"},
+          {"word": "in charge of", "vi": "phụ trách"},
+          {"word": "challenge", "vi": "thử thách, khó khăn"},
+          {"word": "consistent", "vi": "nhất quán"}
+        ],
+        "sentences": [
+          {"phrase": 0, "say": "Right now I'm working on an online banking app, which helps customers pay their bills.", "use": "Start by saying what the product is and who it helps.", "use_vi": "Mở đầu bằng việc sản phẩm là gì và giúp ai."},
+          {"phrase": 1, "say": "The system is built with Spring Boot and consists of six microservices.", "use": "This one gives a quick picture of the technology and the main parts.", "use_vi": "Câu này cho người nghe hình dung nhanh về công nghệ và các phần chính."},
+          {"phrase": 2, "say": "I'm in charge of the payment service and its REST API.", "use": "Make your own part clear. Interviewers want to know what you did, not just the team.", "use_vi": "Nói rõ phần việc của chính bạn. Người phỏng vấn muốn biết bạn làm gì, không chỉ cả đội."},
+          {"phrase": 3, "say": "The biggest challenge was keeping the data consistent between services.", "use": "Use this to introduce a hard problem. Then explain how you solved it.", "use_vi": "Dùng câu này để giới thiệu một vấn đề khó, rồi kể bạn đã giải quyết thế nào."},
+          {"phrase": 4, "say": "I'm especially proud of the retry logic I designed for failed payments.", "use": "End with something you're proud of. It shows ownership.", "use_vi": "Kết thúc bằng điều bạn tự hào. Nó cho thấy bạn có trách nhiệm với sản phẩm."}
+        ]
+      },
       "questions": [
         { "ask": "Can you describe the project you're working on right now?", "phrases": [0], "simple": "What does your current project do?", "steps": [{"hint": "Ai dùng?", "say": "It's used by ..."}, {"hint": "Tham gia từ khi nào?", "say": "I joined the project ... ago."}] },
         { "ask": "How is the system designed? What are the main parts?", "phrases": [1], "simple": "What technologies does the project use?", "steps": [{"hint": "Ví dụ một phần", "say": "For example, ... handles ..."}, {"hint": "Giao tiếp ra sao?", "say": "They talk to each other through ..."}] },
@@ -816,6 +851,23 @@
       "greeting": "Now I'd like to understand your career plans.",
       "closing": "Thank you, it's good to know what you're aiming for.",
       "vocab": "career, senior developer, tech lead, software architect, cloud, mentor, challenge, growth, opportunity, product company, outsourcing.",
+      "lesson": {
+        "intro": "Hello! Today we'll learn five sentences to talk about your career goals: why you want a change, what you want to learn, and where you're heading. Are you ready?",
+        "intro_vi": "Chào bạn! Hôm nay mình học năm câu để nói về mục tiêu nghề nghiệp: vì sao bạn muốn thay đổi, bạn muốn học gì, và bạn đang hướng tới đâu. Bạn sẵn sàng chưa?",
+        "vocab": [
+          {"word": "get better at", "vi": "giỏi hơn về"},
+          {"word": "tech lead", "vi": "trưởng nhóm kỹ thuật"},
+          {"word": "honest feedback", "vi": "góp ý thẳng thắn"},
+          {"word": "a good fit", "vi": "người phù hợp"}
+        ],
+        "sentences": [
+          {"phrase": 0, "say": "I'm looking for a new challenge where I can work on larger systems.", "use": "This explains why you want a new job in a positive way, without complaining about your current company.", "use_vi": "Câu này giải thích vì sao bạn muốn đổi việc theo hướng tích cực, không chê công ty hiện tại."},
+          {"phrase": 1, "say": "I'd like to get better at system design and cloud architecture.", "use": "Use this one to name a skill you want to grow.", "use_vi": "Dùng câu này để nêu một kỹ năng bạn muốn phát triển."},
+          {"phrase": 2, "say": "In five years, I see myself as a tech lead.", "use": "This answers the classic question about your future.", "use_vi": "Câu này trả lời câu hỏi quen thuộc về tương lai của bạn."},
+          {"phrase": 3, "say": "I work best in a team that shares knowledge and gives honest feedback.", "use": "Describe the team you like. One or two qualities are enough.", "use_vi": "Mô tả kiểu đội nhóm bạn thích. Một hai đặc điểm là đủ."},
+          {"phrase": 4, "say": "I think I'm a good fit because I have five years of experience with Java and Spring.", "use": "Finish with why you match the job, and give a concrete reason.", "use_vi": "Kết thúc bằng lý do bạn hợp với vị trí, kèm một lý do cụ thể."}
+        ]
+      },
       "questions": [
         { "ask": "Why are you looking for a new job at the moment?", "phrases": [0], "simple": "Why do you want to change jobs?", "steps": [{"hint": "Hiện tại thế nào?", "say": "In my current job, I ..."}, {"hint": "Muốn gì tiếp?", "say": "Now I'd like to ..."}] },
         { "ask": "What skills would you like to develop in your next role?", "phrases": [1], "simple": "What do you want to learn next?", "steps": [{"hint": "Vì sao?", "say": "That's because ..."}, {"hint": "Ví dụ", "say": "For example, I'd like to ..."}] },

@@ -46,7 +46,7 @@ Mục đích: trả lời câu hỏi "mình đã nói được chưa" bằng s�
 
 ## Trang `/check`
 
-- Bấm nút micro để bắt đầu, bấm lần nữa để dừng (`useHoldToTalk` gọi `start()`/`stop()`, tắt phím Space). Giữ nút 2 phút rất mỏi tay nên không dùng kiểu giữ để nói.
+- Bấm nút micro để bắt đầu, bấm lần nữa để dừng (`useMic` gọi `start()`/`stop()`, tắt phím Space). Mọi trang khác cũng bấm-bấm như vậy.
 - Đồng hồ và thanh tiến độ tới 2:00 (chuyển xanh khi đạt), tự dừng ở 2:30.
 - Kết quả: từng tiêu chí có dấu ✓/✗ kèm chữ (không chỉ dựa vào màu), giá trị đo, chữ máy nghe được.
 - Bảng các lần kiểm tra và dòng xu hướng "so với lần đầu" (`latestWithDelta(..., "lần đầu")`).

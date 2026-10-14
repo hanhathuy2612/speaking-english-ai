@@ -94,3 +94,66 @@ export const LockIcon = ({ size = 14 }: P) => (
     <path d="M8 11V7a4 4 0 0 1 8 0v4" />
   </svg>
 );
+
+export const BookIcon = ({ size = 22 }: P) => (
+  <svg {...stroke(size)}>
+    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z" />
+    <path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5" />
+  </svg>
+);
+
+export const TranslateIcon = ({ size = 16 }: P) => (
+  <svg {...stroke(size)}>
+    <path d="M4 5h8M8 3v2M10 5c0 4-3 7-6 8M6 9c1 2 3 4 6 5" />
+    <path d="m12 21 4-9 4 9M13.5 18h5" />
+  </svg>
+);
+
+export const BackIcon = ({ size = 20 }: P) => (
+  <svg {...stroke(size)}>
+    <path d="M15 18l-6-6 6-6" />
+  </svg>
+);
+
+export const MapIcon = ({ size = 22 }: P) => (
+  <svg {...stroke(size)}>
+    <path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14" />
+  </svg>
+);
+
+export const RepeatIcon = ({ size = 22 }: P) => (
+  <svg {...stroke(size)}>
+    <path d="M17 2l4 4-4 4" />
+    <path d="M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4" />
+    <path d="M21 13v2a3 3 0 0 1-3 3H3" />
+  </svg>
+);
+
+export const WaveIcon = ({ size = 22 }: P) => (
+  <svg {...stroke(size)}>
+    <path d="M4 10v4M8 6v12M12 3v18M16 7v10M20 10v4" />
+  </svg>
+);
+
+export const MoreIcon = ({ size = 22 }: P) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+    <circle cx="5" cy="12" r="2" />
+    <circle cx="12" cy="12" r="2" />
+    <circle cx="19" cy="12" r="2" />
+  </svg>
+);
+
+export const KeyboardIcon = ({ size = 20 }: P) => (
+  <svg {...stroke(size)}>
+    <rect x="2" y="5" width="20" height="14" rx="2" />
+    <path d="M6 9h.01M10 9h.01M14 9h.01M18 9h.01M6 13h.01M18 13h.01M10 13h4M7 16h10" />
+  </svg>
+);
+
+export const TargetIcon = ({ size = 15 }: P) => (
+  <svg {...stroke(size)}>
+    <circle cx="12" cy="12" r="9" />
+    <circle cx="12" cy="12" r="5" />
+    <circle cx="12" cy="12" r="1" />
+  </svg>
+);

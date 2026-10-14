@@ -1,6 +1,6 @@
 # Nói lại câu mẫu (shadowing)
 
-Hoàn thiện vòng cốt lõi "nói, xem cách nói tốt hơn, **nói lại**". Sau khi NOTE hiện ra, người học bấm **"Nói lại câu này"** rồi giữ micro (hoặc Space) và đọc câu NOTE. App so chữ nhận dạng được với câu mẫu, tô từng từ, và so tốc độ / số lần ngắt với lần trả lời đầu.
+Hoàn thiện vòng cốt lõi "nói, xem cách nói tốt hơn, **nói lại**". Sau khi NOTE hiện ra, người học bấm **"Nói lại câu này"** rồi bấm micro (hoặc giữ Space) và đọc câu NOTE; thanh dưới hiện câu cần đọc trong lúc chờ. App so chữ nhận dạng được với câu mẫu, tô từng từ, và so tốc độ / số lần ngắt với lần trả lời đầu.
 
 Lượt nói lại **không gọi LLM, không chuyển câu hỏi**, không tính vào số lượt phỏng vấn.
 

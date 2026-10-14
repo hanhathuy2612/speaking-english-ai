@@ -7,7 +7,7 @@ edge-tts, giọng `en-US-JennyNeural`, tốc độ `-10%`, trả về MP3.
 | Phần | Vị trí |
 |---|---|
 | Tạo âm thanh | `tts_bytes()` trong `services/tts.py` (điểm thay thế nếu đổi sang TTS khác) |
-| Cache câu cố định | `cached_tts()` trong `services/tts.py` (khóa cache là câu + tốc độ đọc) |
+| Cache câu cố định | `cached_tts()` trong `services/tts.py` (khóa cache là câu + tốc độ đọc + giọng; giọng giáo viên của bài giảng là `TTS_TEACHER_VOICE`) |
 | TTS trước khi cần | `prewarm()` trong `services/tts.py`, chạy nền từ `start_session()` |
 | Hàng đợi trong một lượt | `tts_worker()` trong `run_turn()` (`interview/turn.py`) |
 | Gửi kèm chữ | `Conn.audio()` trong `utils/ws.py` |

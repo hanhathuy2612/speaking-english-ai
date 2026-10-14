@@ -25,6 +25,7 @@ async def start_session(conn: Conn, unit: dict) -> Session:
         "phrases": [{"say": p["say"]} for p in unit["phrases"]],
         "stt": stt.label,
         "partner": unit.get("partner", "Người phỏng vấn"),  # label shown on the AI's messages
+        "lesson": "lesson" in unit,  # has a lesson part, linked from the practice room
     }
     await conn.json({"type": "started", "unit": public})
     await conn.json(progress(session))

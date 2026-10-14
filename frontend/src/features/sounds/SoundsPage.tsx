@@ -2,11 +2,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router";
 import type { DrillResult, DrillSet, DrillState } from "../../api/types";
 import { AppBar } from "../../components/AppBar";
+import { Lead } from "../../components/Lead";
 import { MicIcon, SpeakerIcon } from "../../components/Icons";
 import { Chip, type Status, StatusLine } from "../../components/ui";
 import { WordDiff } from "../../components/WordDiff";
 import { ReplayButton } from "../../components/ReplayButton";
-import { useHoldToTalk } from "../../hooks/useHoldToTalk";
+import { useMic } from "../../hooks/useMic";
 import { useRecordings } from "../../hooks/useRecordings";
 import { markFocus } from "../../lib/drills";
 import type { WithAudio } from "../../lib/replay";
@@ -118,14 +119,14 @@ export function SoundsPage() {
     }
   };
 
-  const mic = useHoldToTalk({
+  const mic = useMic({
     onStart: () => {
       audio.current?.pause();
       setResult(null);
-      setStatus({ text: "Đang ghi âm… thả ra khi đọc xong", state: "recording" });
+      setStatus({ text: "Đang ghi âm… bấm lần nữa khi đọc xong", state: "recording" });
     },
     onRecorded: (blob) => void submit(blob),
-    onTooShort: () => setStatus({ text: "Ghi âm quá ngắn, giữ nút trong lúc đọc.", state: "warn" }),
+    onTooShort: () => setStatus({ text: "Ghi âm quá ngắn, hãy đọc hết rồi mới bấm dừng.", state: "warn" }),
     onError: (msg) => setStatus({ text: `Không mở được micro: ${msg}`, state: "error" }),
   });
 
@@ -135,11 +136,11 @@ export function SoundsPage() {
       <main className="sounds">
         <div className="sounds-head">
           <h1>Luyện phát âm</h1>
-          <p className="sounds-lead">
-            Mỗi nhóm nhắm vào một lỗi máy đã đo được trên giọng bạn. Nghe câu mẫu, giữ nút micro (hoặc phím Space) và đọc to.
+          <Lead className="sounds-lead" summary="Nghe câu mẫu, bấm micro và đọc to. App chấm các từ trọng tâm (in đậm).">
+            Mỗi nhóm nhắm vào một lỗi máy đã đo được trên giọng bạn. Nghe câu mẫu, bấm micro (hoặc giữ phím Space) và đọc to.
             App so từng từ với câu mẫu và chấm riêng các <strong>từ trọng tâm</strong> (in đậm). Máy nhận dạng đôi khi tự
             &quot;sửa&quot; từ gần đúng, nên đạt 100% chưa chắc là phát âm chuẩn, nhưng sai thì gần như chắc chắn là chưa rõ.
-          </p>
+          </Lead>
           {data && (
             <p className="sounds-recent">
               {data.recent.accuracy == null
@@ -196,12 +197,12 @@ export function SoundsPage() {
                     className={`mic${mic.recording ? " rec" : ""}`}
                     {...mic.buttonProps}
                     disabled={scoring}
-                    aria-label="Giữ để đọc"
+                    aria-label={mic.recording ? "Đang ghi âm, bấm để dừng" : "Bấm để đọc"}
                   >
                     <MicIcon />
                   </button>
                   <StatusLine
-                    status={status.text ? status : { text: "Giữ nút micro hoặc phím Space trong lúc đọc.", state: "" }}
+                    status={status.text ? status : { text: "Bấm micro để đọc, bấm lần nữa khi xong.", state: "" }}
                   />
                 </div>
 

@@ -2,11 +2,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import type { ReviewAttempt, ReviewCard, ReviewState } from "../../api/types";
 import { AppBar } from "../../components/AppBar";
+import { Lead } from "../../components/Lead";
 import { CheckIcon, MicIcon, SpeakerIcon, XIcon } from "../../components/Icons";
 import { Chip, type Status, StatusLine } from "../../components/ui";
 import { WordDiff } from "../../components/WordDiff";
 import { ReplayButton } from "../../components/ReplayButton";
-import { useHoldToTalk } from "../../hooks/useHoldToTalk";
+import { useMic } from "../../hooks/useMic";
 import { useRecordings } from "../../hooks/useRecordings";
 import type { WithAudio } from "../../lib/replay";
 import { fmtDue, localDay } from "../../lib/review";
@@ -144,13 +145,13 @@ export function ReviewPage() {
     }
   };
 
-  const mic = useHoldToTalk({
+  const mic = useMic({
     onStart: () => {
       audio.current?.pause();
-      setStatus({ text: "Đang ghi âm… thả ra khi nói xong", state: "recording" });
+      setStatus({ text: "Đang ghi âm… bấm lần nữa khi nói xong", state: "recording" });
     },
     onRecorded: (blob) => void submit(blob),
-    onTooShort: () => setStatus({ text: "Ghi âm quá ngắn, giữ nút trong lúc nói.", state: "warn" }),
+    onTooShort: () => setStatus({ text: "Ghi âm quá ngắn, hãy nói hết rồi mới bấm dừng.", state: "warn" }),
     onError: (msg) => setStatus({ text: `Không mở được micro: ${msg}`, state: "error" }),
   });
 
@@ -209,11 +210,11 @@ export function ReviewPage() {
       <main className="review">
         <div className="review-head">
           <h1>{session ? "Ôn lỗi của buổi này" : "Ôn tập hôm nay"}</h1>
-          <p className="review-lead">
+          <Lead className="review-lead" summary="Nói lại theo trí nhớ trước, rồi mới xem đáp án.">
             Mỗi câu bạn được sửa (NOTE) và mỗi mẫu câu bạn bỏ sót thành một thẻ. Hãy nói lại theo trí nhớ trước, rồi mới xem
             đáp án, vì nhớ ra được mới là học thật. Nhớ được thì thẻ quay lại sau 1, 3, 7, 14, 30 ngày; chưa nhớ thì ôn lại
             ngày mai. Bạn tự chấm; app chỉ gợi ý bằng mức trùng từ với NOTE, không dùng AI chấm.
-          </p>
+          </Lead>
           {data && <Stats s={data.stats} />}
         </div>
 
@@ -237,12 +238,12 @@ export function ReviewPage() {
                   className={`mic${mic.recording ? " rec" : ""}`}
                   {...mic.buttonProps}
                   disabled={busy}
-                  aria-label="Giữ để nói"
+                  aria-label={mic.recording ? "Đang ghi âm, bấm để dừng" : "Bấm để nói"}
                 >
                   <MicIcon />
                 </button>
                 <div className="review-mic-text">
-                  <StatusLine status={status.text ? status : { text: "Giữ nút micro hoặc phím Space trong lúc nói.", state: "" }} />
+                  <StatusLine status={status.text ? status : { text: "Bấm micro để nói, bấm lần nữa khi xong.", state: "" }} />
                   <button className="btn btn-ghost btn-sm" onClick={() => setRevealed(true)} disabled={busy || mic.recording}>
                     Không nhớ, xem đáp án
                   </button>

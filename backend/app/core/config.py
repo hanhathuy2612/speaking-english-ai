@@ -49,6 +49,7 @@ HISTORY_DB = os.getenv("HISTORY_DB", "data/history.db")  # relative to the proje
 # ----- TTS (edge-tts) -----
 TTS_VOICE = os.getenv("TTS_VOICE", "en-US-JennyNeural")
 TTS_RATE = os.getenv("TTS_RATE", "-10%")
+TTS_TEACHER_VOICE = os.getenv("TTS_TEACHER_VOICE", "en-US-AvaNeural")  # lesson teacher, not the interviewer
 
 # ----- Server (`python -m app` / `run.cmd`; plain `uvicorn ...` ignores these) -----
 SERVER_HOST = os.getenv("SERVER_HOST", "127.0.0.1")  # 0.0.0.0: reachable from other devices on the LAN

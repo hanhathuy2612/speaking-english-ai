@@ -25,6 +25,7 @@ Server tự nạp `.env` bằng python-dotenv khi khởi động. Biến môi tr
 | `SAVE_AUDIO_DIR` | trống | `recordings` | Giữ file ghi âm mỗi lượt (tương đối với thư mục gốc) |
 | `HISTORY_DB` | `data/history.db` | `data/history.db` | File SQLite lưu lịch sử luyện tập (tương đối với thư mục gốc, hoặc đường dẫn tuyệt đối). Để trống thì tắt |
 | `TTS_VOICE` / `TTS_RATE` | `en-US-JennyNeural` / `-10%` | giống mặc định | |
+| `TTS_TEACHER_VOICE` | `en-US-AvaNeural` | giống mặc định | Giọng giáo viên ở phần bài giảng, khác giọng người phỏng vấn (xem [features/lesson.md](features/lesson.md)) |
 | `SERVER_HOST` / `SERVER_PORT` | `127.0.0.1` / `8000` | `0.0.0.0` / `8000` | Chỉ dùng khi chạy bằng `run` hoặc `python -m app`. `0.0.0.0` = thiết bị khác trong LAN vào được |
 | `SSL_CERTFILE` / `SSL_KEYFILE` | trống (HTTP) | `certs/lan-cert.pem` / `certs/lan-key.pem` | HTTPS, cần để dùng micro từ thiết bị khác. Tạo bằng `scripts/make_cert.py` (xem dev-environment.md) |
 

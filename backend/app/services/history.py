@@ -144,6 +144,22 @@ CREATE TABLE IF NOT EXISTS card_reviews (
     total INTEGER,
     result TEXT NOT NULL               -- 'good' | 'again' (the learner's own grade)
 );
+CREATE TABLE IF NOT EXISTS lesson_reads (
+    id INTEGER PRIMARY KEY,
+    created_at TEXT NOT NULL,
+    unit_id TEXT NOT NULL,             -- docs/features/lesson.md
+    sentence INTEGER NOT NULL,         -- index in the unit's lesson.sentences
+    target TEXT NOT NULL,
+    heard TEXT NOT NULL,
+    correct INTEGER NOT NULL,          -- reference tokens heard correctly
+    total INTEGER NOT NULL,
+    avg_logprob REAL
+);
+CREATE TABLE IF NOT EXISTS lessons (
+    id INTEGER PRIMARY KEY,
+    created_at TEXT NOT NULL,          -- when the learner reached the end of the lesson part
+    unit_id TEXT NOT NULL
+);
 """
 
 MIGRATIONS = [("turns", "audio", "TEXT")]  # (table, column, type) added to older databases
@@ -407,13 +423,29 @@ def list_drills() -> list[dict]:
 
 
 def list_readings() -> list[dict]:
-    """Every sentence read aloud against a reference (shadowing and drills), oldest first."""
+    """Every sentence read aloud against a reference (shadowing, drills, lessons), oldest first."""
     rows = _rows(
         "SELECT created_at, 0 AS src, id, target, heard, correct, total FROM shadows "
         "UNION ALL SELECT created_at, 1 AS src, id, target, heard, correct, total FROM drills "
+        "UNION ALL SELECT created_at, 2 AS src, id, target, heard, correct, total FROM lesson_reads "
         "ORDER BY created_at, src, id"  # timestamps have one-second resolution
     )
     return [{k: r[k] for k in ("created_at", "target", "heard", "correct", "total")} for r in rows]
+
+
+def add_lesson_read(attempt: dict) -> int | None:
+    """One lesson sentence read aloud; keys match the `lesson_reads` columns."""
+    return _insert("lesson_reads", attempt)
+
+
+def finish_lesson(unit_id: str) -> int | None:
+    """The learner reached the end of a unit's lesson part."""
+    return _insert("lessons", {"unit_id": unit_id})
+
+
+def lesson_counts() -> dict[str, int]:
+    """Per unit: how many times its lesson part was finished."""
+    return {r["unit_id"]: r["n"] for r in _rows("SELECT unit_id, COUNT(*) AS n FROM lessons GROUP BY unit_id")}
 
 
 def add_fluency_round(row: dict) -> int | None:

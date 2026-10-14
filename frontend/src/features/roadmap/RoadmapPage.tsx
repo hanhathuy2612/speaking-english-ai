@@ -2,11 +2,12 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import type { CheckRow, Stage, Topic, UnitStatus } from "../../api/types";
 import { AppBar } from "../../components/AppBar";
+import { Lead } from "../../components/Lead";
 import { CheckIcon, LockIcon, XIcon } from "../../components/Icons";
 import { Chip } from "../../components/ui";
 import { fmtClock } from "../../lib/check";
 import { fmtDate, fmtNum } from "../../lib/format";
-import { unitState } from "../../lib/roadmap";
+import { unitLink, unitState } from "../../lib/roadmap";
 import { requirementText } from "../../lib/stages";
 import "../../styles/roadmap.css";
 
@@ -49,12 +50,12 @@ function UnitCard({ u, next, locked }: { u: UnitStatus; next: boolean; locked: b
       <p className="unit-goal">{u.goal}</p>
       <div className="unit-foot">
         <span className="unit-meta">
-          {u.questions} câu hỏi
+          {u.lesson ? `Bài giảng + ${u.questions} câu hỏi` : `${u.questions} câu hỏi`}
           {u.sessions > 0 && ` · đã tập ${u.sessions} lần · gần nhất ${fmtDate(u.last_at!, false)}`}
         </span>
         <Link
           className={`btn btn-sm${next ? " btn-primary" : locked ? " btn-ghost" : ""}`}
-          to={`/?unit=${encodeURIComponent(u.id)}`}
+          to={unitLink(u)}
         >
           {locked ? "Tập trước" : st === "new" ? "Bắt đầu" : "Luyện lại"}
         </Link>
@@ -64,7 +65,7 @@ function UnitCard({ u, next, locked }: { u: UnitStatus; next: boolean; locked: b
 }
 
 function TopicBlock({ t, nextId, locked }: { t: Topic; nextId: string | null; locked: boolean }) {
-  const done = t.units.filter((u) => u.completed).length;
+  const done = t.units.filter((u) => u.done).length;
   return (
     <div className="topic">
       <div className="topic-head">
@@ -218,11 +219,11 @@ export function RoadmapPage() {
       <main className="roadmap">
         <div className="roadmap-head">
           <h1>Lộ trình luyện nói</h1>
-          <p className="roadmap-lead">
+          <Lead className="roadmap-lead" summary="Năm giai đoạn, đi lần lượt. Đạt đủ tiêu chí thì mở giai đoạn sau.">
             Năm giai đoạn, đi lần lượt. Một giai đoạn chỉ mở khi giai đoạn trước đạt đủ tiêu chí, và tiêu chí là số đo:
             bài đã hoàn thành, độ chính xác khi đọc, kết quả bài kiểm tra nói. Mức kiểm tra tăng dần qua từng giai đoạn,
             tới mức đích ở giai đoạn 4. Cần luyện gấp một bài chưa mở (ví dụ sắp phỏng vấn) thì vẫn chọn được ở Phòng tập.
-          </p>
+          </Lead>
           {stages && (
             <div className="roadmap-progress">
               <div className="roadmap-bar" aria-hidden>

@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { FluencyResult, FluencyRound, FluencyRun, FluencyState } from "../../api/types";
 import { AppBar } from "../../components/AppBar";
+import { Lead } from "../../components/Lead";
 import { Recorder } from "../../components/Recorder";
 import type { Status } from "../../components/ui";
 import { ReplayButton } from "../../components/ReplayButton";
-import { useHoldToTalk } from "../../hooks/useHoldToTalk";
+import { useMic } from "../../hooks/useMic";
 import { useRecordings } from "../../hooks/useRecordings";
 import { fmtClock } from "../../lib/check";
 import { roundDelta } from "../../lib/fluency";
@@ -166,7 +167,7 @@ export function FluencyPage() {
     }
   };
 
-  const mic = useHoldToTalk({
+  const mic = useMic({
     spaceKey: false,
     onStart: () => {
       startedAt.current = Date.now();
@@ -196,11 +197,11 @@ export function FluencyPage() {
       <main className="fluency">
         <div className="fluency-head">
           <h1>Nói dài 4–3–2</h1>
-          <p className="fluency-lead">
+          <Lead className="fluency-lead" summary="Kể một chuyện ba lần: 4 phút, 3 phút, rồi 2 phút.">
             Kể cùng một chuyện ba lần, thời gian giảm dần: 4 phút, 3 phút, rồi 2 phút. Lần sau bạn đã có sẵn ý và từ, nên
             sẽ nói nhanh hơn và ít ngập ngừng hơn. App đo từng lần bằng số, không dùng AI chấm. Đề ở đây khác đề của bài kiểm
             tra, để bài kiểm tra luôn là đề bạn chưa luyện.
-          </p>
+          </Lead>
         </div>
 
         {data && !data.enabled && (

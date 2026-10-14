@@ -37,7 +37,7 @@ Nhóm `final-ed` (âm cuối -ed) dựa trên lỗi mất âm -ed đã ghi ở [
 
 ## Nhóm "Câu bạn từng đọc sai" (`mine`)
 
-`personal_sentences()` lấy mọi lần đọc có câu mẫu (bảng `shadows` của phòng tập và bảng `drills`), giữ những câu mà **lần đọc gần nhất** có ít nhất một từ sai. Từ trọng tâm là những từ bị nghe sai lần đó. Đọc đúng hết thì câu tự ra khỏi nhóm. Tối đa 12 câu, mới nhất trước.
+`personal_sentences()` lấy mọi lần đọc có câu mẫu (bảng `shadows` của phòng tập, bảng `drills`, và bảng `lesson_reads` của bài giảng, xem [lesson.md](lesson.md)), giữ những câu mà **lần đọc gần nhất** có ít nhất một từ sai. Từ trọng tâm là những từ bị nghe sai lần đó. Đọc đúng hết thì câu tự ra khỏi nhóm. Tối đa 12 câu, mới nhất trước.
 
 - Id của câu là 10 ký tự đầu của SHA-1 nội dung (`sentence_id()`), nên không đổi khi danh sách thay đổi.
 - Trang giữ nguyên danh sách câu đang hiện cho tới khi tải lại, chỉ làm mới số liệu, để vị trí không nhảy khi một câu vừa ra khỏi nhóm.

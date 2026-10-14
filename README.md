@@ -29,7 +29,7 @@ cd backend
 uvicorn app.main:app --port 8000
 ```
 
-- http://localhost:8000: phòng tập. Giữ nút micro (hoặc phím Space) để nói, thả ra để gửi. Có ô gõ chữ để thử không cần micro.
+- http://localhost:8000: phòng tập. Bấm nút micro để nói, bấm lần nữa để gửi (trên máy tính có thể giữ phím Space). Có ô gõ chữ để thử không cần micro.
 - http://localhost:8000/history: tiến bộ qua các buổi tập.
 - http://localhost:8000/bench: đọc 18 câu mẫu để đo độ chính xác nhận dạng giọng nói.
 

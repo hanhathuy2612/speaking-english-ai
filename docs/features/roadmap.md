@@ -10,7 +10,7 @@ Mục đích: người dùng biết nên tập gì tiếp theo, và **biết b�
 | Đánh giá giai đoạn (hàm thuần) | `backend/app/assessment/stages.py` (`validate()`, `check_meets()`, `requirements()`, `evaluate()`, `open_topics()`) |
 | Nội dung: chủ đề và bài | `backend/app/data/units.json` (`topics`, `units`; schema trong [interview-flow.md](interview-flow.md)) |
 | Nạp và kiểm tra bài | `backend/app/interview/units.py` (`validate()`), `backend/tests/test_units.py` |
-| Trạng thái từng bài | `unit_stats()` trong `backend/app/services/history.py` |
+| Trạng thái từng bài | `unit_stats()`, `lesson_counts()` trong `backend/app/services/history.py`, gộp bởi `_stats()` trong `backend/app/api/routes/units.py` |
 | API, gom số liệu cho giai đoạn | `backend/app/api/routes/units.py` (`GET /api/units`, `GET /api/stages`, `_report()`) |
 | Chọn bài mở đầu | `pickUnit()`, `unitState()` trong `frontend/src/lib/roadmap.ts` (+ `roadmap.test.ts`) |
 | Chữ của tiêu chí | `requirementText()`, `checkLevelText()` trong `frontend/src/lib/stages.ts` (+ `stages.test.ts`) |
@@ -45,7 +45,8 @@ Mỗi chủ đề phải thuộc đúng một giai đoạn. `validate()` kiểm 
 GET /api/units
 {"topics": [{"id": "daily", "title": "...", "description": "...", "locked": false,
   "units": [{"id": "...", "title": "...", "goal": "...", "questions": 6,
-             "sessions": 2, "completed": 1, "last_at": "2026-10-11T10:05:10"}]}],
+             "sessions": 2, "completed": 1, "last_at": "2026-10-11T10:05:10",
+             "lesson": false, "lesson_done": 0, "done": true}]}],
  "next_unit": "hobbies"}
 
 GET /api/stages
@@ -57,7 +58,7 @@ GET /api/stages
  "next_unit": null}
 ```
 
-- `sessions`: số buổi có ít nhất một câu trả lời. `completed`: số buổi hỏi hết câu chính. Lấy từ lịch sử, nên khi `HISTORY_DB` để trống thì mọi bài đều "chưa tập" và chỉ giai đoạn 1 mở.
+- `sessions`: số buổi có ít nhất một câu trả lời. `completed`: số buổi hỏi hết câu chính. `lesson`: bài có bài giảng không; `lesson_done`: số lần học xong bài giảng. `done`: bài đã xong; với bài có bài giảng thì cần đủ cả hai phần (xem [lesson.md](lesson.md)). Mọi chỗ "hoàn thành bài" (tiêu chí giai đoạn, `next_unit`, chip trạng thái) đều dùng `done`. Lấy từ lịch sử, nên khi `HISTORY_DB` để trống thì mọi bài đều "chưa tập" và chỉ giai đoạn 1 mở.
 - `next_unit`: bài đầu tiên chưa hoàn thành trong các chủ đề đã mở; `null` khi chưa mở chủ đề nào (đang ở giai đoạn 1) hoặc đã xong hết.
 - Loại tiêu chí (`kind`): `units`, `drill_sets`, `drill_accuracy`, `fluency_runs` (`done`/`total`), `check` (`target` là mức, `latest` là bài kiểm tra đạt mức đó, nếu chưa có thì bài gần nhất).
 
@@ -66,7 +67,7 @@ GET /api/stages
 - Đầu trang: thanh "Đã qua X/5 giai đoạn" và ô bài kiểm tra nói (chưa làm thì mời làm bài đầu vào).
 - Mỗi giai đoạn: số thứ tự (dấu ✓ khi đã qua, ổ khóa khi chưa mở), mục tiêu, chip trạng thái, danh sách tiêu chí có dấu ✓/✗ kèm chữ và giá trị hiện tại. Giai đoạn đang học có nút "Làm bài kiểm tra nói" khi tiêu chí kiểm tra chưa đạt.
 - Nội dung (thẻ mở trang Phát âm / Nói dài, các chủ đề và thẻ bài) hiện sẵn ở giai đoạn đang học; giai đoạn khác thu gọn trong `<details>`.
-- Thẻ bài: **Hoàn thành** (`completed > 0`), **Đang tập dở**, **Chưa tập**; bài tiếp theo có viền màu chính và nút nổi bật. Nút mở `/?unit=<id>`.
+- Thẻ bài: **Hoàn thành** (`done`), **Đang tập dở** (đã tập hoặc đã học bài giảng), **Chưa tập**; bài tiếp theo có viền màu chính và nút nổi bật. Nút mở trang bài giảng `/lesson/<id>` nếu bài có bài giảng, không thì `/?unit=<id>` (`unitLink()`).
 - Class trạng thái có tiền tố (`stage-current`, `stage-step-passed`…): class `.current` đã có nghĩa khác ở trang đo nhận dạng, mà CSS là toàn cục.
 
 ## Phòng tập

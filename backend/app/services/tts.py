@@ -9,23 +9,23 @@ import edge_tts
 
 from app.core import config
 
-_cache: dict[tuple[str, str], bytes] = {}  # fixed lines (questions, drills...): synthesized once
+_cache: dict[tuple[str, str, str], bytes] = {}  # fixed lines (questions, drills...): synthesized once
 SLOW_RATE = "-30%"  # pronunciation drills: "listen slowly"
 
 
-async def tts_bytes(text: str, rate: str | None = None) -> bytes:
+async def tts_bytes(text: str, rate: str | None = None, voice: str | None = None) -> bytes:
     out = bytearray()
-    voice = edge_tts.Communicate(text, config.TTS_VOICE, rate=rate or config.TTS_RATE)
-    async for chunk in voice.stream():
+    stream = edge_tts.Communicate(text, voice or config.TTS_VOICE, rate=rate or config.TTS_RATE)
+    async for chunk in stream.stream():
         if chunk["type"] == "audio":
             out.extend(chunk["data"])
     return bytes(out)
 
 
-async def cached_tts(text: str, rate: str | None = None) -> bytes:
-    key = (text, rate or config.TTS_RATE)
+async def cached_tts(text: str, rate: str | None = None, voice: str | None = None) -> bytes:
+    key = (text, rate or config.TTS_RATE, voice or config.TTS_VOICE)
     if key not in _cache:
-        _cache[key] = await tts_bytes(text, rate)
+        _cache[key] = await tts_bytes(text, rate, voice)
     return _cache[key]
 
 

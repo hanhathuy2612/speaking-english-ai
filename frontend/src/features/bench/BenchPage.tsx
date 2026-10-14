@@ -3,7 +3,7 @@ import type { BenchItem } from "../../api/types";
 import { AppBar } from "../../components/AppBar";
 import { MicIcon } from "../../components/Icons";
 import { Chip, type Status, StatusLine } from "../../components/ui";
-import { useHoldToTalk } from "../../hooks/useHoldToTalk";
+import { useMic } from "../../hooks/useMic";
 import "../../styles/bench.css";
 
 /** Read-aloud page: records each sentence with its known reference for scripts/stt_bench.py. */
@@ -30,7 +30,7 @@ export function BenchPage() {
       setStatus({ text: allDone ? "Đã thu đủ. Có thể chạy scripts/stt_bench để đo." : "Sẵn sàng", state: "ready" });
   }, [allDone, items.length]);
 
-  const mic = useHoldToTalk({
+  const mic = useMic({
     onRecorded: async (blob) => {
       const i = idx;
       await fetch(`/api/bench/${i}`, { method: "POST", body: blob });
@@ -40,7 +40,7 @@ export function BenchPage() {
       setIdx(nextIdx >= 0 ? nextIdx : Math.min(i + 1, next.length - 1));
       setStatus({ text: "Đã lưu. Đọc câu tiếp theo.", state: "ready" });
     },
-    onTooShort: () => setStatus({ text: "Thu quá ngắn, giữ nút lâu hơn.", state: "warn" }),
+    onTooShort: () => setStatus({ text: "Thu quá ngắn, hãy đọc hết câu rồi mới bấm dừng.", state: "warn" }),
     onError: (msg) => setStatus({ text: `Không mở được micro: ${msg}`, state: "error" }),
     onStart: () => setStatus({ text: "Đang ghi âm", state: "recording" }),
   });
@@ -68,13 +68,13 @@ export function BenchPage() {
           <div className="reader-actions">
             <button
               className={`mic${mic.recording ? " rec" : ""}`}
-              aria-label={mic.recording ? "Đang thu, thả ra để lưu" : "Giữ để đọc"}
+              aria-label={mic.recording ? "Đang thu, bấm để lưu" : "Bấm để đọc"}
               {...mic.buttonProps}
             >
               <MicIcon />
             </button>
             <div>
-              <p className="talk-label">{mic.recording ? "Đang thu… thả ra để lưu" : "Giữ nút hoặc phím Space để đọc"}</p>
+              <p className="talk-label">{mic.recording ? "Đang thu… bấm lần nữa để lưu" : "Bấm nút (hoặc giữ phím Space) để đọc"}</p>
               <StatusLine status={status} />
             </div>
           </div>

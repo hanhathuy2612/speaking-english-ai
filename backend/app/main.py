@@ -17,7 +17,7 @@ from fastapi import FastAPI
 from fastapi.responses import FileResponse, HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
 
-from app.api.routes import bench, check, drills, fluency, history, review, units, ws
+from app.api.routes import bench, check, drills, fluency, history, lessons, review, units, ws
 from app.core.config import FRONTEND_DIST
 from app.services import history as history_store
 from app.services import stt
@@ -40,11 +40,16 @@ app.include_router(check.router)
 app.include_router(drills.router)
 app.include_router(fluency.router)
 app.include_router(review.router)
+app.include_router(lessons.router)
 app.include_router(history.router)
 app.include_router(ws.router)
 # The React app (frontend/, built into frontend/dist) is a single page: every page route returns
 # index.html and React Router picks the view. Hashed JS/CSS bundles are served from /assets.
-SPA_ROUTES = ["/", "/review", "/roadmap", "/sounds", "/fluency", "/check", "/history", "/bench"]
+SPA_ROUTES = ["/", "/review", "/roadmap", "/sounds", "/fluency", "/check", "/history", "/bench", "/lesson/{unit_id}"]
+# Files from frontend/public, copied to the root of dist: the PWA manifest and its icons.
+PUBLIC_FILES = [
+    "manifest.webmanifest", "favicon.ico", "icon.svg", "icon-192.png", "icon-512.png", "icon-maskable-512.png", "apple-touch-icon.png",
+]
 NOT_BUILT = """<!doctype html><meta charset="utf-8"><title>Chưa build giao diện</title>
 <body style="font-family:system-ui;max-width:640px;margin:48px auto;padding:0 16px;line-height:1.6">
 <h1>Chưa build giao diện</h1>
@@ -67,3 +72,17 @@ async def spa_page() -> Response:
 
 for _route in SPA_ROUTES:
     app.add_api_route(_route, spa_page, include_in_schema=False)
+
+
+def _public_file(name: str):  # noqa: ANN202
+    async def serve() -> Response:
+        path = FRONTEND_DIST / name
+        if not path.exists():
+            return Response(status_code=404)
+        return FileResponse(path, media_type="application/manifest+json" if name.endswith(".webmanifest") else None)
+
+    return serve
+
+
+for _name in PUBLIC_FILES:
+    app.add_api_route(f"/{_name}", _public_file(_name), include_in_schema=False)

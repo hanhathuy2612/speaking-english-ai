@@ -15,7 +15,7 @@ Nguyên tắc: so mọi cấu hình trên **cùng một bộ file ghi âm**, vì
 
 ## Cách dùng
 
-1. Mở `http://localhost:8000/bench`, giữ nút hoặc phím Space để đọc từng câu. Đáp án được lưu sẵn.
+1. Mở `http://localhost:8000/bench`, bấm nút (hoặc giữ phím Space) để đọc từng câu. Đáp án được lưu sẵn.
 2. Chạy từ thư mục `backend/` (thư mục mặc định là `recordings/bench`):
 
 ```

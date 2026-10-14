@@ -1,39 +1,59 @@
-import { useEffect, useRef } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import type { SessionSummary, Speech } from "../../api/types";
-import { CheckIcon } from "../../components/Icons";
+import { CheckIcon, UndoIcon } from "../../components/Icons";
 import { ReplayButton } from "../../components/ReplayButton";
 import { Chip, type Tone } from "../../components/ui";
 import type { ChatItem } from "./useInterview";
 
+/** One short line ("15 từ · 121 từ/phút"); tap it for every number. */
 function SpeechChips({ speech }: { speech: Speech }) {
+  const [open, setOpen] = useState(false);
   if (!speech?.words) return null;
-  const chips: [string, Tone][] = [[`${speech.words} từ`, ""]];
-  if (speech.wpm == null) chips.push(["Câu ngắn, chưa tính tốc độ", ""]);
+  const parts = [`${speech.words} từ`];
+  if (speech.wpm_speaking != null) parts.push(`${speech.wpm_speaking} từ/phút`);
+  if (speech.long_pauses > 0) parts.push(`${speech.long_pauses} lần ngắt dài`);
+  const details: string[] = [];
+  if (speech.wpm == null) details.push("Câu ngắn, chưa tính tốc độ");
   else {
-    chips.push([`Khi nói ${speech.wpm_speaking} từ/phút`, ""]);
-    chips.push([`Tính cả ngắt ${speech.wpm} từ/phút`, ""]);
+    details.push(`Khi nói ${speech.wpm_speaking} từ/phút`);
+    // Only differs from the speaking rate when there were pauses.
+    if (speech.wpm !== speech.wpm_speaking) details.push(`Tính cả ngắt ${speech.wpm} từ/phút`);
   }
-  chips.push([`${speech.long_pauses} lần ngắt dài`, speech.long_pauses > 2 ? "warning" : ""]);
-  if (speech.low_conf.length) chips.push([`Máy nghe chưa chắc: ${speech.low_conf.join(", ")}`, "warning"]);
+  details.push(`${speech.long_pauses} lần ngắt dài`);
   return (
     <>
-      {chips.map(([text, tone]) => (
-        <Chip key={text} tone={tone}>
-          {text}
-        </Chip>
-      ))}
+      <button
+        type="button"
+        className={`chip chip-btn${speech.long_pauses > 2 ? " chip-warning" : ""}`}
+        aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
+      >
+        {parts.join(" · ")}
+      </button>
+      {speech.low_conf.length > 0 && <Chip tone="warning">Máy nghe chưa chắc: {speech.low_conf.join(", ")}</Chip>}
+      {open && details.map((d) => <Chip key={d}>{d}</Chip>)}
     </>
   );
 }
 
-function Message({ item, partner }: { item: Extract<ChatItem, { kind: "ai" | "me" }>; partner: string }) {
+function Message({
+  item,
+  partner,
+  onUndo,
+}: {
+  item: Extract<ChatItem, { kind: "ai" | "me" }>;
+  partner: string;
+  onUndo?: () => void;
+}) {
   const me = item.kind === "me";
   return (
     <div className={`msg ${item.kind}${me && item.unclear ? " unclear" : ""}`}>
-      <div className="avatar" aria-hidden>
-        {me ? "Bạn" : "AI"}
-      </div>
+      {!me && (
+        <div className="avatar" aria-hidden>
+          AI
+        </div>
+      )}
       <div className="msg-body">
         <div className="who">{me ? "Bạn" : partner}</div>
         <div className="bubble">{item.text}</div>
@@ -47,6 +67,12 @@ function Message({ item, partner }: { item: Extract<ChatItem, { kind: "ai" | "me
               </Chip>
             )}
             <ReplayButton src={item.audio} />
+            {onUndo && (
+              <button type="button" className="btn btn-ghost btn-sm undo-btn" onClick={onUndo}>
+                <UndoIcon />
+                Máy nghe sai, nói lại
+              </button>
+            )}
             <SpeechChips speech={item.speech} />
           </div>
         )}
@@ -107,16 +133,41 @@ function SummaryCard({ s }: { s: SessionSummary }) {
   );
 }
 
-export function Chat({ items, partner }: { items: ChatItem[]; partner: string }) {
+/**
+ * The conversation. `tail` (the coach card) follows the last message and scrolls with it, so it never
+ * covers the conversation on a phone; `tailKey` changes when the tail grows, to scroll it into view.
+ */
+export function Chat({
+  items,
+  partner,
+  onUndo,
+  tail,
+  tailKey,
+}: {
+  items: ChatItem[];
+  partner: string;
+  onUndo?: () => void;
+  tail?: ReactNode;
+  tailKey?: string;
+}) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     ref.current?.scrollTo({ top: ref.current.scrollHeight });
-  }, [items]);
+  }, [items, tailKey]);
+  // "Máy nghe sai, nói lại" belongs to the last accepted answer: that is the one undo removes.
+  const lastMe = onUndo ? items.findLast((it) => it.kind === "me" && !it.unclear) : undefined;
   return (
-    <div className="chat" aria-live="polite" ref={ref}>
-      {items.map((it) =>
-        it.kind === "summary" ? <SummaryCard key={it.id} s={it.summary} /> : <Message key={it.id} item={it} partner={partner} />,
-      )}
+    <div className="chat" ref={ref}>
+      <div className="chat-log" aria-live="polite">
+        {items.map((it) =>
+          it.kind === "summary" ? (
+            <SummaryCard key={it.id} s={it.summary} />
+          ) : (
+            <Message key={it.id} item={it} partner={partner} onUndo={it === lastMe ? onUndo : undefined} />
+          ),
+        )}
+      </div>
+      {tail}
     </div>
   );
 }

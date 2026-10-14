@@ -19,6 +19,9 @@ export type UnitStatus = {
   sessions: number; // sessions with at least one answer
   completed: number; // sessions that reached the last question
   last_at: string | null;
+  lesson: boolean; // has a lesson part before the role-play (docs/features/lesson.md)
+  lesson_done: number; // times the lesson part was finished
+  done: boolean; // completed, and the lesson finished if there is one
 };
 
 export type Topic = {
@@ -29,7 +32,7 @@ export type Topic = {
   units: UnitStatus[];
 };
 
-/** GET /api/units: `next_unit` is the first unit not completed in the open stages. */
+/** GET /api/units: `next_unit` is the first unit not done in the open stages. */
 export type UnitsResponse = { topics: Topic[]; next_unit: string | null };
 
 export type UnitInfo = {
@@ -40,6 +43,29 @@ export type UnitInfo = {
   phrases: { say: string }[];
   stt: string;
   partner: string; // who the AI plays, e.g. "Người phỏng vấn", "Đồng nghiệp"
+  lesson: boolean; // the unit has a lesson part (/lesson/:id)
+};
+
+// ----- Lesson part of a unit (docs/features/lesson.md) -----
+
+/** A teacher line: English is spoken, Vietnamese is shown on demand ("Dịch"). */
+export type LessonLine = { en: string; vi: string };
+
+export type LessonData = {
+  id: string;
+  title: string;
+  goal: string;
+  partner: string;
+  vocab: { word: string; vi: string }[];
+  sentences: { say: string; use: string; use_vi: string }[];
+  lines: Record<string, LessonLine>; // keys: intro, vocab, read, good, retry, move_on, outro, s<i>, say<i>, w<i>
+  finished: number; // times the lesson part was finished
+};
+
+export type LessonReading = {
+  target: string;
+  heard: string;
+  compare: ShadowResult["compare"];
 };
 
 export type CompareItem =

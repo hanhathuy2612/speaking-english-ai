@@ -29,6 +29,7 @@ File gồm `topics` (chủ đề, theo thứ tự lộ trình) và `units` (bài
 
 - `questions[i].phrases` là chỉ số vào `phrases`, dùng làm "Target phrase" cho LLM và làm khung NOTE dự phòng.
 - `match` so sau khi `norm()` (chữ thường, bỏ dấu câu, chuẩn hóa dấu nháy).
+- `lesson` (không bắt buộc): phần bài giảng trước khi đóng vai, xem [lesson.md](lesson.md).
 - `questions[i].steps`: 2–3 ý để nói dài hơn, hiện dưới NOTE (nhãn tiếng Việt + câu mở đầu có `...`), xem [answer-steps.md](answer-steps.md).
 - `phrases[i].when` (không bắt buộc): mẫu câu chỉ dùng làm Target phrase khi câu trả lời có một trong các cụm này (mẫu phản đối, xem [llm-prompt.md](llm-prompt.md)). Thêm mẫu câu mới thì thêm vào **cuối** `phrases`, vì thẻ ôn tập lưu theo chỉ số.
 - Lời mở đầu là `greeting + questions[0].ask`.

@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 
 from app.core.config import DATA_DIR
+from app.interview import lesson
 
 _data = json.loads((DATA_DIR / "units.json").read_text(encoding="utf-8"))
 topics: list[dict] = _data["topics"]
@@ -43,6 +44,7 @@ def validate(topics: list[dict], units: list[dict]) -> list[str]:
         for i, p in enumerate(u.get("phrases", [])):
             if not (p.get("say") and p.get("match")):
                 errors.append(f"{uid}: phrase {i} needs say and match")
+        errors += lesson.validate(u)
     return errors
 
 

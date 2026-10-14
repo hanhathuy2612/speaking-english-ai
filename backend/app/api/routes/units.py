@@ -18,6 +18,18 @@ if _errors:
     raise ValueError("Invalid stages.json:\n" + "\n".join(_errors))
 
 
+def _stats() -> dict[str, dict]:
+    """Practice status per unit. A unit with a lesson is done only when both parts are: the lesson
+    was finished once and a role-play reached the last question (docs/features/lesson.md)."""
+    stats, lessons = history.unit_stats(), history.lesson_counts()
+    out = {}
+    for u in units:
+        st = {**stats.get(u["id"], NO_STATS), "lesson": "lesson" in u, "lesson_done": lessons.get(u["id"], 0)}
+        st["done"] = bool(st["completed"]) and (not st["lesson"] or st["lesson_done"] > 0)
+        out[u["id"]] = st
+    return out
+
+
 def _topics(stats: dict[str, dict], open_topics: set[str]) -> list[dict]:
     return [
         {
@@ -29,7 +41,7 @@ def _topics(stats: dict[str, dict], open_topics: set[str]) -> list[dict]:
                     "title": u["title"],
                     "goal": u["goal"],
                     "questions": len(u["questions"]),
-                    **stats.get(u["id"], NO_STATS),
+                    **stats[u["id"]],
                 }
                 for u in units
                 if u["topic"] == t["id"]
@@ -46,7 +58,7 @@ def _report(stats: dict[str, dict]) -> list[dict]:
         topic_units.setdefault(u["topic"], []).append(u["id"])
     runs = fluency.group_runs(history.list_fluency_rounds())
     evidence = {
-        "completed": {uid for uid, st in stats.items() if st["completed"]},
+        "completed": {uid for uid, st in stats.items() if st["done"]},
         "topic_units": topic_units,
         "drill_attempts": history.list_drills(),
         "drill_set_ids": [s["id"] for s in drills.sets],
@@ -61,14 +73,14 @@ def _next_unit(topic_list: list[dict]) -> str | None:
     for t in topic_list:
         if not t["locked"]:
             for u in t["units"]:
-                if not u["completed"]:
+                if not u["done"]:
                     return u["id"]
     return None
 
 
 @router.get("/units")
 async def list_units() -> dict:
-    stats = history.unit_stats()
+    stats = _stats()
     topic_list = _topics(stats, stages.open_topics(_report(stats)))
     return {"topics": topic_list, "next_unit": _next_unit(topic_list)}
 
@@ -76,7 +88,7 @@ async def list_units() -> dict:
 @router.get("/stages")
 async def list_stages() -> dict:
     """Stages in order with status and requirements; topics carry their units' status."""
-    stats = history.unit_stats()
+    stats = _stats()
     report = _report(stats)
     by_id = {t["id"]: t for t in _topics(stats, stages.open_topics(report))}
     return {

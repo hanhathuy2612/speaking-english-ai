@@ -13,7 +13,7 @@ Nói dài hơn: trả lời lại và thêm các ý này
                                      [Trả lời lại dài hơn]
 ```
 
-Ý nào câu trả lời (hoặc NOTE) đã có thì được đánh dấu ✓. Bấm **"Trả lời lại dài hơn"** rồi giữ micro để trả lời lại cả câu hỏi. App so với lần đầu: số từ, số ý đã nói, tốc độ, số lần ngắt dài. Lượt này **không gọi LLM, không chuyển câu hỏi**, không tính vào số lượt phỏng vấn. Làm lại một nhiệm vụ nhiều lần là cách tăng độ trôi chảy (cùng ý tưởng với bài 4–3–2, [fluency-432.md](fluency-432.md)).
+Ý nào câu trả lời (hoặc NOTE) đã có thì được đánh dấu ✓. Bấm **"Trả lời lại dài hơn"** rồi bấm micro để trả lời lại cả câu hỏi. Trong lúc đó thanh dưới hiện các ý cần thêm, vì thẻ NOTE có thể đã cuộn khuất. App so với lần đầu: số từ, số ý đã nói, tốc độ, số lần ngắt dài. Lượt này **không gọi LLM, không chuyển câu hỏi**, không tính vào số lượt phỏng vấn. Làm lại một nhiệm vụ nhiều lần là cách tăng độ trôi chảy (cùng ý tưởng với bài 4–3–2, [fluency-432.md](fluency-432.md)).
 
 ## Vì sao các ý được viết sẵn, không để LLM viết
 

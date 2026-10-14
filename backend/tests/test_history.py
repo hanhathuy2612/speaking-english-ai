@@ -161,3 +161,14 @@ def test_fluency_rounds_round_trip(db):
                                "hesitations": 4, "hesitations_per_100": 1.3, "not_english": 0})  # fmt: skip
     [r] = history.list_fluency_rounds()
     assert r["run"] == "r1" and r["not_english"] is False
+
+
+def test_lesson_reads_join_the_readings_and_lessons_are_counted(db):
+    history.add_lesson_read(
+        {"unit_id": "u1", "sentence": 0, "target": "I am here.", "heard": "I am hear.", "correct": 2, "total": 3}
+    )
+    assert [r["target"] for r in history.list_readings()] == ["I am here."]
+    assert history.lesson_counts() == {}
+    history.finish_lesson("u1")
+    history.finish_lesson("u1")
+    assert history.lesson_counts() == {"u1": 2}
