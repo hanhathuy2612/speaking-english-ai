@@ -36,6 +36,7 @@ HISTORY_DB=<thư mục tạm>/hist.db NEW_USER_PASSWORD=<mật khẩu thử> pyt
 powershell -NoProfile -Command "Get-NetTCPConnection -LocalPort 8001 -State Listen | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }"
 ```
 
+- `history.db` ở chế độ WAL: khi server chạy sẽ có thêm `history.db-wal` và `history.db-shm` cạnh nó. Sao lưu phải chép cả ba file, hoặc chép khi server đã dừng; chỉ chép mỗi `history.db` có thể mất dữ liệu mới ghi.
 - Server mất khoảng 10 đến 30 giây để nạp Whisper. Chờ `/api/units` trả lời rồi mới thử.
 - `recordings/` (giọng nói) và `data/` (lịch sử luyện tập) là dữ liệu thật của người dùng. Không xóa, không ghi đè. File tạo ra khi thử thì tự dọn.
 - Editor của người dùng tự định dạng file Python khi lưu (kiểu Black, 88 ký tự, sắp xếp lại import). Đọc lại file trước khi sửa nếu công cụ báo file đã thay đổi.

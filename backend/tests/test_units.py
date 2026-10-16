@@ -113,3 +113,19 @@ def test_agree_or_disagree_phrase_follows_the_answer():
     assert target_phrases(u, q, "Yes, it wastes too much time.") == ["I totally agree, because ..."]
     assert target_phrases(u, q, "I don't agree, it helps me learn.") == ["I see your point, but I think ..."]
     assert target_phrases(u, q) == ["I totally agree, because ..."]
+
+
+def test_use_content_updates_in_place_and_drops_stale_units():
+    from app.interview import units as catalog
+
+    old = (list(catalog.topics), list(catalog.units))
+    by_id = catalog.units_by_id
+    try:
+        keep = catalog.units[0]
+        new = {**keep, "id": "brand-new"}
+        catalog.use_content(list(catalog.topics), [keep, new])
+        assert catalog.units_by_id is by_id
+        assert set(by_id) == {keep["id"], "brand-new"}
+    finally:
+        catalog.use_content(*old)
+    assert set(by_id) == {u["id"] for u in old[1]}

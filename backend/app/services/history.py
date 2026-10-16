@@ -208,7 +208,13 @@ MIGRATIONS = [
     ("checks", "stuck", "TEXT"),
     ("checks", "review", "TEXT"),
 ]
-INDEXES = [f"CREATE INDEX IF NOT EXISTS {t}_user ON {t}(user_id)" for t in OWNED]
+INDEXES = [
+    *(f"CREATE INDEX IF NOT EXISTS {t}_user ON {t}(user_id)" for t in OWNED),
+    # foreign keys read by session / card (and used by ON DELETE CASCADE)
+    "CREATE INDEX IF NOT EXISTS shadows_session ON shadows(session_id)",
+    "CREATE INDEX IF NOT EXISTS retells_session ON retells(session_id)",
+    "CREATE INDEX IF NOT EXISTS card_reviews_card ON card_reviews(card_id)",
+]
 
 enabled = db.enabled
 _connect = db.connect
@@ -229,6 +235,8 @@ def _backup_before_accounts() -> None:
         )
     backup = path.with_name(path.name + ".before-accounts")
     if old and not backup.exists():
+        with closing(sqlite3.connect(path)) as conn:
+            conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")  # pending WAL pages go into the file first
         shutil.copy2(path, backup)
         print(f"Backed up the history database to {backup} before adding accounts.")
 
@@ -256,6 +264,8 @@ def init() -> None:
         return
     _backup_before_accounts()
     with closing(_connect()) as conn:
+        # WAL: readers do not wait for a writer. The mode is stored in the file, so once is enough.
+        conn.execute("PRAGMA journal_mode = WAL")
         with conn:
             conn.executescript(SCHEMA)
             # Columns added after a table existed: CREATE TABLE IF NOT EXISTS does not add them.

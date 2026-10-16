@@ -14,7 +14,7 @@ router = APIRouter(prefix="/api/admin/users", tags=["admin"])
 
 
 @router.get("")
-async def list_users() -> list[dict]:
+def list_users() -> list[dict]:
     return accounts.list_users()
 
 
@@ -26,7 +26,7 @@ class NewUser(BaseModel):
 
 
 @router.post("")
-async def create_user(body: NewUser) -> dict:
+def create_user(body: NewUser) -> dict:
     """An account made by an admin needs no email confirmation."""
     if not accounts.valid_email(accounts.normalize_email(body.email)):
         raise HTTPException(400, "Email không hợp lệ.")
@@ -47,7 +47,7 @@ class UserChange(BaseModel):
 
 
 @router.patch("/{uid}")
-async def update_user(uid: int, body: UserChange, me: dict = Depends(require_admin)) -> dict:
+def update_user(uid: int, body: UserChange, me: dict = Depends(require_admin)) -> dict:
     user = accounts.get_user(uid)
     if not user:
         raise HTTPException(404)

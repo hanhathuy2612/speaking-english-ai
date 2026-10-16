@@ -12,12 +12,12 @@ router = APIRouter(prefix="/api/history", tags=["history"])
 
 
 @router.get("/sessions")
-async def list_sessions(user: dict = Depends(current_user)) -> dict:
+def list_sessions(user: dict = Depends(current_user)) -> dict:
     return {"enabled": history.enabled(), "sessions": history.list_sessions(user["id"])}
 
 
 @router.get("/sessions/{session_id}/turns")
-async def session_turns(session_id: int, user: dict = Depends(current_user)) -> list[dict]:
+def session_turns(session_id: int, user: dict = Depends(current_user)) -> list[dict]:
     """Turns of one of the user's sessions; `audio_url` plays the answer back when its recording was kept."""
     turns = history.session_turns(user["id"], session_id)
     if any(t["source"] == "voice" and not t["audio"] for t in turns):
@@ -32,7 +32,7 @@ async def session_turns(session_id: int, user: dict = Depends(current_user)) -> 
 
 
 @router.get("/audio/{name}")
-async def turn_audio(name: str, user: dict = Depends(current_user)) -> FileResponse:
+def turn_audio(name: str, user: dict = Depends(current_user)) -> FileResponse:
     """One of the user's kept recordings (only names the app created, only from SAVE_AUDIO_DIR)."""
     path = recordings.path_for(name)
     if not path or not history.owns_recording(user["id"], name):
@@ -41,7 +41,7 @@ async def turn_audio(name: str, user: dict = Depends(current_user)) -> FileRespo
 
 
 @router.delete("/sessions/{session_id}")
-async def delete_session(session_id: int, user: dict = Depends(current_user)) -> dict:
+def delete_session(session_id: int, user: dict = Depends(current_user)) -> dict:
     if not history.delete_session(user["id"], session_id):
         raise HTTPException(404)
     return {"ok": True}

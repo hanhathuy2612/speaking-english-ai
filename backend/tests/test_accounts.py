@@ -145,6 +145,22 @@ def test_login_errors_and_rate_limit(client, monkeypatch):
     assert client.post("/api/auth/login", json={"email": "x@example.com", "password": "bad"}).status_code == 429
 
 
+def test_right_password_on_unverified_or_disabled_account_is_not_counted(client, monkeypatch):
+    from app.api.routes import auth
+
+    monkeypatch.setattr(auth, "_fails", type(auth._fails)(auth._fails.default_factory))
+    accounts.create_user("new@example.com", "New", "password1", verified=False)
+    for _ in range(auth.MAX_FAILS["email"] + 2):
+        r = client.post("/api/auth/login", json={"email": "new@example.com", "password": "password1"})
+        assert r.status_code == 403 and r.json()["detail"]["code"] == "unverified"
+    assert not any(auth._fails.values())
+    off = accounts.create_user("off@example.com", "Off", "password1")
+    accounts.update_user(off["id"], disabled=True)
+    for _ in range(auth.MAX_FAILS["email"] + 2):
+        assert client.post("/api/auth/login", json={"email": "off@example.com", "password": "password1"}).status_code == 403
+    assert not any(auth._fails.values())
+
+
 def test_admins_cannot_remove_the_last_admin(client):
     me = accounts.create_user("admin@example.com", "Admin", "password1", "admin")
     login(client, "admin@example.com")

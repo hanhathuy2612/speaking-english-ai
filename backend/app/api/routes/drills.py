@@ -64,7 +64,7 @@ def _best(x: dict, by_text: dict[str, list[dict]]) -> dict | None:
 
 
 @router.get("")
-async def drill_state(user: dict = Depends(current_user)) -> dict:
+def drill_state(user: dict = Depends(current_user)) -> dict:
     """Sets with their sentences and, per set, recent focus-word accuracy and the best reading of each
     sentence (`best`: sentence id -> result), so past readings show again when the page opens."""
     attempts = history.list_drills(user["id"])

@@ -18,6 +18,10 @@ Mỗi lượt trả lời được ghi vào một file SQLite cục bộ. Trang 
 
 File mặc định: `data/history.db` ở thư mục gốc (biến `HISTORY_DB`, bắt buộc vì tài khoản cũng lưu ở đây). Không commit (`/data/` trong `.gitignore`).
 
+SQLite chạy ở chế độ WAL (`init()` đặt `journal_mode=WAL`, lưu bền trong file), nên người đọc không chặn người ghi giữa các request chạy song song. Hệ quả: cạnh `history.db` có thêm `history.db-wal` và `history.db-shm`. Sao lưu thủ công phải chép cả ba file, hoặc chép khi server đã dừng. Bản `history.db.before-accounts` được checkpoint trước khi chép.
+
+Các index phụ cho khóa ngoại hay tra: `shadows(session_id)`, `retells(session_id)`, `card_reviews(card_id)`, `email_tokens(user_id)`; để xóa buổi/thẻ (cascade) và tra theo người không phải quét cả bảng.
+
 Mỗi người học chỉ thấy lịch sử của mình: các bảng có `user_id`, mọi hàm đọc nhận `uid` đầu tiên, và file ghi âm chỉ phát cho chủ của nó. Xem [accounts.md](accounts.md).
 
 - **`sessions`:** một dòng cho mỗi lần làm bài. Chỉ được tạo **khi có câu trả lời đầu tiên**, nên mở bài rồi bỏ đi không để lại phiên rỗng. `completed` = 1 khi đã hỏi hết câu.

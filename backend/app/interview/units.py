@@ -84,10 +84,14 @@ def validate(topics: list[dict], units: list[dict]) -> list[str]:
 
 def use_content(new_topics: list[dict], new_units: list[dict]) -> None:
     """Make this the content every module sees (in place: other modules hold these objects)."""
+    # Other threads read these while an admin saves: never clear() first, so a reader cannot see an
+    # empty or half-filled catalog. Slice assignment replaces a list in one step.
+    fresh = {u["id"]: u for u in new_units}
     topics[:] = new_topics
     units[:] = new_units
-    units_by_id.clear()
-    units_by_id.update({u["id"]: u for u in units})
+    units_by_id.update(fresh)
+    for stale in units_by_id.keys() - fresh.keys():
+        units_by_id.pop(stale, None)
 
 
 def load_content() -> None:

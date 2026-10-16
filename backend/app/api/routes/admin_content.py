@@ -19,6 +19,8 @@ from app.services import content
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
 
+# The five write routes below stay `async def`: they run on the event loop one at a time, so two
+# admins cannot interleave check -> save -> reload (each takes a few ms). Reads are plain `def`.
 def _reload() -> None:
     catalog.use_content(*catalog.usable(*content.load()))
 
@@ -31,7 +33,7 @@ def _check(units: list[dict], topics: list[dict] | None = None) -> None:
 
 
 @router.get("/content")
-async def content_list() -> dict:
+def content_list() -> dict:
     """Topics, every unit (deleted ones too) with a short summary, and which stage opens each topic."""
     return {
         "topics": catalog.topics,
@@ -55,7 +57,7 @@ async def content_list() -> dict:
 
 
 @router.get("/units/{unit_id}")
-async def get_unit(unit_id: str) -> dict:
+def get_unit(unit_id: str) -> dict:
     row = content.get_unit(unit_id)
     if not row:
         raise HTTPException(404)

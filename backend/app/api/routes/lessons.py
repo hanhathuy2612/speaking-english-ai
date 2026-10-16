@@ -27,7 +27,7 @@ def _unit(unit_id: str) -> dict:
 
 
 @router.get("/{unit_id}")
-async def get_lesson(unit_id: str, user: dict = Depends(current_user)) -> dict:
+def get_lesson(unit_id: str, user: dict = Depends(current_user)) -> dict:
     unit = _unit(unit_id)
     return {**lesson.public(unit), "finished": history.lesson_counts(user["id"]).get(unit_id, 0)}
 
@@ -71,7 +71,7 @@ async def read_sentence(unit_id: str, index: int, request: Request, user: dict =
 
 
 @router.post("/{unit_id}/finish")
-async def finish(unit_id: str, user: dict = Depends(current_user)) -> dict:
+def finish(unit_id: str, user: dict = Depends(current_user)) -> dict:
     _unit(unit_id)
     history.finish_lesson(user["id"], unit_id)
     return {"finished": history.lesson_counts(user["id"]).get(unit_id, 0)}

@@ -36,6 +36,7 @@ CREATE TABLE IF NOT EXISTS email_tokens (
     expires_at TEXT NOT NULL,
     used_at TEXT
 );
+CREATE INDEX IF NOT EXISTS email_tokens_user ON email_tokens(user_id);
 """
 
 ROLES = ("user", "admin")

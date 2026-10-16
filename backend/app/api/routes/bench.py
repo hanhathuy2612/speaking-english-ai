@@ -16,7 +16,7 @@ sentences: list[str] = json.loads((DATA_DIR / "bench_sentences.json").read_text(
 
 
 @router.get("")
-async def bench_list() -> list[dict]:
+def bench_list() -> list[dict]:
     return [
         {"text": t, "done": (BENCH_DIR / f"{i:02d}.webm").exists()} for i, t in enumerate(sentences)
     ]

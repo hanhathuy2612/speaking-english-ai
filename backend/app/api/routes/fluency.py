@@ -18,7 +18,7 @@ router = APIRouter(prefix="/api/fluency", tags=["fluency"])
 
 
 @router.get("")
-async def fluency_state(exclude: str | None = None, user: dict = Depends(current_user)) -> dict:
+def fluency_state(exclude: str | None = None, user: dict = Depends(current_user)) -> dict:
     """A fresh prompt (least used, not `exclude`), the round lengths and past exercises."""
     runs = fluency.group_runs(history.list_fluency_rounds(user["id"]))
     used = Counter(r["prompt_id"] for r in runs)

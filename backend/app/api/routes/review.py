@@ -43,7 +43,7 @@ def _stats(uid: int, today: date) -> dict:
 
 
 @router.get("")
-async def review_state(session: int | None = None, user: dict = Depends(current_user)) -> dict:
+def review_state(session: int | None = None, user: dict = Depends(current_user)) -> dict:
     """Cards to review: all cards of one session (`?session=`, end-of-session review),
     otherwise the cards due today, at most one round."""
     today, uid = date.today(), user["id"]
@@ -56,7 +56,7 @@ async def review_state(session: int | None = None, user: dict = Depends(current_
 
 
 @router.get("/count")
-async def review_count(user: dict = Depends(current_user)) -> dict:
+def review_count(user: dict = Depends(current_user)) -> dict:
     """Cards due today, for the badge in the navigation."""
     today = date.today()
     review.sync(user["id"], today)
@@ -97,14 +97,14 @@ class Grade(BaseModel):
 
 
 @router.post("/{card_id}/grade")
-async def review_grade(grade: Grade, card: dict = Depends(_get)) -> dict:
+def review_grade(grade: Grade, card: dict = Depends(_get)) -> dict:
     box, due = review.schedule(card["box"], grade.result, date.today())
     history.grade_card(card["id"], box, due.isoformat(), grade.result, grade.model_dump(exclude={"result"}))
     return {"box": box, "due": due.isoformat()}
 
 
 @router.post("/{card_id}/suspend")
-async def review_suspend(card: dict = Depends(_get)) -> dict:
+def review_suspend(card: dict = Depends(_get)) -> dict:
     """Drop a card for good (for example a NOTE that is not worth learning)."""
     history.suspend_card(card["id"])
     return {"ok": True}

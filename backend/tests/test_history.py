@@ -239,3 +239,14 @@ def test_an_old_database_is_backed_up_migrated_and_claimed(tmp_path, monkeypatch
     other = accounts.create_user("b@example.com", "B", "password1")["id"]
     assert history.add_card(other, {"kind": "phrase", "unit_id": "u1", "phrase_index": 0, "question": "Q",
                                     "target": "P", "due": "2026-10-14"}) is not None  # fmt: skip
+
+
+def test_init_turns_on_wal_and_adds_the_foreign_key_indexes(db):
+    import sqlite3
+    from contextlib import closing
+
+    with closing(sqlite3.connect(db)) as conn:
+        assert conn.execute("PRAGMA journal_mode").fetchone()[0] == "wal"
+        names = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type = 'index'")}
+    assert {"turns_session", "shadows_session", "retells_session", "card_reviews_card", "email_tokens_user"} <= names
+    history.init()  # a second start changes nothing

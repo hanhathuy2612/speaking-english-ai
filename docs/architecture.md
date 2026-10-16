@@ -58,6 +58,8 @@ Server gửi:
 
 ## HTTP
 
+- **`def` hay `async def`:** route HTTP không có `await` viết là `def` thường, để FastAPI chạy trong threadpool. Truy vấn SQLite và băm mật khẩu scrypt (khoảng 57 ms mỗi lần) chạy trên event loop sẽ làm đứng WebSocket và TTS của người khác. Đo với 8 lần đăng nhập đồng thời: tick event loop trễ nhất 459 ms khi dùng `async def`, 14 ms khi dùng `def`. Chỉ route có `await` (STT, LLM, TTS, `request.body`) mới là `async def`; `ws.py` giữ nguyên. Ngoại lệ: các route admin ghi nội dung bài (`admin_content.py`: lưu, ẩn, khôi phục, sắp thứ tự, sửa chủ đề) cố ý để `async def` dù không có `await`, để chúng chạy lần lượt trên event loop: hai admin lưu cùng lúc không chen nhau giữa bước kiểm tra, lưu và nạp lại danh mục. Route `async def` mà phải băm mật khẩu thì gọi qua `asyncio.to_thread`.
+
 - `GET /`, `/lesson/<id>`, `/review`, `/roadmap`, `/sounds`, `/fluency`, `/check`, `/history`, `/bench`: `frontend/dist/index.html` (app React một trang; React Router chọn trang). `/assets/...`: JS/CSS đã build. Chưa build thì trả hướng dẫn (503).
 - `/api/history/...`: xem [session-history.md](features/session-history.md).
 - `/api/check`: bài kiểm tra nói, xem [speaking-check.md](features/speaking-check.md).

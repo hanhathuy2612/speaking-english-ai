@@ -80,14 +80,14 @@ def _next_unit(topic_list: list[dict]) -> str | None:
 
 
 @router.get("/units")
-async def list_units(user: dict = Depends(current_user)) -> dict:
+def list_units(user: dict = Depends(current_user)) -> dict:
     stats = _stats(user["id"])
     topic_list = _topics(stats, stages.open_topics(_report(user["id"], stats)))
     return {"topics": topic_list, "next_unit": _next_unit(topic_list)}
 
 
 @router.get("/stages")
-async def list_stages(user: dict = Depends(current_user)) -> dict:
+def list_stages(user: dict = Depends(current_user)) -> dict:
     """Stages in order with status and requirements; topics carry their units' status."""
     stats = _stats(user["id"])
     report = _report(user["id"], stats)

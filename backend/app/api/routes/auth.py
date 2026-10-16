@@ -9,6 +9,7 @@ email from a background task, so neither the answer nor its timing tells which a
 
 from __future__ import annotations
 
+import threading
 import time
 from collections import defaultdict, deque
 
@@ -27,6 +28,8 @@ MAX_FAILS = {"email": 5, "ip": 20}  # wrong passwords
 MAX_EMAILS = {"email": 3, "ip": 10}  # emails sent (sign-up, resend, forgot)
 _fails: dict[str, deque[float]] = defaultdict(deque)
 _sends: dict[str, deque[float]] = defaultdict(deque)
+# Routes are plain `def`, so they run in threadpool threads: one lock guards both stores.
+_lock = threading.RLock()
 
 APP = "Phòng tập nói"
 
@@ -39,12 +42,38 @@ def _recent(store: dict[str, deque[float]], key: str) -> deque[float]:
 
 
 def _over(store: dict[str, deque[float]], limits: dict[str, int], email: str, ip: str) -> bool:
-    return len(_recent(store, f"email:{email}")) >= limits["email"] or len(_recent(store, f"ip:{ip}")) >= limits["ip"]
+    with _lock:
+        return (
+            len(_recent(store, f"email:{email}")) >= limits["email"] or len(_recent(store, f"ip:{ip}")) >= limits["ip"]
+        )
 
 
-def _count(store: dict[str, deque[float]], email: str, ip: str) -> None:
-    _recent(store, f"email:{email}").append(time.monotonic())
-    _recent(store, f"ip:{ip}").append(time.monotonic())
+def _count(store: dict[str, deque[float]], email: str, ip: str) -> float:
+    """Records an attempt and returns its timestamp."""
+    now = time.monotonic()
+    with _lock:
+        _recent(store, f"email:{email}").append(now)
+        _recent(store, f"ip:{ip}").append(now)
+    return now
+
+
+def _check_and_count(store: dict[str, deque[float]], limits: dict[str, int], email: str, ip: str) -> float | None:
+    """_over + _count in one step, so parallel requests cannot all pass the check before any is counted.
+    Returns the attempt's timestamp, or None when over the limit."""
+    with _lock:
+        return None if _over(store, limits, email, ip) else _count(store, email, ip)
+
+
+def _forget(store: dict[str, deque[float]], email: str, ip: str, stamp: float, *, all_for_email: bool = False) -> None:
+    """Takes back one attempt (by its timestamp) from the email and ip lists; with all_for_email,
+    also every other attempt for that email."""
+    with _lock:
+        if all_for_email:
+            store.pop(f"email:{email}", None)
+        for key in (f"email:{email}", f"ip:{ip}"):
+            q = store.get(key)  # not store[key]: a defaultdict would recreate an empty deque
+            if q and stamp in q:
+                q.remove(stamp)
 
 
 def _ip(request: Request) -> str:
@@ -93,9 +122,8 @@ def _send_reset(tasks: BackgroundTasks, request: Request, user: dict) -> None:
 
 
 def _email_limit(email: str, request: Request) -> None:
-    if _over(_sends, MAX_EMAILS, email, _ip(request)):
+    if _check_and_count(_sends, MAX_EMAILS, email, _ip(request)) is None:
         raise HTTPException(429, "Đã gửi nhiều email quá. Thử lại sau 15 phút.")
-    _count(_sends, email, _ip(request))
 
 
 class Login(BaseModel):
@@ -104,19 +132,22 @@ class Login(BaseModel):
 
 
 @router.post("/login")
-async def login(body: Login, request: Request) -> dict:
+def login(body: Login, request: Request) -> dict:
     email, ip = accounts.normalize_email(body.email), _ip(request)
-    if _over(_fails, MAX_FAILS, email, ip):
+    # The attempt is counted before the slow password check (scrypt), so a burst of parallel
+    # guesses is limited too; a right password takes it back.
+    stamp = _check_and_count(_fails, MAX_FAILS, email, ip)
+    if stamp is None:
         raise HTTPException(429, "Đăng nhập sai quá nhiều lần. Thử lại sau 15 phút.")
     user = accounts.authenticate(email, body.password)
     if not user:
-        _count(_fails, email, ip)
         raise HTTPException(401, "Email hoặc mật khẩu không đúng.")
-    if user["disabled"]:
-        raise HTTPException(403, "Tài khoản đã bị khóa. Liên hệ quản trị viên.")
-    if not user["verified"]:
+    if user["disabled"] or not user["verified"]:  # right password: not a failed guess
+        _forget(_fails, email, ip, stamp)
+        if user["disabled"]:
+            raise HTTPException(403, "Tài khoản đã bị khóa. Liên hệ quản trị viên.")
         raise HTTPException(403, detail={"code": "unverified", "msg": "Email chưa được xác nhận."})
-    _fails.pop(f"email:{email}", None)
+    _forget(_fails, email, ip, stamp, all_for_email=True)
     return logged_in(user["id"])
 
 
@@ -125,7 +156,7 @@ class Refresh(BaseModel):
 
 
 @router.post("/refresh")
-async def refresh(body: Refresh) -> dict:
+def refresh(body: Refresh) -> dict:
     """New tokens for a refresh token, while the account is active and its password unchanged."""
     claims = tokens.refresh_claims(body.refresh_token)
     state = accounts.login_state(claims[0]) if claims else None
@@ -135,7 +166,7 @@ async def refresh(body: Refresh) -> dict:
 
 
 @router.get("/me")
-async def me(user: dict = Depends(current_user)) -> dict:
+def me(user: dict = Depends(current_user)) -> dict:
     """The full user row (verified, created_at...), not only what the access token carries."""
     found = accounts.get_user(user["id"])
     if not found:
@@ -149,7 +180,7 @@ class NewPassword(BaseModel):
 
 
 @router.post("/password")
-async def change_password(body: NewPassword, user: dict = Depends(current_user)) -> dict:
+def change_password(body: NewPassword, user: dict = Depends(current_user)) -> dict:
     if not accounts.authenticate(user["email"], body.current):
         raise HTTPException(400, "Mật khẩu hiện tại không đúng.")
     if problem := accounts.password_problem(body.password):
@@ -168,7 +199,7 @@ class Signup(BaseModel):
 
 
 @router.post("/signup")
-async def signup(body: Signup, request: Request, tasks: BackgroundTasks) -> dict:
+def signup(body: Signup, request: Request, tasks: BackgroundTasks) -> dict:
     if not config.SIGNUP_ENABLED:
         raise HTTPException(403, "Đăng ký đang tắt. Nhờ quản trị viên tạo tài khoản cho bạn.")
     email = accounts.normalize_email(body.email)
@@ -190,7 +221,7 @@ class Email(BaseModel):
 
 
 @router.post("/resend")
-async def resend(body: Email, request: Request, tasks: BackgroundTasks) -> dict:
+def resend(body: Email, request: Request, tasks: BackgroundTasks) -> dict:
     email = accounts.normalize_email(body.email)
     _email_limit(email, request)
     user = accounts.user_by_email(email)
@@ -204,7 +235,7 @@ class Token(BaseModel):
 
 
 @router.post("/verify")
-async def verify(body: Token) -> dict:
+def verify(body: Token) -> dict:
     """Confirms the email and logs the user in (they just proved they own the inbox)."""
     uid = accounts.use_token(body.token, "verify")
     user = accounts.get_user(uid) if uid else None
@@ -217,7 +248,7 @@ async def verify(body: Token) -> dict:
 
 
 @router.post("/forgot")
-async def forgot(body: Email, request: Request, tasks: BackgroundTasks) -> dict:
+def forgot(body: Email, request: Request, tasks: BackgroundTasks) -> dict:
     email = accounts.normalize_email(body.email)
     _email_limit(email, request)
     user = accounts.user_by_email(email)
@@ -232,7 +263,7 @@ class Reset(BaseModel):
 
 
 @router.post("/reset")
-async def reset(body: Reset) -> dict:
+def reset(body: Reset) -> dict:
     if problem := accounts.password_problem(body.password):
         raise HTTPException(400, problem)
     uid = accounts.use_token(body.token, "reset")

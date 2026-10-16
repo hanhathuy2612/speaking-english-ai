@@ -33,7 +33,7 @@ def _finished(uid: int, talk: dict) -> int:
 
 
 @router.get("/{talk_id}")
-async def get_talk(talk_id: str, user: dict = Depends(current_user)) -> dict:
+def get_talk(talk_id: str, user: dict = Depends(current_user)) -> dict:
     """The lesson (as for a unit), the frame, the practice prompts and past practice talks."""
     talk = _talk(talk_id)
     return {
@@ -79,7 +79,7 @@ async def read_sentence(talk_id: str, index: int, request: Request, user: dict =
 
 
 @router.post("/{talk_id}/finish")
-async def finish(talk_id: str, user: dict = Depends(current_user)) -> dict:
+def finish(talk_id: str, user: dict = Depends(current_user)) -> dict:
     talk = _talk(talk_id)
     history.finish_lesson(user["id"], talks.PREFIX + talk_id)
     return {"finished": _finished(user["id"], talk)}

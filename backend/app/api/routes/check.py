@@ -42,7 +42,7 @@ def _talk_for(prompt: dict) -> dict | None:
 
 
 @router.get("")
-async def check_state(exclude: str | None = None, user: dict = Depends(current_user)) -> dict:
+def check_state(exclude: str | None = None, user: dict = Depends(current_user)) -> dict:
     """A fresh prompt (least used, not studied, not `exclude`), the targets, past checks and the talk lessons."""
     past = history.list_checks(user["id"])
     used = Counter(c["prompt_id"] for c in past)
@@ -133,7 +133,7 @@ class Phrases(BaseModel):
 
 
 @router.post("/{check_id}/cards")
-async def check_cards(body: Phrases, row: dict = Depends(_get), user: dict = Depends(current_user)) -> dict:
+def check_cards(body: Phrases, row: dict = Depends(_get), user: dict = Depends(current_user)) -> dict:
     """Review cards for the chosen phrases of the review (card kind 'talk', docs/features/review.md)."""
     if not row["review"]:
         raise HTTPException(400, "Chưa có bản ôn của bài kiểm tra này.")
