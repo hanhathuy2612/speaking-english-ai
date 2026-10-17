@@ -13,7 +13,7 @@ GRANT ALL PRIVILEGES ON `speaking`.* TO 'speaking'@'localhost';
 GRANT ALL PRIVILEGES ON `speaking\_%`.* TO 'speaking'@'localhost';
 ```
 
-Collation `utf8mb4_bin` là bắt buộc: mặc định của server (`utf8mb4_0900_ai_ci`) coi `a` và `á` là một, trong khi app so sánh nhị phân. Bảng do migration tạo lúc server khởi động (xem [Đổi schema database](#đổi-schema-database-migration)). Quyền thứ hai cho phép tạo `speaking_test` (pytest) và `speaking_tmp` (server thử). Có `data/history.db` cũ thì chuyển một lần bằng `python -m scripts.migrate_sqlite data/history.db` (xem [accounts.md](features/accounts.md)).
+Collation `utf8mb4_bin` là bắt buộc: mặc định của server (`utf8mb4_0900_ai_ci`) coi `a` và `á` là một, trong khi app so sánh nhị phân. Bảng do migration tạo lúc server khởi động (xem [Đổi schema database](#đổi-schema-database-migration)). Quyền thứ hai cho phép tạo `speaking_test` (pytest) và `speaking_tmp` (server thử). Có `data/history.db` cũ thì chuyển một lần bằng `python -m scripts.migrate_sqlite ../data/history.db` (xem [accounts.md](features/accounts.md)).
 
 ## Kiểm thử
 

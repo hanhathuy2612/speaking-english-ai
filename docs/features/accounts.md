@@ -101,7 +101,7 @@ Thẻ ôn mẫu câu từng là duy nhất theo `(unit_id, phrase_index)`. Nay l
 
 Các dòng lịch sử cũ chưa có `user_id`. Quản trị viên đầu tiên tạo bằng `create_user --admin` nhận chúng (`claim_unowned`).
 
-Lịch sử từ bản SQLite cũ (`data/history.db`) chuyển sang MySQL một lần bằng `python -m scripts.migrate_sqlite data/history.db` (chạy trong `backend/`). Script mở file cũ ở chế độ chỉ đọc, chép mọi bảng vào database của `DATABASE_URL` và giữ nguyên id, rồi in số dòng từng bảng để đối chiếu. Database đích phải trống, có dữ liệu rồi thì script từ chối trừ khi thêm `--force`.
+Lịch sử từ bản SQLite cũ (`data/history.db`) chuyển sang MySQL một lần bằng `python -m scripts.migrate_sqlite ../data/history.db` (chạy trong `backend/`). Script mở file cũ ở chế độ chỉ đọc, chép mọi bảng vào database của `DATABASE_URL` và giữ nguyên id, rồi in số dòng từng bảng để đối chiếu. Database đích phải trống, có dữ liệu rồi thì script từ chối trừ khi thêm `--force`.
 
 `DATABASE_URL` không được để trống, vì tài khoản lưu trong đó. Server không khởi động nếu biến này trống.
 

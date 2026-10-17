@@ -1,6 +1,6 @@
 """Copy an existing SQLite history file (the old data/history.db) into the MySQL database.
 
-    python -m scripts.migrate_sqlite data/history.db
+    python -m scripts.migrate_sqlite ../data/history.db   (from backend/)
 
 The target is the database of DATABASE_URL in .env. It is created if needed and must be empty:
 the script refuses to run when a table already has rows, unless --force (which empties the tables
@@ -85,7 +85,7 @@ def copy_table(src: sqlite3.Connection, conn: db.Conn, table: str) -> int:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description="Copy an old SQLite history file into the MySQL database of DATABASE_URL.")
-    ap.add_argument("sqlite_file", type=Path, help="the SQLite file, e.g. data/history.db (opened read-only)")
+    ap.add_argument("sqlite_file", type=Path, help="the SQLite file, e.g. ../data/history.db from backend/ (opened read-only)")
     ap.add_argument("--force", action="store_true", help="empty the MySQL tables first if they already have rows")
     args = ap.parse_args()
     if not db.enabled():
