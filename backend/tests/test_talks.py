@@ -90,14 +90,10 @@ TALK = "Nowadays AI tools change the way developers work. | Another way, not a s
 
 
 @pytest.fixture
-def client(tmp_path, monkeypatch):
+def client(mysql, monkeypatch):
     from app.main import app
 
-    monkeypatch.setattr(config, "ROOT_DIR", tmp_path)
-    monkeypatch.setattr(config, "HISTORY_DB", "history.db")
     monkeypatch.setattr(config, "SAVE_AUDIO_DIR", "")
-    accounts.init()
-    history.init()
     accounts.create_user("me@example.com", "Me", "password1")
     w = words(TALK)
     fake = {"text": " ".join(x["w"] for x in w), "words": w, "avg_logprob": -0.2, "no_speech": 0.0, "language": "en"}

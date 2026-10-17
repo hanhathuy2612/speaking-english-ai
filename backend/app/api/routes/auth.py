@@ -14,7 +14,7 @@ import time
 from collections import defaultdict, deque
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.api.deps import current_user
 from app.core import config
@@ -195,7 +195,7 @@ def change_password(body: NewPassword, user: dict = Depends(current_user)) -> di
 class Signup(BaseModel):
     email: str
     password: str
-    name: str = ""
+    name: str = Field("", max_length=accounts.MAX_NAME)
 
 
 @router.post("/signup")

@@ -16,7 +16,7 @@ Quản trị viên (vai trò `admin`, xem [accounts.md](accounts.md)) sửa và 
 ## Nội dung nằm ở đâu
 
 - `backend/app/data/units.json` vẫn là **nội dung gốc** đi kèm mã nguồn, và vẫn được kiểm tra khi import (test dùng nó).
-- Khi server khởi động (`load_content()` trong lifespan), mọi chủ đề và bài trong file được chép vào DB (cùng file `HISTORY_DB`). Sau đó app chỉ đọc từ DB.
+- Khi server khởi động (sau `db.migrate()` đã tạo bảng; `load_content()` trong lifespan), mọi chủ đề và bài trong file được chép vào DB (cùng database `DATABASE_URL`). Sau đó app chỉ đọc từ DB.
 - Mỗi dòng có `source`:
   - `file`: chưa ai sửa trên web. Khi `units.json` trong repo đổi, lần khởi động sau dòng này cập nhật theo. Bài mới trong file được thêm vào cuối.
   - `admin`: đã sửa trên web. File không ghi đè nữa, vì sửa của admin quan trọng hơn.

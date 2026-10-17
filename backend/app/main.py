@@ -21,6 +21,7 @@ from app.api.deps import current_user, require_admin
 from app.api.routes import (
     admin_content, admin_users, auth, bench, check, drills, fluency, history, lessons, review, talks, units, ws,
 )
+from app.core import config
 from app.core.config import FRONTEND_DIST
 from app.interview import units as catalog
 from app.services import accounts, db
@@ -31,12 +32,27 @@ from app.services import stt
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 
+def seed_admin() -> None:
+    """ADMIN_EMAIL / ADMIN_PASSWORD in .env: the first admin of a new, empty database."""
+    if not (config.ADMIN_EMAIL and config.ADMIN_PASSWORD):
+        return
+    if not accounts.valid_email(accounts.normalize_email(config.ADMIN_EMAIL)):
+        raise SystemExit(f"ADMIN_EMAIL is not a valid email address: {config.ADMIN_EMAIL}")
+    if accounts.password_problem(config.ADMIN_PASSWORD):
+        raise SystemExit(f"ADMIN_PASSWORD is refused: at least {accounts.MIN_PASSWORD} characters.")
+    if admin := accounts.seed_admin(config.ADMIN_EMAIL, config.ADMIN_PASSWORD):
+        print(f"Created the default admin {admin['email']} (ADMIN_EMAIL in .env).")
+        history_store.claim_unowned(admin["id"])
+
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     if not db.enabled():
-        raise SystemExit("HISTORY_DB is empty: accounts are stored there, set it to a file (see .env.example).")
-    accounts.init()  # create the SQLite tables if needed
-    history_store.init()
+        raise SystemExit("DATABASE_URL is empty: accounts are stored in MySQL, set it in .env (see .env.example).")
+    applied = db.migrate()  # bring the MySQL schema up to date (app/migrations)
+    if applied:
+        print(f"Applied database migrations: {', '.join(applied)}")
+    seed_admin()
     catalog.load_content()  # lesson content from the database, where admins edit it
     stt.load()  # load Whisper once at startup
     yield

@@ -245,7 +245,7 @@ export function CheckPage() {
         </div>
 
         {data && !data.enabled && (
-          <p className="card check-note">Lịch sử đang tắt (HISTORY_DB để trống), kết quả sẽ không được lưu.</p>
+          <p className="card check-note">Lịch sử đang tắt (DATABASE_URL để trống), kết quả sẽ không được lưu.</p>
         )}
 
         {data && (

@@ -1,9 +1,7 @@
 """Recordings for "Nghe lại" on the progress page: matching old turns, safe file names, migration."""
 
-import sqlite3
-
 from app.core import config
-from app.services import history, recordings
+from app.services import recordings
 
 
 def turn(tid, created_at, answer, source="voice", audio=None):
@@ -45,21 +43,6 @@ def test_only_files_the_app_created_are_served(tmp_path, monkeypatch):
         assert recordings.path_for(bad) is None
     monkeypatch.setattr(config, "SAVE_AUDIO_DIR", "")
     assert recordings.path_for(good) is None
-
-
-def test_init_adds_the_audio_column_to_an_old_database(tmp_path, monkeypatch):
-    monkeypatch.setattr(config, "ROOT_DIR", tmp_path)
-    monkeypatch.setattr(config, "HISTORY_DB", "old.db")
-    old_schema = history.SCHEMA.replace(
-        "    first_audio_ms INTEGER,\n    audio TEXT", "    first_audio_ms INTEGER\n   "
-    )
-    assert "audio TEXT" not in old_schema.split("CREATE TABLE IF NOT EXISTS shadows")[0]
-    with sqlite3.connect(tmp_path / "old.db") as conn:
-        conn.executescript(old_schema)
-    history.init()
-    history.init()  # idempotent
-    with sqlite3.connect(tmp_path / "old.db") as conn:
-        assert "audio" in {r[1] for r in conn.execute("PRAGMA table_info(turns)")}
 
 
 def test_old_drill_readings_find_their_recording_by_time():

@@ -16,11 +16,7 @@ from app.services import accounts, content, history, llm
 
 
 @pytest.fixture
-def db(tmp_path, monkeypatch):
-    monkeypatch.setattr(config, "ROOT_DIR", tmp_path)
-    monkeypatch.setattr(config, "HISTORY_DB", "history.db")
-    accounts.init()
-    history.init()
+def db(mysql):
     catalog.load_content()
     yield
     catalog.use_content(catalog.file_topics, catalog.file_units)  # other tests see the shipped content
@@ -241,3 +237,14 @@ def test_content_rules_that_affect_the_app_apply_to_admin_units(db):
     assert "weekend: phrase 1 is not practised by any question" in errors
     assert "weekend: phrase 1: saying it is not detected, add its start to match" in errors
     assert "weekend: uses words reserved for the prompt's examples: deliver, driver" in errors
+
+
+def test_ids_and_titles_must_fit_their_columns(db):
+    weekend = catalog.units_by_id["weekend"]
+    long_id = "a" * (catalog.MAX_ID + 1)
+    errors = catalog.validate(catalog.topics, [{**weekend, "id": long_id, "title": "t" * (catalog.MAX_TITLE + 1)}])
+    assert any("id must be at most" in e for e in errors)
+    assert any("title must be at most" in e for e in errors)
+    long_topic = {**catalog.topics[0], "id": long_id}
+    assert any("id must be at most" in e for e in catalog.validate([long_topic], []))
+    assert catalog.validate(catalog.topics, [weekend]) == []

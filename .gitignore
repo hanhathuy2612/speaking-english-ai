@@ -16,7 +16,7 @@ frontend/dist/
 .env.*
 !.env.example
 
-# Lịch sử luyện tập (SQLite) của người dùng: dữ liệu cá nhân
+# Khóa JWT và file SQLite cũ (nguồn cho migrate_sqlite) của người dùng: dữ liệu cá nhân
 /data/
 
 # Giọng nói thật của người dùng: dữ liệu cá nhân, file lớn

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+from urllib.parse import unquote, urlparse
 
 from dotenv import load_dotenv
 
@@ -43,12 +44,32 @@ STT_MAX_NO_SPEECH = float(os.getenv("STT_MAX_NO_SPEECH", "0.6"))
 STT_CHECK_LANGUAGE = os.getenv("STT_CHECK_LANGUAGE", "0") == "1"
 SAVE_AUDIO_DIR = os.getenv("SAVE_AUDIO_DIR", "")  # relative to the project root, e.g. "recordings"
 
-# ----- Practice history (SQLite) -----
-HISTORY_DB = os.getenv("HISTORY_DB", "data/history.db")  # relative to the project root; empty disables
+# ----- Database (MySQL 8): accounts, practice history, lesson content -----
+# mysql://user:password@host:3306/database (percent-encode special characters in the password).
+# Required: accounts live here, the server refuses to start without it.
+DATABASE_URL = os.getenv("DATABASE_URL", "")
+
+
+def parse_database_url(url: str) -> dict:
+    """pymysql connect() arguments from a mysql:// URL."""
+    u = urlparse(url)
+    if u.scheme != "mysql" or not u.hostname or not u.path.strip("/"):
+        raise ValueError("DATABASE_URL must look like mysql://user:password@host:3306/database")
+    return {
+        "host": u.hostname,
+        "port": u.port or 3306,
+        "user": unquote(u.username or ""),
+        "password": unquote(u.password or ""),
+        "database": unquote(u.path.strip("/")),
+    }
+
 
 # ----- Accounts and email (docs/features/accounts.md) -----
 SIGNUP_ENABLED = os.getenv("SIGNUP_ENABLED", "1") == "1"  # 0: only admins create accounts
-# Key that signs login tokens (JWT). Empty: a random key is created next to HISTORY_DB and kept.
+# Default admin, created at startup only while the users table is empty (first start of a new database).
+ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "")
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "")
+# Key that signs login tokens (JWT). Empty: a random key is created in data/jwt_secret and kept.
 # Changing it logs everyone out.
 JWT_SECRET = os.getenv("JWT_SECRET", "")
 # Address the links in emails point to, e.g. https://192.168.0.2:8000. Required when SMTP_HOST is

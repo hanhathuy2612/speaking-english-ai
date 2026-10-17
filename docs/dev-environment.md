@@ -2,30 +2,57 @@
 
 Windows 11, Python 3.11 (venv tại `.venv`), Node 22 / npm 12. GPU RTX 3060 12 GB. LM Studio chạy ở cổng 1234.
 
+## Cài MySQL (một lần cho mỗi máy)
+
+App dùng MySQL 8.0 (trên máy này là dịch vụ Windows `MySQL80`). Tạo database và user, rồi điền `DATABASE_URL` vào `.env`:
+
+```sql
+CREATE DATABASE speaking CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;
+CREATE USER 'speaking'@'localhost' IDENTIFIED BY '<mật khẩu>';
+GRANT ALL PRIVILEGES ON `speaking`.* TO 'speaking'@'localhost';
+GRANT ALL PRIVILEGES ON `speaking\_%`.* TO 'speaking'@'localhost';
+```
+
+Collation `utf8mb4_bin` là bắt buộc: mặc định của server (`utf8mb4_0900_ai_ci`) coi `a` và `á` là một, trong khi app so sánh nhị phân. Bảng do migration tạo lúc server khởi động (xem [Đổi schema database](#đổi-schema-database-migration)). Quyền thứ hai cho phép tạo `speaking_test` (pytest) và `speaking_tmp` (server thử). Có `data/history.db` cũ thì chuyển một lần bằng `python -m scripts.migrate_sqlite data/history.db` (xem [accounts.md](features/accounts.md)).
+
 ## Kiểm thử
 
 | Việc | Lệnh |
 |---|---|
-| Test backend (không cần model) | `python -m pytest` (trong `backend/`) |
+| Test backend (không cần model) | `python -m pytest` (trong `backend/`). Test cần DB đọc `TEST_DATABASE_URL` (ví dụ `.../speaking_test`), `conftest.py` xóa và tạo lại database đó mỗi lần chạy; chưa đặt thì các test này bị bỏ qua |
 | Test và build frontend | `npm test`, `npm run build` (trong `frontend/`) |
 | Kiểm chứng prompt | `python -m scripts.replay answers.txt --runs 3 --url ws://localhost:8001/ws --email admin@test.local` (mật khẩu trong `REPLAY_PASSWORD`) |
 | Đo STT | `python -m scripts.stt_bench --config ...` (xem [stt-benchmark.md](features/stt-benchmark.md)) |
 | Thử giao diện | `npm run build` rồi mở `http://localhost:8001`, hoặc `BACKEND_URL=http://localhost:8001 npm run dev` rồi mở `http://localhost:5173`. Ô gõ chữ cho phép thử mà không cần micro. |
 
+## Đổi schema database (migration)
+
+Schema nằm trong các file `backend/app/migrations/NNN_mo-ta.sql` (bắt đầu từ `001_initial.sql`, có `IF NOT EXISTS` nên DB đã có bảng chỉ ghi nhận là đã áp dụng). `db.migrate()` chạy lúc server khởi động, trong `scripts/create_user.py` và `scripts/migrate_sqlite.py`: tạo bảng `schema_migrations(version, applied_at)`, áp dụng các file chưa chạy theo thứ tự tên, khóa bằng `GET_LOCK` để hai tiến trình không chạy song song. File lỗi thì raise và không được ghi nhận.
+
+Thêm cột hoặc bảng:
+
+1. Tạo file mới với số kế tiếp, ví dụ `002_add_turns_note.sql`, chứa `ALTER TABLE ...` hoặc `CREATE TABLE ...`.
+2. Mỗi file chỉ một thay đổi nhỏ. MySQL tự commit DDL nên file không có tính nguyên tử: file lỗi giữa chừng có thể đã đổi một phần.
+3. **Không sửa file đã áp dụng**, luôn thêm file mới.
+4. `python -m pytest` dựng database test từ các file này (`conftest.py` chạy migrate một lần, không bao giờ xóa `schema_migrations`), nên test bắt lỗi SQL.
+5. Server tự áp dụng khi khởi động. Muốn chạy trước: `python -m scripts.migrate`; xem đã/chưa áp dụng: `python -m scripts.migrate status`.
+
+Sao lưu trước khi migrate trên database thật: `mysqldump -u speaking -p speaking > backup.sql`.
+
 ## Quy tắc khi chạy thử
 
-- **Cổng 8000 là server của người dùng.** Không dừng hay khởi động lại server này. Thử nghiệm trên server riêng ở cổng 8001, **trỏ lịch sử sang file tạm và tắt lưu ghi âm**, để không ghi lẫn vào dữ liệu thật:
+- **Cổng 8000 là server của người dùng.** Không dừng hay khởi động lại server này. Thử nghiệm trên server riêng ở cổng 8001, **trỏ sang database tạm và tắt lưu ghi âm**, để không ghi lẫn vào dữ liệu thật:
 
 ```
-HISTORY_DB=<thư mục tạm>/hist.db SAVE_AUDIO_DIR= uvicorn app.main:app --port 8001
+DATABASE_URL=mysql://speaking:<mật khẩu>@localhost:3306/speaking_tmp SAVE_AUDIO_DIR= uvicorn app.main:app --port 8001
 ```
 
-  Biến môi trường đặt sẵn được ưu tiên hơn `.env`. `HISTORY_DB` không để trống được (tài khoản lưu ở đó).
+  Biến môi trường đặt sẵn được ưu tiên hơn `.env`. `DATABASE_URL` không để trống được (tài khoản lưu ở đó). Database tạm (`speaking_tmp`) tạo bằng `CREATE DATABASE speaking_tmp CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;` và `DROP DATABASE` khi xong; user `speaking` đã có quyền trên mọi database tên `speaking_*` (xem mục cài MySQL).
 
 - **Mọi trang và API đều cần đăng nhập** ([accounts.md](features/accounts.md)). Tạo tài khoản thử trong DB tạm trước khi chạy server, mật khẩu đặt qua biến môi trường để không phải gõ:
 
 ```
-HISTORY_DB=<thư mục tạm>/hist.db NEW_USER_PASSWORD=<mật khẩu thử> python -m scripts.create_user admin@test.local --admin
+DATABASE_URL=mysql://speaking:<mật khẩu>@localhost:3306/speaking_tmp NEW_USER_PASSWORD=<mật khẩu thử> python -m scripts.create_user admin@test.local --admin
 ```
 
   Thử bằng script thì đăng nhập qua `POST /api/auth/login`, gửi `access_token` trong header `Authorization: Bearer ...`, hoặc trong tin `auth` đầu tiên của WebSocket (`replay.py` đã làm việc này, đăng nhập lại mỗi lượt chạy vì token sống 15 phút). Để trống `SMTP_HOST` và `APP_URL`: email xác nhận in ra log server, link trỏ về chính server thử.
@@ -36,9 +63,9 @@ HISTORY_DB=<thư mục tạm>/hist.db NEW_USER_PASSWORD=<mật khẩu thử> pyt
 powershell -NoProfile -Command "Get-NetTCPConnection -LocalPort 8001 -State Listen | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }"
 ```
 
-- `history.db` ở chế độ WAL: khi server chạy sẽ có thêm `history.db-wal` và `history.db-shm` cạnh nó. Sao lưu phải chép cả ba file, hoặc chép khi server đã dừng; chỉ chép mỗi `history.db` có thể mất dữ liệu mới ghi.
+- Sao lưu dữ liệu thật bằng `mysqldump -u speaking -p speaking > backup.sql`.
 - Server mất khoảng 10 đến 30 giây để nạp Whisper. Chờ `/api/units` trả lời rồi mới thử.
-- `recordings/` (giọng nói) và `data/` (lịch sử luyện tập) là dữ liệu thật của người dùng. Không xóa, không ghi đè. File tạo ra khi thử thì tự dọn.
+- `recordings/` (giọng nói), `data/` (khóa JWT) và database `speaking` trong MySQL là dữ liệu thật của người dùng. Không xóa, không ghi đè, không `DROP`. File tạo ra khi thử thì tự dọn.
 - Editor của người dùng tự định dạng file Python khi lưu (kiểu Black, 88 ký tự, sắp xếp lại import). Đọc lại file trước khi sửa nếu công cụ báo file đã thay đổi.
 
 ## Làm việc theo nhóm agent (Claude Code)
@@ -49,7 +76,7 @@ Gõ `/team <việc cần làm>` trong Claude Code: khung chat chính thành ngư
 |---|---|---|
 | `backend-dev` | Làm phần `backend/` theo kế hoạch, chạy `pytest` | `backend/` |
 | `frontend-dev` | Làm phần `frontend/`, chạy `format`, `build`, `test` | `frontend/` |
-| `prompt-tester` | Đổi prompt hoặc parse thì chạy `replay.py` trên server thử cổng 8001, DB tạm | Không (chỉ file tạm) |
+| `prompt-tester` | Đổi prompt hoặc parse thì chạy `replay.py` trên server thử cổng 8001, database tạm | Không (chỉ file tạm) |
 | `rules-reviewer` | Soát diff theo quy tắc của repo: lọc `user_id`, ngôn ngữ, hướng phụ thuộc, không chấm điểm bằng LLM | Không |
 | `docs-sync` | Cập nhật `docs/` và `AGENTS.md` theo thay đổi | Chỉ tài liệu |
 

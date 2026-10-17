@@ -10,7 +10,7 @@ bằng Capacitor), không ghép code vào. Không đưa lại các cách làm đ
 (ngoại lệ duy nhất: giáo viên ở phần bài giảng đọc câu cần học để người học đọc theo, xem [lesson.md](docs/features/lesson.md)).
 
 **Stack:** backend FastAPI + WebSocket (Python 3.11), frontend React 19 + TypeScript + Vite (Node 22.12+).
-LLM Qwen2.5-7B qua LM Studio, STT faster-whisper `large-v3-turbo` trên GPU, TTS edge-tts. Cấu hình nằm trong `.env` ở thư mục gốc.
+MySQL 8.0 (PyMySQL, không ORM), LLM Qwen2.5-7B qua LM Studio, STT faster-whisper `large-v3-turbo` trên GPU, TTS edge-tts. Cấu hình nằm trong `.env` ở thư mục gốc.
 
 ## Cấu trúc
 
@@ -19,17 +19,18 @@ backend/
   app/
     main.py              # tạo FastAPI app, nạp Whisper lúc khởi động, gắn router, phục vụ frontend
     __main__.py          # python -m app: chạy uvicorn với SERVER_*/SSL_* trong .env (run.cmd ở thư mục gốc gọi file này)
+    migrations/          # NNN_name.sql: schema database theo phiên bản (db.migrate() áp dụng lúc khởi động)
     core/                # config.py (đọc .env, đường dẫn), cuda.py (DLL CUDA trên Windows)
     api/deps.py          # current_user, require_admin, ws_user: đăng nhập và vai trò
     api/routes/          # ws.py (WebSocket /ws), units.py (+ /api/stages), lessons.py (bài giảng), review.py, drills.py, fluency.py, check.py, talks.py, bench.py, history.py (/api/...),
                          #   auth.py (đăng nhập, đăng ký, email), admin_users.py (quản lý người dùng), admin_content.py (sửa bài học)
-    services/            # stt.py (Whisper), tts.py (edge-tts + cache), llm.py (LM Studio), db.py (file SQLite), accounts.py (tài khoản), tokens.py (JWT),
+    services/            # stt.py (Whisper), tts.py (edge-tts + cache), llm.py (LM Studio), db.py (kết nối MySQL), accounts.py (tài khoản), tokens.py (JWT),
                          #   history.py (lịch sử theo user_id), content.py (bài học trong DB), mailer.py (SMTP), recordings.py (file ghi âm cũ)
     interview/           # session.py (trạng thái, next_step), prompts.py, steps.py (ý để nói dài hơn), turn.py (một lượt), shadow.py (nói lại), retell.py (trả lời lại), units.py (nội dung đang dùng + validate), lesson.py (bài giảng), talks.py (bài giảng nói 2 phút), check_review.py (AI viết lại bài kiểm tra), review.py (thẻ ôn), drafts.py (AI soạn nháp bài)
     assessment/          # không dùng LLM: metrics.py (đo), check.py (kiểm tra 2 phút), drills.py (phát âm), fluency.py (4–3–2), stages.py (mở giai đoạn)
     utils/               # parsing.py, compare.py (hàm thuần), ws.py (Conn)
     data/                # units.json (chủ đề + bài gốc, chép vào DB lúc khởi động), stages.json, drills.json, check_prompts.json, talks.json, fluency_prompts.json, bench_sentences.json
-  scripts/               # replay.py (so prompt), stt_bench.py (đo STT), make_cert.py (HTTPS cho LAN), create_user.py (tạo tài khoản, admin đầu tiên)
+  scripts/               # replay.py (so prompt), stt_bench.py (đo STT), make_cert.py (HTTPS cho LAN), create_user.py (tạo tài khoản, admin đầu tiên), migrate.py (áp dụng/xem migration), migrate_sqlite.py (chép history.db cũ sang MySQL)
   tests/                 # pytest
   pyproject.toml, requirements*.txt
 frontend/                # React + TypeScript + Vite; build vào frontend/dist (backend phục vụ)
@@ -47,7 +48,7 @@ frontend/                # React + TypeScript + Vite; build vào frontend/dist (
                          #   auth.css, admin.css
 docs/                    # tài liệu theo tính năng (bảng bên dưới)
 recordings/              # giọng nói thật của người dùng, không commit
-data/                    # history.db: tài khoản và lịch sử luyện tập của người dùng, không commit
+data/                    # jwt_secret (khóa ký token tự sinh), không commit. Tài khoản và lịch sử nằm trong MySQL, không nằm ở đây
 ```
 
 Lớp phụ thuộc một chiều: `api` -> `interview` / `assessment` -> `services` / `utils` -> `core`. `utils/parsing.py` không phụ thuộc gì (dễ test).
@@ -62,6 +63,8 @@ uvicorn app.main:app --port 8000      # app của người dùng; agent thử ng
 python -m app                         # như trên nhưng đọc SERVER_HOST/PORT, SSL_* trong .env (LAN + HTTPS); ở thư mục gốc: run
 python -m pytest                      # test backend
 python -m scripts.create_user you@example.com --admin   # tạo tài khoản (admin đầu tiên nhận lịch sử cũ)
+python -m scripts.migrate status                      # migration nào đã/chưa áp dụng (bỏ `status`: áp dụng ngay; server cũng tự áp dụng lúc khởi động)
+python -m scripts.migrate_sqlite data/history.db       # một lần: chép history.db cũ (SQLite) sang MySQL
 python -m scripts.replay answers.txt --runs 3 --url ws://localhost:8001/ws --email admin@test.local
 python -m scripts.stt_bench --config large-v3-turbo,cuda,float16,3 --show
 python -m scripts.make_cert 192.168.0.2   # HTTPS cho thiết bị trong LAN, xem docs/dev-environment.md
@@ -121,8 +124,8 @@ npm run format     # Prettier; npm run format:check chỉ kiểm tra
 - Không chấm điểm bằng LLM. Chỉ dùng chỉ số khách quan. (LLM soạn nháp bài học cho admin được, vì admin duyệt trước khi lưu.)
 - Giữ code đơn giản. Frontend dùng React + TypeScript, không thêm thư viện UI hay state manager khi chưa thật cần; dependency mới phải ghim phiên bản và `npm audit` sạch. Giữ hướng phụ thuộc giữa các lớp backend như trên.
 - Đổi prompt thì kiểm chứng bằng `scripts/replay.py`. Đổi STT thì đo bằng `scripts/stt_bench.py`. Đổi frontend thì `npm run format`, rồi `npm run build` + `npm test` phải qua. Không đoán.
-- **Cổng 8000 là server của người dùng.** Thử nghiệm ở cổng 8001 với `HISTORY_DB` trỏ sang file tạm (không ghi lẫn vào lịch sử thật), không tắt `python.exe` theo tên, không xóa `recordings/` hay `data/`.
-  App cần đăng nhập: tạo tài khoản thử trong DB tạm bằng `scripts/create_user.py` (mật khẩu qua `NEW_USER_PASSWORD`), xem docs/dev-environment.md.
+- **Cổng 8000 là server của người dùng.** Thử nghiệm ở cổng 8001 với `DATABASE_URL` trỏ sang database tạm, ví dụ `speaking_tmp` (không ghi lẫn vào lịch sử thật), không tắt `python.exe` theo tên, không xóa `recordings/` hay `data/`.
+  App cần đăng nhập: tạo tài khoản thử trong DB tạm bằng `scripts/create_user.py` (đọc `DATABASE_URL`, mật khẩu qua `NEW_USER_PASSWORD`), xem docs/dev-environment.md.
 - **Dữ liệu của người học luôn lọc theo `user_id`.** Hàm đọc mới trong `services/history.py` nhận `uid` đầu tiên; route lấy nó từ `Depends(current_user)`. Id do client gửi lên (buổi tập, thẻ, file ghi âm) phải kiểm tra chủ sở hữu.
 - **Sửa tính năng nào thì cập nhật file docs tương ứng trong cùng commit.** Thêm tính năng mới thì thêm file trong `docs/features/` và một dòng vào bảng trên.
 

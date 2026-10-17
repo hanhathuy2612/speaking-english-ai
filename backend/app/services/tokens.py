@@ -27,7 +27,7 @@ _keys: dict[Path, str] = {}
 def _key() -> str:
     if config.JWT_SECRET:
         return config.JWT_SECRET
-    path = (config.ROOT_DIR / config.HISTORY_DB).parent / "jwt_secret"
+    path = config.ROOT_DIR / "data" / "jwt_secret"
     if path not in _keys:
         if not path.exists():
             path.parent.mkdir(parents=True, exist_ok=True)

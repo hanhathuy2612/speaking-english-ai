@@ -1,24 +1,22 @@
-"""History store tests against a temporary SQLite file."""
-
-import re
+"""History store tests against the MySQL test database."""
 
 import pytest
 
 from app.core import config
-from app.services import accounts, history
+from app.services import accounts, db as database, history
 
 UNIT = {"id": "u1", "title": "Unit 1", "phrases": [{"say": "a"}, {"say": "b"}, {"say": "c"}]}
 U = 1  # the user every test writes as (created by the db fixture)
 
 
 @pytest.fixture
-def db(tmp_path, monkeypatch):
-    monkeypatch.setattr(config, "ROOT_DIR", tmp_path)
-    monkeypatch.setattr(config, "HISTORY_DB", "history.db")
-    accounts.init()
-    history.init()
+def db(mysql):
     assert accounts.create_user("a@example.com", "A", "password1")["id"] == U
-    return tmp_path / "history.db"
+
+
+def _count(table):
+    with database.connect() as conn:
+        return conn.execute(f"SELECT COUNT(*) AS n FROM {table}").fetchone()["n"]
 
 
 def voice(words, wpm, wpm_speaking, pauses, used=()):
@@ -77,26 +75,21 @@ def test_sessions_without_answers_are_hidden_and_delete_cascades(db):
     assert empty is not None
 
 
-def test_disabled_when_history_db_is_empty(tmp_path, monkeypatch):
-    monkeypatch.setattr(config, "ROOT_DIR", tmp_path)
-    monkeypatch.setattr(config, "HISTORY_DB", "")
-    history.init()
+def test_disabled_when_database_url_is_empty(monkeypatch):
+    monkeypatch.setattr(config, "DATABASE_URL", "")
     assert history.start_session(U, UNIT) is None
     assert history.add_turn(None, voice(10, 90, 90, 0)) is None
     assert history.list_sessions(U) == []
-    assert list(tmp_path.iterdir()) == []
 
 
 def test_shadow_attempts_are_stored_apart_and_deleted_with_the_session(db):
-    import sqlite3
-
     sid = history.start_session(U, UNIT)
     history.add_turn(sid, voice(20, 100, 120, 1))
     history.add_shadow(sid, {"target": "I'm responsible for ...", "heard": "I responsible for",
                              "correct": 3, "total": 4, "words": 3})
     [s] = history.list_sessions(U)
     assert s["turns"] == 1  # shadowing never counts as an interview turn
-    count = lambda: sqlite3.connect(db).execute("SELECT COUNT(*) FROM shadows").fetchone()[0]  # noqa: E731
+    count = lambda: _count("shadows")  # noqa: E731
     assert count() == 1
     history.delete_session(U, sid)
     assert count() == 0
@@ -104,15 +97,13 @@ def test_shadow_attempts_are_stored_apart_and_deleted_with_the_session(db):
 
 
 def test_retell_attempts_are_stored_apart_and_deleted_with_the_session(db):
-    import sqlite3
-
     sid = history.start_session(U, UNIT)
     history.add_turn(sid, voice(6, None, None, 0))
     history.add_retell(sid, {"question": "Q?", "answer": "A longer answer", "words": 25,
                              "original_words": 6, "steps_done": 2, "steps_total": 3})
     [s] = history.list_sessions(U)
     assert s["turns"] == 1 and s["words"] == 6  # a retell never counts as an interview turn
-    count = lambda: sqlite3.connect(db).execute("SELECT COUNT(*) FROM retells").fetchone()[0]  # noqa: E731
+    count = lambda: _count("retells")  # noqa: E731
     assert count() == 1
     history.delete_session(U, sid)
     assert count() == 0
@@ -205,48 +196,60 @@ def test_each_user_sees_only_their_own_history(db):
     assert [s["id"] for s in history.list_sessions(U)] == [sid]
 
 
-def test_an_old_database_is_backed_up_migrated_and_claimed(tmp_path, monkeypatch):
-    import sqlite3
-
-    monkeypatch.setattr(config, "ROOT_DIR", tmp_path)
-    monkeypatch.setattr(config, "HISTORY_DB", "old.db")
-    # The schema before accounts: no user_id, phrase cards unique per (unit, phrase).
-    old_schema = history.SCHEMA.replace(
-        f"    {history.USER},\n    UNIQUE (user_id, unit_id, phrase_index)", "    UNIQUE (unit_id, phrase_index)"
-    )
-    old_schema = old_schema.replace(f"    {history.USER},\n", "")  # user_id followed by more columns
-    old_schema = re.sub(r",( *--[^\n]*)?\n    " + re.escape(history.USER), r"\1", old_schema)
-    assert "user_id" not in old_schema
-    with sqlite3.connect(tmp_path / "old.db") as conn:
-        conn.executescript(old_schema)
-        conn.execute("INSERT INTO sessions (unit_id, unit_title, phrase_total, started_at) VALUES ('u1', 'U', 3, 'x')")
-        conn.execute("INSERT INTO turns (session_id, created_at, question, answer, source) VALUES (1, 'x', 'Q', 'A', 'voice')")
-        conn.execute("INSERT INTO cards (created_at, kind, unit_id, phrase_index, question, target, due) "
-                     "VALUES ('x', 'phrase', 'u1', 0, 'Q', 'P', '2026-10-14')")  # fmt: skip
-        conn.execute("INSERT INTO card_reviews (card_id, created_at, result) VALUES (1, 'x', 'good')")
-    accounts.init()
-    history.init()
-    history.init()  # idempotent
-    assert (tmp_path / "old.db.before-accounts").is_file()
-    with sqlite3.connect(tmp_path / "old.db") as conn:
-        assert conn.execute("SELECT COUNT(*) FROM card_reviews").fetchone()[0] == 1  # survived the cards rebuild
-    uid = accounts.create_user("a@example.com", "A", "password1", "admin")["id"]
-    assert history.list_sessions(uid) == []
-    assert history.claim_unowned(uid) == 2  # the session and the card
-    assert [s["unit_id"] for s in history.list_sessions(uid)] == ["u1"]
-    assert history.add_card(uid, {"kind": "phrase", "unit_id": "u1", "phrase_index": 0, "question": "Q",
-                                  "target": "P", "due": "2026-10-14"}) is None  # fmt: skip
+def test_add_card_ignores_a_duplicate_phrase_per_user(db):
+    card = {"kind": "phrase", "unit_id": "u1", "phrase_index": 0, "question": "Q", "target": "P", "due": "2026-10-14"}
+    assert history.add_card(U, card) is not None
+    assert history.add_card(U, card) is None
     other = accounts.create_user("b@example.com", "B", "password1")["id"]
-    assert history.add_card(other, {"kind": "phrase", "unit_id": "u1", "phrase_index": 0, "question": "Q",
-                                    "target": "P", "due": "2026-10-14"}) is not None  # fmt: skip
+    assert history.add_card(other, card) is not None
 
 
-def test_init_turns_on_wal_and_adds_the_foreign_key_indexes(db):
-    import sqlite3
-    from contextlib import closing
+def test_rows_saved_before_accounts_can_be_claimed(db):
+    with database.connect() as conn:
+        conn.execute("INSERT INTO sessions (unit_id, unit_title, phrase_total, started_at) VALUES ('u1', 'U', 3, 'x')")
+        conn.execute("INSERT INTO turns (session_id, created_at, question, answer, source, used_phrases) "
+                     "VALUES (1, 'x', 'Q', 'A', 'voice', '[]')")  # fmt: skip
+    other = accounts.create_user("b@example.com", "B", "password1")["id"]
+    assert history.list_sessions(other) == []
+    assert history.claim_unowned(other) == 1
+    assert [s["unit_id"] for s in history.list_sessions(other)] == ["u1"]
 
-    with closing(sqlite3.connect(db)) as conn:
-        assert conn.execute("PRAGMA journal_mode").fetchone()[0] == "wal"
-        names = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type = 'index'")}
-    assert {"turns_session", "shadows_session", "retells_session", "card_reviews_card", "email_tokens_user"} <= names
-    history.init()  # a second start changes nothing
+
+def test_card_stats_are_plain_ints(db):
+    history.add_card(U, {"kind": "phrase", "unit_id": "u1", "phrase_index": 0, "question": "Q", "target": "P",
+                         "due": "2026-10-10", "box": 4})  # fmt: skip
+    assert history.card_stats(U, "2026-10-11", "2026-10-01") == {"due": 1, "active": 1, "learned": 1, "reviews": 0, "good": 0}
+    assert history.card_stats(accounts.create_user("b@example.com", "B", "password1")["id"], "2026-10-11", "2026-10-01")["due"] == 0
+
+
+EXPECTED_TABLES = {
+    "users", "email_tokens", "sessions", "turns", "shadows", "retells", "checks", "talk_practice", "drills",
+    "fluency", "cards", "card_reviews", "lesson_reads", "lessons", "content_topics", "content_units",
+}
+
+
+def test_migrations_create_the_tables_and_indexes(db):
+    from app.services import content
+
+    content.init([], [])
+    with database.connect() as conn:
+        tables = {next(iter(r.values())) for r in conn.execute("SHOW TABLES")}
+        indexes = {r["INDEX_NAME"] for r in conn.execute(
+            "SELECT DISTINCT INDEX_NAME FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE()")}
+        collation = conn.execute("SELECT @@collation_database AS c").fetchone()["c"]
+    assert EXPECTED_TABLES <= tables
+    assert {"turns_session_id", "shadows_session_id", "retells_session_id", "card_reviews_card_id", "email_tokens_user"} <= indexes
+    assert {f"{t}_user" for t in history.OWNED} <= indexes
+    assert collation == "utf8mb4_bin"
+
+
+def test_strings_compare_as_binary(db):
+    """Ids and emails that differ only in case or accents are different rows."""
+    history.add_check(U, {"prompt_id": "Abc", "prompt": "t", "text": "x", "words": 1, "duration_s": 1.0,
+                          "hesitations": 0, "not_english": 0, "passed": 0, "total": 1})  # fmt: skip
+    assert history.studied_check_prompts(U) == set()
+    assert accounts.create_user("Case@Example.com", "C", "password1")["email"] == "case@example.com"
+    assert history.lesson_counts(U) == {}
+    history.finish_lesson(U, "Unit")
+    history.finish_lesson(U, "unit")
+    assert history.lesson_counts(U) == {"Unit": 1, "unit": 1}

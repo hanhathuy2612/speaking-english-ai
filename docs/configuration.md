@@ -23,9 +23,11 @@ Server tự nạp `.env` bằng python-dotenv khi khởi động. Biến môi tr
 | `STT_MAX_NO_SPEECH` | `0.6` | `0.6` | |
 | `STT_CHECK_LANGUAGE` | `0` | không đặt | `1` = Whisper tự nhận ngôn ngữ để bắt câu tiếng Việt, chậm thêm ~0,24 giây/lượt |
 | `SAVE_AUDIO_DIR` | trống | `recordings` | Giữ file ghi âm mỗi lượt (tương đối với thư mục gốc) |
-| `HISTORY_DB` | `data/history.db` | `data/history.db` | File SQLite lưu tài khoản và lịch sử luyện tập (tương đối với thư mục gốc, hoặc đường dẫn tuyệt đối). Bắt buộc từ khi có tài khoản: để trống thì server không khởi động |
-| `JWT_SECRET` | trống | không đặt | Khóa ký token đăng nhập (JWT). Trống: server tự tạo, lưu ở file `jwt_secret` cạnh `HISTORY_DB`. Đổi khóa thì mọi người phải đăng nhập lại (xem [features/accounts.md](features/accounts.md)) |
+| `DATABASE_URL` | trống | `mysql://speaking:<mật khẩu>@localhost:3306/speaking` | MySQL 8 lưu tài khoản, lịch sử luyện tập và bài học. Dạng `mysql://user:mật_khẩu@host:port/tên_db`, ký tự đặc biệt trong mật khẩu mã hóa `%xx`. Bắt buộc: để trống thì server không khởi động. Cách tạo database và user: [dev-environment.md](dev-environment.md) |
+| `TEST_DATABASE_URL` | trống | `.../speaking_test` | Chỉ cho `pytest`: database riêng (tên khác `DATABASE_URL`), được xóa và tạo lại mỗi lần chạy. Để trống thì các test cần DB bị bỏ qua |
+| `JWT_SECRET` | trống | không đặt | Khóa ký token đăng nhập (JWT). Trống: server tự tạo, lưu ở `data/jwt_secret`. Đổi khóa thì mọi người phải đăng nhập lại (xem [features/accounts.md](features/accounts.md)) |
 | `SIGNUP_ENABLED` | `1` | không đặt | `0` = tắt trang đăng ký, chỉ admin tạo tài khoản (xem [features/accounts.md](features/accounts.md)) |
+| `ADMIN_EMAIL`, `ADMIN_PASSWORD` | trống | tùy | Admin mặc định, server tạo lúc khởi động khi database chưa có người dùng nào (xem [features/accounts.md](features/accounts.md)) |
 | `APP_URL` | trống | | Địa chỉ mở app, ví dụ `https://192.168.0.2:8000`, dùng cho link trong email. Bắt buộc khi có `SMTP_HOST` (không dựng link theo header `Host` vì header đó giả được) |
 | `SMTP_HOST` / `SMTP_PORT` | trống / `587` | | Máy chủ gửi email. Trống thì email chỉ in ra terminal của server |
 | `SMTP_SECURITY` | `starttls` | | `starttls` (cổng 587), `ssl` (cổng 465) hoặc `none` |

@@ -15,14 +15,14 @@ Mọi API `/api/*` (trừ `/api/auth/*`) và WebSocket `/ws` đều cần đăng
 |---|---|
 | Bảng `users`, `email_tokens`; băm mật khẩu, token email, `login_state` | `backend/app/services/accounts.py` |
 | Ký và đọc JWT (access, refresh), khóa ký | `backend/app/services/tokens.py` |
-| File SQLite dùng chung với lịch sử | `backend/app/services/db.py` |
+| Kết nối MySQL dùng chung với lịch sử | `backend/app/services/db.py` |
 | Kiểm tra đăng nhập và vai trò (`current_user`, `require_admin`) | `backend/app/api/deps.py`; gắn vào router trong `main.py` |
 | Đăng nhập WebSocket (tin `auth` đầu tiên) | `backend/app/api/routes/ws.py` (`_ws_user`) |
 | Đăng nhập, làm mới token, đăng ký, xác nhận email, quên/đặt lại mật khẩu, đổi mật khẩu | `backend/app/api/routes/auth.py` |
 | Quản lý người dùng (admin) | `backend/app/api/routes/admin_users.py` |
 | Gửi email (SMTP) | `backend/app/services/mailer.py` |
 | Tạo tài khoản bằng lệnh | `backend/scripts/create_user.py` |
-| Dữ liệu theo từng người (`user_id`), chuyển DB cũ | `backend/app/services/history.py` (`OWNED`, `init`, `claim_unowned`) |
+| Dữ liệu theo từng người (`user_id`), chuyển DB cũ | `backend/app/services/history.py` (`OWNED`, `claim_unowned`) |
 | Giao diện | `frontend/src/auth/AuthContext.tsx`, `frontend/src/api/http.ts`, `frontend/src/features/auth/` (đăng nhập, đăng ký, link email), `features/account/`, `features/admin/UsersPage.tsx`; `styles/auth.css`, `styles/admin.css` |
 | Test | `backend/tests/test_accounts.py`, `test_each_user_sees_only_their_own_history` và `test_an_old_database_is_backed_up_migrated_and_claimed` trong `test_history.py` |
 
@@ -34,7 +34,9 @@ Chưa có tài khoản nào thì không đăng nhập được. Chạy một l�
 python -m scripts.create_user email-cua-ban@example.com --name "Huy" --admin
 ```
 
-Quản trị viên đầu tiên **nhận toàn bộ lịch sử luyện tập có từ trước khi có tài khoản** (các dòng `user_id` trống). Lệnh in ra số dòng đã nhận. Sau đó những người khác tự đăng ký, hoặc admin tạo tài khoản ở trang Quản trị.
+Hoặc đặt `ADMIN_EMAIL` và `ADMIN_PASSWORD` trong `.env`: lúc khởi động, nếu bảng `users` còn trống (database mới), server tự tạo admin này (đã xác nhận email). Đã có người dùng nào thì bỏ qua, nên đổi mật khẩu trên web sau đó vẫn giữ. Mật khẩu không hợp lệ thì server dừng và báo lỗi. Chép `history.db` cũ bằng `migrate_sqlite` thì chạy **trước** lần khởi động đầu tiên, vì script đó từ chối database đã có dữ liệu.
+
+Quản trị viên đầu tiên (tạo bằng lệnh hay bằng `ADMIN_EMAIL`) **nhận toàn bộ lịch sử luyện tập có từ trước khi có tài khoản** (các dòng `user_id` trống). Lệnh in ra số dòng đã nhận. Sau đó những người khác tự đăng ký, hoặc admin tạo tài khoản ở trang Quản trị.
 
 ## Đăng nhập: JWT, không lưu phiên trên server
 
@@ -44,7 +46,7 @@ Quản trị viên đầu tiên **nhận toàn bộ lịch sử luyện tập c�
   - **Access token**, sống **15 phút**: chứa `sub` (id), `email`, `name`, `role`. Mọi API gửi nó trong header `Authorization: Bearer <token>`. `current_user` chỉ kiểm chữ ký và hạn, không đọc DB.
   - **Refresh token**, sống **30 ngày**: chỉ chứa `sub` và `pwd`, một dấu (16 ký tự đầu của SHA-256) của mật khẩu đã băm. `POST /api/auth/refresh` đọc dòng `users` một lần (`login_state`): tài khoản phải còn hoạt động, đã xác nhận email, và `pwd` phải khớp mật khẩu hiện tại. Đúng thì trả cặp token mới (refresh mới cũng 30 ngày, nên dùng đều đặn thì không phải đăng nhập lại).
   - Hai loại token có `typ` khác nhau (`access`, `refresh`): dùng nhầm loại thì bị từ chối.
-- **Khóa ký:** `JWT_SECRET` trong `.env`. Để trống thì server tự tạo khóa ngẫu nhiên và giữ trong file `jwt_secret` cạnh `HISTORY_DB` (ví dụ `data/jwt_secret`, không commit). Đổi khóa hay xóa file đó thì mọi người phải đăng nhập lại.
+- **Khóa ký:** `JWT_SECRET` trong `.env`. Để trống thì server tự tạo khóa ngẫu nhiên và giữ trong file `data/jwt_secret` (không commit). Đổi khóa hay xóa file đó thì mọi người phải đăng nhập lại.
 - **Cái giá của stateless:** server không thu hồi được token trước hạn.
   - Khóa tài khoản, đổi vai trò, đổi mật khẩu có tác dụng **trong tối đa 15 phút**, ở lần làm mới token tiếp theo. Access token đã cấp vẫn dùng được tới hết hạn.
   - Đổi mật khẩu làm mọi refresh token cũ hết tác dụng (dấu `pwd` không khớp nữa). Thiết bị vừa đổi mật khẩu nhận cặp token mới.
@@ -95,16 +97,13 @@ Các bảng `sessions`, `checks`, `drills`, `fluency`, `cards`, `lesson_reads`, 
 
 Thẻ ôn mẫu câu từng là duy nhất theo `(unit_id, phrase_index)`. Nay là `(user_id, unit_id, phrase_index)`, để hai người cùng bỏ sót một mẫu câu đều có thẻ.
 
-### Chuyển DB cũ
+### Dữ liệu từ trước khi có tài khoản
 
-Lần đầu server (hoặc `create_user`) mở một `history.db` có từ trước khi có tài khoản:
+Các dòng lịch sử cũ chưa có `user_id`. Quản trị viên đầu tiên tạo bằng `create_user --admin` nhận chúng (`claim_unowned`).
 
-1. Chép file sang `history.db.before-accounts` (chỉ một lần, không ghi đè bản đã có).
-2. Thêm cột `user_id` (để trống) vào các bảng trên, tạo index.
-3. Dựng lại bảng `cards` với ràng buộc duy nhất mới. SQLite không sửa được ràng buộc `UNIQUE` tại chỗ, nên app chép sang bảng mới. Trong lúc đó tạm tắt khóa ngoại để `card_reviews` không bị xóa theo.
-4. Dữ liệu cũ thuộc về quản trị viên đầu tiên tạo bằng `create_user --admin` (`claim_unowned`).
+Lịch sử từ bản SQLite cũ (`data/history.db`) chuyển sang MySQL một lần bằng `python -m scripts.migrate_sqlite data/history.db` (chạy trong `backend/`). Script mở file cũ ở chế độ chỉ đọc, chép mọi bảng vào database của `DATABASE_URL` và giữ nguyên id, rồi in số dòng từng bảng để đối chiếu. Database đích phải trống, có dữ liệu rồi thì script từ chối trừ khi thêm `--force`.
 
-`HISTORY_DB` không được để trống nữa, vì tài khoản lưu trong đó. Server không khởi động nếu biến này trống.
+`DATABASE_URL` không được để trống, vì tài khoản lưu trong đó. Server không khởi động nếu biến này trống.
 
 ## API
 
@@ -146,10 +145,10 @@ User trả về không bao giờ có mật khẩu băm: `{id, email, name, role,
 
 ## Thử nghiệm (agent)
 
-Server thử ở cổng 8001 dùng DB tạm, nên phải tạo tài khoản trong DB đó trước:
+Server thử ở cổng 8001 dùng database tạm, nên phải tạo tài khoản trong DB đó trước:
 
 ```
-set HISTORY_DB=<thư mục tạm>\hist.db
+set DATABASE_URL=mysql://speaking:<mật khẩu>@localhost:3306/speaking_tmp
 set NEW_USER_PASSWORD=<mật khẩu thử>
 python -m scripts.create_user admin@test.local --admin
 ```

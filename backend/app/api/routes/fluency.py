@@ -6,7 +6,7 @@ import asyncio
 import uuid
 from collections import Counter
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
 from app.api.deps import current_user
 from app.assessment import fluency
@@ -32,7 +32,7 @@ def fluency_state(exclude: str | None = None, user: dict = Depends(current_user)
 
 @router.post("/{prompt_id}/{round_no}")
 async def fluency_submit(
-    prompt_id: str, round_no: int, request: Request, run: str | None = None, user: dict = Depends(current_user)
+    prompt_id: str, round_no: int, request: Request, run: str | None = Query(None, max_length=100), user: dict = Depends(current_user)
 ) -> dict:
     """One round. Round 1 starts a new exercise and returns its `run` id; rounds 2 and 3 pass it back."""
     prompt = fluency.prompts_by_id.get(prompt_id)

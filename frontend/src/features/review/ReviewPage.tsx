@@ -233,7 +233,7 @@ export function ReviewPage() {
         </div>
 
         {data && !data.enabled && (
-          <p className="card review-note">Lịch sử đang tắt (HISTORY_DB để trống), nên chưa có thẻ ôn nào.</p>
+          <p className="card review-note">Lịch sử đang tắt (DATABASE_URL để trống), nên chưa có thẻ ôn nào.</p>
         )}
 
         {card && (

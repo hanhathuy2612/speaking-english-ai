@@ -1,4 +1,4 @@
-"""Review cards: schedule, creation from history, grading (temporary SQLite file)."""
+"""Review cards: schedule, creation from history, grading (MySQL test database)."""
 
 from datetime import date
 
@@ -15,11 +15,7 @@ U = 1  # the user every test writes as (created by the db fixture)
 
 
 @pytest.fixture
-def db(tmp_path, monkeypatch):
-    monkeypatch.setattr(config, "ROOT_DIR", tmp_path)
-    monkeypatch.setattr(config, "HISTORY_DB", "history.db")
-    accounts.init()
-    history.init()
+def db(mysql):
     assert accounts.create_user("a@example.com", "A", "password1")["id"] == U
 
 

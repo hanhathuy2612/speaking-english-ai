@@ -191,7 +191,7 @@ export function SoundsPage() {
         </div>
 
         {data && !data.enabled && (
-          <p className="card sounds-note">Lịch sử đang tắt (HISTORY_DB để trống), kết quả sẽ không được lưu.</p>
+          <p className="card sounds-note">Lịch sử đang tắt (DATABASE_URL để trống), kết quả sẽ không được lưu.</p>
         )}
 
         {data && (

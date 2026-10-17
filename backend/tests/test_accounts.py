@@ -1,6 +1,8 @@
-"""Accounts: password hashing, login tokens (JWT), email tokens, and the API guards (temporary SQLite file)."""
+"""Accounts: password hashing, login tokens (JWT), email tokens, and the API guards (MySQL test database)."""
 
 from __future__ import annotations
+
+from datetime import timedelta
 
 import pytest
 from fastapi.testclient import TestClient
@@ -11,12 +13,8 @@ from app.services import accounts, history, tokens
 
 
 @pytest.fixture
-def db(tmp_path, monkeypatch):
-    monkeypatch.setattr(config, "ROOT_DIR", tmp_path)
-    monkeypatch.setattr(config, "HISTORY_DB", "history.db")
-    accounts.init()
-    history.init()
-    return tmp_path / "history.db"
+def db(mysql):
+    return mysql
 
 
 def test_passwords_are_salted_and_checked():
@@ -25,6 +23,22 @@ def test_passwords_are_salted_and_checked():
     assert accounts.verify_password("correct horse", a)
     assert not accounts.verify_password("correct hors", a)
     assert not accounts.verify_password("x", "not-a-hash")
+
+
+def test_default_admin_only_on_an_empty_database(db, monkeypatch):
+    from app import main
+
+    monkeypatch.setattr(config, "ADMIN_EMAIL", "Boss@Example.com")
+    monkeypatch.setattr(config, "ADMIN_PASSWORD", "password1")
+    main.seed_admin()
+    admin = accounts.authenticate("boss@example.com", "password1")
+    assert admin and admin["role"] == "admin" and admin["verified"]
+    monkeypatch.setattr(config, "ADMIN_EMAIL", "other@example.com")
+    main.seed_admin()  # users exist now: nothing is created
+    assert [u["email"] for u in accounts.list_users()] == ["boss@example.com"]
+    monkeypatch.setattr(config, "ADMIN_PASSWORD", "short")
+    with pytest.raises(SystemExit):
+        main.seed_admin()
 
 
 def test_authenticate_and_duplicate_emails(db):
@@ -281,3 +295,32 @@ def test_links_need_app_url_once_smtp_is_configured(client, outbox, monkeypatch)
     monkeypatch.setattr(config, "SMTP_HOST", "smtp.example")
     assert client.post("/api/auth/forgot", json={"email": "me@example.com"}).status_code == 500
     assert outbox == []
+
+
+def test_over_long_names_are_refused_not_a_server_error(client):
+    too_long = "x" * (accounts.MAX_NAME + 1)
+    r = client.post("/api/auth/signup", json={"email": "a@example.com", "password": "password1", "name": too_long})
+    assert r.status_code == 422
+    ok = client.post("/api/auth/signup", json={"email": "a@example.com", "password": "password1", "name": "x" * accounts.MAX_NAME})
+    assert ok.status_code == 200
+
+
+def test_admin_user_routes_refuse_over_long_names(client):
+    accounts.create_user("boss@example.com", "Boss", "password1", "admin")
+    login(client, "boss@example.com")
+    too_long = "x" * (accounts.MAX_NAME + 1)
+    body = {"email": "n@example.com", "password": "password1", "name": too_long}
+    assert client.post("/api/admin/users", json=body).status_code == 422
+    uid = accounts.create_user("m@example.com", "M", "password1")["id"]
+    assert client.patch(f"/api/admin/users/{uid}", json={"name": too_long}).status_code == 422
+
+
+def test_a_used_up_or_expired_email_token_fails(db, monkeypatch):
+    uid = accounts.create_user("me@example.com", "Me", "password1")["id"]
+    token = accounts.new_token(uid, "verify")
+    assert accounts.use_token(token, "verify") == uid
+    assert accounts.use_token(token, "verify") is None  # the UPDATE no longer matches a row
+    late = accounts.new_token(uid, "reset")
+    real_now = accounts._now
+    monkeypatch.setattr(accounts, "_now", lambda: real_now() + timedelta(hours=2))
+    assert accounts.use_token(late, "reset") is None

@@ -60,7 +60,7 @@ GET /api/stages
  "next_unit": null}
 ```
 
-- `sessions`: số buổi có ít nhất một câu trả lời. `completed`: số buổi hỏi hết câu chính. `lesson`: bài có bài giảng không; `lesson_done`: số lần học xong bài giảng. `done`: bài đã xong; với bài có bài giảng thì cần đủ cả hai phần (xem [lesson.md](lesson.md)). Mọi chỗ "hoàn thành bài" (tiêu chí giai đoạn, `next_unit`, chip trạng thái) đều dùng `done`. Lấy từ lịch sử, nên khi `HISTORY_DB` để trống thì mọi bài đều "chưa tập" và chỉ giai đoạn 1 mở.
+- `sessions`: số buổi có ít nhất một câu trả lời. `completed`: số buổi hỏi hết câu chính. `lesson`: bài có bài giảng không; `lesson_done`: số lần học xong bài giảng. `done`: bài đã xong; với bài có bài giảng thì cần đủ cả hai phần (xem [lesson.md](lesson.md)). Mọi chỗ "hoàn thành bài" (tiêu chí giai đoạn, `next_unit`, chip trạng thái) đều dùng `done`. Lấy từ lịch sử, nên khi không có DB thì mọi bài đều "chưa tập" và chỉ giai đoạn 1 mở.
 - `next_unit`: bài đầu tiên chưa hoàn thành trong các chủ đề đã mở; `null` khi chưa mở chủ đề nào (đang ở giai đoạn 1) hoặc đã xong hết.
 - Loại tiêu chí (`kind`): `units`, `drill_sets`, `drill_accuracy`, `fluency_runs` (`done`/`total`), `check` (`target` là mức, `latest` là bài kiểm tra đạt mức đó, nếu chưa có thì bài gần nhất).
 

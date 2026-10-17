@@ -170,7 +170,7 @@ export function HistoryPage() {
   const message = !data
     ? null
     : !data.enabled
-      ? "Lịch sử đang tắt (HISTORY_DB trong .env để trống)."
+      ? "Lịch sử đang tắt (DATABASE_URL trong .env để trống)."
       : !sessions.length
         ? "Chưa có buổi tập nào. Hãy vào Phòng tập và trả lời vài câu, kết quả sẽ hiện ở đây."
         : null;

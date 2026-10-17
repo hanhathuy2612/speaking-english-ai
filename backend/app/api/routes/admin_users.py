@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.api.deps import require_admin
 from app.services import accounts
@@ -20,7 +20,7 @@ def list_users() -> list[dict]:
 
 class NewUser(BaseModel):
     email: str
-    name: str = ""
+    name: str = Field("", max_length=accounts.MAX_NAME)
     password: str
     role: Literal["user", "admin"] = "user"
 
@@ -39,7 +39,7 @@ def create_user(body: NewUser) -> dict:
 
 
 class UserChange(BaseModel):
-    name: str | None = None
+    name: str | None = Field(None, max_length=accounts.MAX_NAME)
     role: Literal["user", "admin"] | None = None
     disabled: bool | None = None
     password: str | None = None

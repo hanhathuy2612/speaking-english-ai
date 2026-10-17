@@ -117,4 +117,4 @@ Khối "Nói lại đề này" ghi âm và đo như bài kiểm tra, rồi so v�
 ## Kiểm thử
 
 - `backend/tests/test_talks.py`: dữ liệu hợp lệ, `outro`, `also` của dàn ý, chỗ bí, bỏ đề đã ôn, lọc bản ôn, cả luồng API với STT và LLM giả (số của bài kiểm tra không đổi, không thêm dòng `checks`), quyền sở hữu, luyện nói.
-- Đầu cuối ngày 14/10/2026 (server thử cổng 8001, `HISTORY_DB` tạm): file WAV ghép từ edge-tts với 4 khoảng lặng 1,6 giây giữa câu cho 3 chỗ bí (Whisper đặt dấu chấm ở chỗ thứ tư); bản ôn thật của Qwen như trên; trang `/check`, `/talk/opinion`, `/talk/opinion/practice` không tràn ngang ở bề rộng 375px.
+- Đầu cuối ngày 14/10/2026 (server thử cổng 8001, `DATABASE_URL` tạm): file WAV ghép từ edge-tts với 4 khoảng lặng 1,6 giây giữa câu cho 3 chỗ bí (Whisper đặt dấu chấm ở chỗ thứ tư); bản ôn thật của Qwen như trên; trang `/check`, `/talk/opinion`, `/talk/opinion/practice` không tràn ngang ở bề rộng 375px.

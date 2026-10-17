@@ -17,17 +17,16 @@ from app.services import accounts, db, history
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description="Create a user account in HISTORY_DB.")
+    ap = argparse.ArgumentParser(description="Create a user account in the DATABASE_URL database.")
     ap.add_argument("email")
     ap.add_argument("--name", default="")
     ap.add_argument("--admin", action="store_true", help="give the admin role")
     args = ap.parse_args()
     if not db.enabled():
-        raise SystemExit("HISTORY_DB is empty in .env: nowhere to store accounts.")
+        raise SystemExit("DATABASE_URL is empty in .env: nowhere to store accounts.")
     if not accounts.valid_email(accounts.normalize_email(args.email)):
         raise SystemExit(f"Not a valid email address: {args.email}")
-    accounts.init()
-    history.init()
+    db.migrate()
     password = os.getenv("NEW_USER_PASSWORD") or getpass.getpass("Password: ")
     if accounts.password_problem(password):
         raise SystemExit(f"Password refused: at least {accounts.MIN_PASSWORD} characters.")

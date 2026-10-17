@@ -5,3 +5,4 @@ edge-tts>=7.3.1,<8
 openai>=1.40
 python-dotenv>=1.0
 PyJWT>=2.10,<3
+PyMySQL[rsa]==1.1.*  # [rsa] = cryptography, needed for MySQL 8 caching_sha2_password logins

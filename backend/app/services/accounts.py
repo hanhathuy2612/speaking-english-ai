@@ -11,47 +11,17 @@ from __future__ import annotations
 import hashlib
 import hmac
 import secrets
-import sqlite3
-from contextlib import closing
 from datetime import datetime, timedelta
 
 from app.services import db
 
-SCHEMA = """
-CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY,
-    email TEXT NOT NULL UNIQUE,        -- lower case; the login name
-    name TEXT NOT NULL,
-    password TEXT NOT NULL,            -- scrypt$n$r$p$salt$hash (hash_password)
-    role TEXT NOT NULL DEFAULT 'user', -- 'user' | 'admin'
-    verified_at TEXT,                  -- NULL until the email address is confirmed
-    disabled INTEGER NOT NULL DEFAULT 0,
-    created_at TEXT NOT NULL
-);
-DROP TABLE IF EXISTS auth_sessions;  -- cookie logins, replaced by JWTs
-CREATE TABLE IF NOT EXISTS email_tokens (
-    token_hash TEXT PRIMARY KEY,       -- sha256 of the token in the emailed link
-    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    kind TEXT NOT NULL,                -- 'verify' | 'reset'
-    expires_at TEXT NOT NULL,
-    used_at TEXT
-);
-CREATE INDEX IF NOT EXISTS email_tokens_user ON email_tokens(user_id);
-"""
-
+MAX_NAME = 255  # users.name VARCHAR(255)
 ROLES = ("user", "admin")
 MIN_PASSWORD = 8
 TOKEN_HOURS = {"verify": 48, "reset": 1}
 # scrypt cost: about 50 ms and 16 MB per hash, OWASP's minimum for scrypt.
 SCRYPT_N, SCRYPT_R, SCRYPT_P = 2**14, 8, 1
 _DUMMY = None  # hash compared against when the email is unknown, so timing does not reveal accounts
-
-
-def init() -> None:
-    if not db.enabled():
-        return
-    with closing(db.connect()) as conn, conn:
-        conn.executescript(SCHEMA)
 
 
 def _now() -> datetime:
@@ -99,7 +69,7 @@ def password_problem(password: str) -> str | None:
     return None
 
 
-def public(row: sqlite3.Row | dict) -> dict:
+def public(row: dict) -> dict:
     """A user as the API returns it: never the password hash."""
     return {
         "id": row["id"],
@@ -118,42 +88,49 @@ def create_user(email: str, name: str, password: str, role: str = "user", verifi
     email = normalize_email(email)
     now = _now().isoformat()
     try:
-        with closing(db.connect()) as conn, conn:
+        with db.connect() as conn:
             cur = conn.execute(
-                "INSERT INTO users (email, name, password, role, verified_at, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+                "INSERT INTO users (email, name, password, role, verified_at, created_at) VALUES (%s, %s, %s, %s, %s, %s)",
                 (email, name.strip() or email.split("@")[0], hash_password(password), role, now if verified else None, now),
             )
             uid = cur.lastrowid
-    except sqlite3.IntegrityError as e:
+    except db.IntegrityError as e:
         raise ValueError("email already registered") from e
     user = get_user(uid)
     assert user is not None
     return user
 
 
-def _one(sql: str, args: tuple) -> sqlite3.Row | None:
-    with closing(db.connect()) as conn:
+def seed_admin(email: str, password: str) -> dict | None:
+    """First start only (no users at all): create this verified admin. None when users exist."""
+    if _one("SELECT 1 AS x FROM users LIMIT 1", ()):
+        return None
+    return create_user(email, "", password, "admin")
+
+
+def _one(sql: str, args: tuple) -> dict | None:
+    with db.connect() as conn:
         return conn.execute(sql, args).fetchone()
 
 
 def get_user(uid: int) -> dict | None:
-    row = _one("SELECT * FROM users WHERE id = ?", (uid,))
+    row = _one("SELECT * FROM users WHERE id = %s", (uid,))
     return public(row) if row else None
 
 
 def user_by_email(email: str) -> dict | None:
-    row = _one("SELECT * FROM users WHERE email = ?", (normalize_email(email),))
+    row = _one("SELECT * FROM users WHERE email = %s", (normalize_email(email),))
     return public(row) if row else None
 
 
 def list_users() -> list[dict]:
-    with closing(db.connect()) as conn:
+    with db.connect() as conn:
         return [public(r) for r in conn.execute("SELECT * FROM users ORDER BY id")]
 
 
 def count_admins() -> int:
-    row = _one("SELECT COUNT(*) FROM users WHERE role = 'admin' AND disabled = 0", ())
-    return row[0] if row else 0
+    row = _one("SELECT COUNT(*) AS n FROM users WHERE role = 'admin' AND disabled = 0", ())
+    return row["n"] if row else 0
 
 
 def update_user(uid: int, *, name: str | None = None, role: str | None = None, disabled: bool | None = None) -> None:
@@ -162,26 +139,26 @@ def update_user(uid: int, *, name: str | None = None, role: str | None = None, d
     sets = {k: v for k, v in fields.items() if v is not None}
     if not sets:
         return
-    with closing(db.connect()) as conn, conn:
-        conn.execute(f"UPDATE users SET {', '.join(f'{k} = ?' for k in sets)} WHERE id = ?", (*sets.values(), uid))
+    with db.connect() as conn:
+        conn.execute(f"UPDATE users SET {', '.join(f'{k} = %s' for k in sets)} WHERE id = %s", (*sets.values(), uid))
 
 
 def set_password(uid: int, password: str) -> None:
     """New password; refresh tokens issued before it stop working (login_state)."""
-    with closing(db.connect()) as conn, conn:
-        conn.execute("UPDATE users SET password = ? WHERE id = ?", (hash_password(password), uid))
+    with db.connect() as conn:
+        conn.execute("UPDATE users SET password = %s WHERE id = %s", (hash_password(password), uid))
 
 
 def mark_verified(uid: int) -> None:
-    with closing(db.connect()) as conn, conn:
-        conn.execute("UPDATE users SET verified_at = COALESCE(verified_at, ?) WHERE id = ?", (_now().isoformat(), uid))
+    with db.connect() as conn:
+        conn.execute("UPDATE users SET verified_at = COALESCE(verified_at, %s) WHERE id = %s", (_now().isoformat(), uid))
 
 
 def authenticate(email: str, password: str) -> dict | None:
     """The user whose email and password match (disabled or unverified users included: the caller
     tells them apart), or None."""
     global _DUMMY
-    row = _one("SELECT * FROM users WHERE email = ?", (normalize_email(email),))
+    row = _one("SELECT * FROM users WHERE email = %s", (normalize_email(email),))
     if row is None:
         _DUMMY = _DUMMY or hash_password(secrets.token_hex(8))
         verify_password(password, _DUMMY)  # same work as a real check
@@ -197,7 +174,7 @@ def login_state(uid: int) -> tuple[dict, str] | None:
     refresh token, so a new password ends the logins made with the old one."""
     if not db.enabled():
         return None
-    row = _one("SELECT * FROM users WHERE id = ? AND disabled = 0 AND verified_at IS NOT NULL", (uid,))
+    row = _one("SELECT * FROM users WHERE id = %s AND disabled = 0 AND verified_at IS NOT NULL", (uid,))
     return (public(row), _sha(row["password"])[:16]) if row else None
 
 
@@ -208,10 +185,10 @@ def new_token(uid: int, kind: str) -> str:
     """A link token for `kind` ('verify' or 'reset'); earlier unused tokens of that kind stop working."""
     token = secrets.token_urlsafe(32)
     expires = _now() + timedelta(hours=TOKEN_HOURS[kind])
-    with closing(db.connect()) as conn, conn:
-        conn.execute("DELETE FROM email_tokens WHERE user_id = ? AND kind = ?", (uid, kind))
+    with db.connect() as conn:
+        conn.execute("DELETE FROM email_tokens WHERE user_id = %s AND kind = %s", (uid, kind))
         conn.execute(
-            "INSERT INTO email_tokens (token_hash, user_id, kind, expires_at) VALUES (?, ?, ?, ?)",
+            "INSERT INTO email_tokens (token_hash, user_id, kind, expires_at) VALUES (%s, %s, %s, %s)",
             (_sha(token), uid, kind, expires.isoformat()),
         )
     return token
@@ -219,12 +196,13 @@ def new_token(uid: int, kind: str) -> str:
 
 def use_token(token: str, kind: str) -> int | None:
     """The user id of a valid, unused token, which is then used up; None otherwise."""
-    with closing(db.connect()) as conn, conn:
-        row = conn.execute(
-            "SELECT user_id FROM email_tokens WHERE token_hash = ? AND kind = ? AND used_at IS NULL AND expires_at > ?",
-            (_sha(token), kind, _now().isoformat()),
-        ).fetchone()
-        if not row:
+    with db.connect() as conn:
+        now = _now().isoformat()
+        # One atomic UPDATE: of two concurrent requests with the same link, only one changes a row.
+        cur = conn.execute(
+            "UPDATE email_tokens SET used_at = %s WHERE token_hash = %s AND kind = %s AND used_at IS NULL AND expires_at > %s",
+            (now, _sha(token), kind, now),
+        )
+        if cur.rowcount != 1:
             return None
-        conn.execute("UPDATE email_tokens SET used_at = ? WHERE token_hash = ?", (_now().isoformat(), _sha(token)))
-        return row["user_id"]
+        return conn.execute("SELECT user_id FROM email_tokens WHERE token_hash = %s", (_sha(token),)).fetchone()["user_id"]

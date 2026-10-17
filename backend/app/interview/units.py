@@ -24,6 +24,8 @@ topics: list[dict] = list(file_topics)
 units: list[dict] = list(file_units)
 units_by_id: dict[str, dict] = {u["id"]: u for u in units}
 
+MAX_ID = 100  # content_topics.id, content_units.id and the unit_id columns are VARCHAR(100)
+MAX_TITLE = 255  # sessions.unit_title VARCHAR(255)
 ID_RE = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 # Spoken by TTS or sent to the LLM, so English only (AGENTS.md: prompts and AI speech never Vietnamese).
 ENGLISH_FIELDS = ("role", "scenario", "greeting", "closing", "vocab")
@@ -33,6 +35,7 @@ def validate(topics: list[dict], units: list[dict]) -> list[str]:
     """Problems in the unit data; an empty list means it is usable."""
     errors: list[str] = []
     topic_ids = {t["id"] for t in topics}
+    errors += [f"topic {str(t['id'])[:20]}...: id must be at most {MAX_ID} characters" for t in topics if len(str(t["id"])) > MAX_ID]
     seen: set[str] = set()
     for u in units:
         uid = u.get("id", "?")
@@ -41,6 +44,10 @@ def validate(topics: list[dict], units: list[dict]) -> list[str]:
         seen.add(uid)
         if not ID_RE.match(str(u.get("id", ""))):
             errors.append(f"{uid}: id must be lower-case words joined by '-'")
+        if len(str(u.get("id", ""))) > MAX_ID:
+            errors.append(f"{uid[:20]}...: id must be at most {MAX_ID} characters")
+        if len(str(u.get("title", ""))) > MAX_TITLE:
+            errors.append(f"{uid}: title must be at most {MAX_TITLE} characters")
         for key in ("topic", "title", "scenario", "goal", "greeting", "closing", "questions", "phrases"):
             if not u.get(key):
                 errors.append(f"{uid}: missing {key}")

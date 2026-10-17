@@ -1,13 +1,13 @@
 # Lịch sử luyện tập và trang Tiến bộ
 
 Mục đích: biết app có giúp người dùng nói trôi chảy hơn qua các buổi hay không, bằng số đo chứ không bằng cảm giác.
-Mỗi lượt trả lời được ghi vào một file SQLite cục bộ. Trang `/history` vẽ xu hướng theo buổi tập.
+Mỗi lượt trả lời được ghi vào MySQL. Trang `/history` vẽ xu hướng theo buổi tập.
 
 ## Mã nguồn
 
 | Phần | Vị trí |
 |---|---|
-| Lưu và tổng hợp | `backend/app/services/history.py` (`SCHEMA`, `start_session`, `add_turn`, `delete_turn`, `set_completed`, `list_sessions`, `_summarize`; `add_drill`/`list_drills`/`list_readings`, `add_fluency_round`/`list_fluency_rounds`) |
+| Lưu và tổng hợp | `backend/app/services/history.py` (`start_session`, `add_turn`, `delete_turn`, `set_completed`, `list_sessions`, `_summarize`; `add_drill`/`list_drills`/`list_readings`, `add_fluency_round`/`list_fluency_rounds`) |
 | Ghi mỗi lượt | `handle_user_input()`, `run_turn()`, `_history_id()` trong `backend/app/interview/turn.py` |
 | Hoàn tác | nhánh `undo` trong `_on_text()` (`backend/app/api/routes/ws.py`): xóa dòng của lượt vừa rồi |
 | API | `backend/app/api/routes/history.py` |
@@ -16,9 +16,7 @@ Mỗi lượt trả lời được ghi vào một file SQLite cục bộ. Trang 
 
 ## Dữ liệu
 
-File mặc định: `data/history.db` ở thư mục gốc (biến `HISTORY_DB`, bắt buộc vì tài khoản cũng lưu ở đây). Không commit (`/data/` trong `.gitignore`).
-
-SQLite chạy ở chế độ WAL (`init()` đặt `journal_mode=WAL`, lưu bền trong file), nên người đọc không chặn người ghi giữa các request chạy song song. Hệ quả: cạnh `history.db` có thêm `history.db-wal` và `history.db-shm`. Sao lưu thủ công phải chép cả ba file, hoặc chép khi server đã dừng. Bản `history.db.before-accounts` được checkpoint trước khi chép.
+Lưu trong MySQL 8 (biến `DATABASE_URL`, bắt buộc vì tài khoản cũng lưu ở đây). Mỗi lần gọi mở một kết nối riêng qua `db.connect()` (PyMySQL, không ORM), nên các request chạy song song không dùng chung kết nối. Bảng InnoDB, `utf8mb4`, collation `utf8mb4_bin` (so sánh nhị phân: `a` và `á` là hai chữ khác nhau, id và email phân biệt hoa thường). Thời điểm vẫn lưu dạng chuỗi ISO. Sao lưu: `mysqldump -u speaking -p speaking > backup.sql`.
 
 Các index phụ cho khóa ngoại hay tra: `shadows(session_id)`, `retells(session_id)`, `card_reviews(card_id)`, `email_tokens(user_id)`; để xóa buổi/thẻ (cascade) và tra theo người không phải quét cả bảng.
 
@@ -37,7 +35,7 @@ Mỗi người học chỉ thấy lịch sử của mình: các bảng có `user
 - Hoàn tác xóa hẳn dòng của lượt vừa rồi và cập nhật lại `completed`.
 - Số liệu tổng hợp được tính khi đọc, không lưu sẵn, nên xóa hay hoàn tác không làm lệch số.
 
-Thêm cột mới: thêm vào `SCHEMA` **và** `MIGRATIONS` (`CREATE TABLE IF NOT EXISTS` không tự thêm cột vào bảng đã có; `init()` thêm các cột trong `MIGRATIONS` cho DB cũ).
+Thêm cột mới: thêm file migration `ALTER TABLE` (xem [dev-environment.md](../dev-environment.md#đổi-schema-database-migration)); `CREATE TABLE IF NOT EXISTS` không tự thêm cột vào bảng đã có.
 
 ## Chỉ số trên trang Tiến bộ
 
@@ -73,9 +71,9 @@ Lượt gõ chữ được tính vào số lượt và mẫu câu, nhưng không
 - File ghi âm chỉ còn khi `SAVE_AUDIO_DIR` được đặt (`.env` của người dùng: `recordings`). Xóa buổi tập **không** xóa file ghi âm.
 - Lượt nói mới lưu tên file vào cột `turns.audio` (`stt.kept_name()` → `result["recording"]` trong `ws.py` → `handle_user_input()`).
 - Lượt lưu trước khi có cột này được ghép **một lần**, khi mở chi tiết buổi (`match_turns()` trong `services/recordings.py`): file có `.hyp.txt` trùng đúng chữ câu trả lời, ghi trong vòng 10 phút trước lúc lượt được lưu; chọn file gần nhất, mỗi file dùng một lần; kết quả được lưu lại vào `turns.audio`. Đo ngày 11/10/2026 trên lịch sử thật: ghép được 29/29 lượt nói.
-- Cột mới trên DB cũ: `init()` chạy `MIGRATIONS` (`ALTER TABLE ... ADD COLUMN` khi cột chưa có).
+- Cột mới đến DB cũ qua file migration trong `app/migrations/`.
 - App không có đăng nhập: khi chạy cho mạng LAN (`SERVER_HOST=0.0.0.0`), thiết bị cùng mạng cũng nghe được các file này.
 
 ## Khi thử nghiệm
 
-Server thử (cổng 8001) **phải** trỏ `HISTORY_DB` sang file tạm, nếu không sẽ ghi lẫn vào lịch sử thật của người dùng. Xem [dev-environment.md](../dev-environment.md).
+Server thử (cổng 8001) **phải** trỏ `DATABASE_URL` sang database tạm (ví dụ `speaking_tmp`), nếu không sẽ ghi lẫn vào lịch sử thật của người dùng. Xem [dev-environment.md](../dev-environment.md).
