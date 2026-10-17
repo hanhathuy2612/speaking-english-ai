@@ -12,14 +12,14 @@ Read docs/features/llm-prompt.md and docs/dev-environment.md first.
 
 ## Setup (from `backend/`, venv at `..\.venv`)
 
-1. Pick a temp dir in the system temp folder. Never use `data/`.
-2. Create a test admin in the temp DB:
-   `HISTORY_DB=<tmp>/hist.db NEW_USER_PASSWORD=<random> python -m scripts.create_user admin@test.local --admin`
-3. Start the test server in the background, history in the temp DB and audio saving off:
-   `HISTORY_DB=<tmp>/hist.db SAVE_AUDIO_DIR= uvicorn app.main:app --port 8001`
+1. Create a throwaway database (`CREATE DATABASE speaking_tmp CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;`; the `speaking` MySQL user may create `speaking_*`). Never use the real `speaking` database or `data/`.
+2. Create a test admin in the throwaway DB:
+   `DATABASE_URL=mysql://speaking:<pw>@localhost:3306/speaking_tmp NEW_USER_PASSWORD=<random> python -m scripts.create_user admin@test.local --admin`
+3. Start the test server in the background, history in the throwaway DB and audio saving off:
+   `DATABASE_URL=mysql://speaking:<pw>@localhost:3306/speaking_tmp SAVE_AUDIO_DIR= uvicorn app.main:app --port 8001`
    Do not use `run.cmd` (it may bind to the LAN).
 4. Wait until `/api/units` answers (Whisper takes 10-30 s to load).
-5. Write `answers.txt` in the temp dir from the coordinator's description:
+5. Write `answers.txt` in a system temp dir from the coordinator's description:
    realistic learner answers, including mistakes the change targets.
 6. Run: `REPLAY_PASSWORD=<same> python -m scripts.replay <tmp>/answers.txt --runs 3 --url ws://localhost:8001/ws --email admin@test.local`
    For a before/after comparison, never use `git stash` or `git checkout`

@@ -31,8 +31,8 @@ Before editing, read AGENTS.md and the docs/features/ file named in the spec.
 ## Verify
 
 From `backend/`: `..\.venv\Scripts\python -m pytest`. Add or update tests for
-the behaviour you changed. If you need a live server, use port 8001 with a temp
-`HISTORY_DB` as in docs/dev-environment.md. Never touch port 8000, never kill
+the behaviour you changed. If you need a live server, use port 8001 with
+a throwaway `DATABASE_URL` database (e.g. `speaking_tmp`) as in docs/dev-environment.md. Never touch port 8000, never kill
 `python.exe` by name.
 
 ## Report

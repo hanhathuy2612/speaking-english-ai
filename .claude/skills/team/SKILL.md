@@ -43,7 +43,7 @@ and the relevant docs/features/ file to read first.
 ## Rules that apply to every dispatch
 
 - Port 8000 is the user's server: never stop or restart it. Test servers run on
-  8001 with a temporary `HISTORY_DB` (see docs/dev-environment.md).
+  8001 with a throwaway database via `DATABASE_URL` (e.g. `speaking_tmp`) (see docs/dev-environment.md).
 - Never kill `python.exe` by name. Never delete `recordings/` or `data/`.
 - Code and comments in English; UI text and WebSocket `error` messages in
   Vietnamese; prompts and AI speech in English only; docs in Vietnamese.
