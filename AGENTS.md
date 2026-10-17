@@ -39,14 +39,15 @@ frontend/                # React + TypeScript + Vite; build vào frontend/dist (
                          #   chưa đăng nhập: /login , /signup , /forgot , /verify , /reset
     api/                 # types.ts (kiểu dữ liệu API + giao thức WebSocket), http.ts (gọi JSON, 401 thì về trang đăng nhập)
     auth/                # AuthContext (người đang đăng nhập), guards (RequireAuth, RequireAdmin, GuestOnly)
-    components/          # AppBar (+ thanh tab trên điện thoại), Icons, ui (Chip, StatusLine), WordDiff, Recorder, Sheet, Lead
-    hooks/               # useMic (ghi âm bấm-bấm), useAudioQueue (phát MP3), useTeacherVoice (giọng giáo viên)
+    components/          # AppBar (+ thanh tab trên điện thoại), Icons, ui (Chip, StatusLine), WordDiff, Recorder, ReplayButton (nghe lại), Sheet, Lead
+    hooks/               # useMic (ghi âm bấm-bấm), useAudioQueue (phát MP3), useTeacherVoice (giọng giáo viên), useRecordings (bản ghi để nghe lại)
     features/            # practice/ (useInterview + các component), lesson/ (bài giảng), review/, roadmap/, sounds/, fluency/, check/, talk/, history/, bench/,
                          #   auth/ (đăng nhập, đăng ký), account/, admin/
     lib/                 # hàm thuần + test Vitest
     styles/              # base.css (token, component chung, bảng), practice.css, lesson.css, review.css, roadmap.css, sounds.css, fluency.css, check.css, talk.css, history.css, bench.css,
                          #   auth.css, admin.css
 docs/                    # tài liệu theo tính năng (bảng bên dưới)
+Dockerfile, docker-compose.yml   # triển khai bằng Docker (docs/deployment.md)
 recordings/              # giọng nói thật của người dùng, không commit
 data/                    # jwt_secret (khóa ký token tự sinh), không commit. Tài khoản và lịch sử nằm trong MySQL, không nằm ở đây
 ```
@@ -64,7 +65,7 @@ python -m app                         # như trên nhưng đọc SERVER_HOST/POR
 python -m pytest                      # test backend
 python -m scripts.create_user you@example.com --admin   # tạo tài khoản (admin đầu tiên nhận lịch sử cũ)
 python -m scripts.migrate status                      # migration nào đã/chưa áp dụng (bỏ `status`: áp dụng ngay; server cũng tự áp dụng lúc khởi động)
-python -m scripts.migrate_sqlite data/history.db       # một lần: chép history.db cũ (SQLite) sang MySQL
+python -m scripts.migrate_sqlite ../data/history.db       # một lần: chép history.db cũ (SQLite) sang MySQL
 python -m scripts.replay answers.txt --runs 3 --url ws://localhost:8001/ws --email admin@test.local
 python -m scripts.stt_bench --config large-v3-turbo,cuda,float16,3 --show
 python -m scripts.make_cert 192.168.0.2   # HTTPS cho thiết bị trong LAN, xem docs/dev-environment.md
@@ -109,6 +110,7 @@ npm run format     # Prettier; npm run format:check chỉ kiểm tra
 | Giao diện React: cấu trúc, luồng dữ liệu, hệ thiết kế, cài lên điện thoại (PWA) | [docs/features/frontend.md](docs/features/frontend.md) | `frontend/src/` |
 | Biến cấu hình | [docs/configuration.md](docs/configuration.md) | `.env`, `core/config.py` |
 | Môi trường Windows, kiểm thử, lỗi thường gặp, mở app từ điện thoại trong LAN (HTTPS) | [docs/dev-environment.md](docs/dev-environment.md) | `scripts/make_cert.py` |
+| Triển khai bằng Docker Compose: MySQL + app (GPU), LM Studio ở máy chủ, dữ liệu và sao lưu | [docs/deployment.md](docs/deployment.md) | `Dockerfile`, `docker-compose.yml`, `.dockerignore` (thư mục gốc) |
 
 Đường dẫn trong cột mã nguồn tính từ `backend/app/`, trừ khi ghi rõ `frontend/` hay `scripts/`.
 
