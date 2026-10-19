@@ -22,8 +22,7 @@ Nhóm `final-ed` (âm cuối -ed) dựa trên lỗi mất âm -ed đã ghi ở [
 | Câu luyện | `backend/app/data/drills.json` (`id`, `title`, `measured`, `tip`, `sentences[].text`, `sentences[].focus`) |
 | Kiểm tra dữ liệu, chấm, nhóm câu riêng, lần đọc tốt nhất | `backend/app/assessment/drills.py` (`validate()`, `score()`, `personal_sentences()`, `focus_accuracy()`, `best_reading()`) |
 | API | `backend/app/api/routes/drills.py` |
-| Lưu | bảng `drills` (cột `audio`: tên file ghi âm), `add_drill()`, `list_drills()`, `list_readings()`, `set_drill_audio()` trong `backend/app/services/history.py` |
-| Ghép lần đọc cũ với file ghi âm | `untranscribed()`, `match_by_time()` trong `backend/app/services/recordings.py` |
+| Lưu | bảng `drills` (cột `audio`: tên file ghi âm), `add_drill()`, `list_drills()`, `list_readings()` trong `backend/app/services/history.py` |
 | Trang | `frontend/src/features/sounds/SoundsPage.tsx`, `frontend/src/styles/sounds.css`, `markFocus()`, `isNewBest()`, `bestTone()` trong `frontend/src/lib/drills.ts` |
 | Tô từng từ (dùng chung với nói lại) | `frontend/src/components/WordDiff.tsx`, `.word-diff` / `.tok` trong `base.css` |
 | Test | `backend/tests/test_drills.py`, `test_recordings.py`, `test_history.py`, `frontend/src/lib/drills.test.ts` |
@@ -42,7 +41,7 @@ Mỗi câu giữ **lần đọc tốt nhất**, không phải lần gần nhất
 
 - `best_reading()` chọn trong mọi lần đọc câu đó (ở bất kỳ nhóm nào): đúng nhiều từ trọng tâm nhất (tỉ lệ), rồi đúng nhiều từ nhất cả câu; bằng nhau thì lấy lần mới hơn. Kết quả được chấm lại bằng từ trọng tâm của nhóm đang xem, nên nhóm "Câu bạn từng đọc sai" (từ trọng tâm là từ từng nghe sai) có thể chọn lần khác với nhóm gốc.
 - `GET /api/drills` trả thêm `best` cho mỗi nhóm: id câu -> kết quả (như lúc chấm) + `created_at`, `attempts` (số lần đã đọc câu này), `audio_url`.
-- Bản ghi: mỗi lần đọc lưu tên file trong `drills.audio` (khi `SAVE_AUDIO_DIR` bật), phát qua `/api/history/audio/...` như trang Tiến bộ. Lần đọc lưu trước khi có cột này được ghép một lần với file ghi âm theo thời gian (`match_by_time()`: file không có `.hyp.txt`, lưu tối đa 15 giây trước lần đọc, mỗi file dùng một lần). Trên dữ liệu thật ngày 14/10/2026: 114/114 lần đọc ghép được, lệch dưới 1 giây.
+- Bản ghi: mỗi lần đọc lưu tên file trong `drills.audio` (khi `SAVE_AUDIO_DIR` bật), phát qua `/api/history/audio/...` như trang Tiến bộ. Lần đọc lưu trước khi có cột này **không** được ghép với file ghi âm nào (không đoán theo thời gian, vì thư mục dùng chung và có thể gán nhầm giọng người khác), nên không có nút nghe lại.
 - Trang: chưa đọc lại thì hiện "Lần đọc tốt nhất của bạn" (ngày giờ, số lần đọc, tô từng từ, "Nghe lại"). Đọc xong thì hiện kết quả mới kèm "Kết quả tốt nhất mới" (hoặc "Lần đọc đầu tiên của câu này"), hay "Chưa vượt lần tốt nhất: …". Hàng số trên đầu (`.drill-dots`) cho biết từng câu: xanh khi lần tốt nhất đúng hết từ trọng tâm, cam khi còn sai, xám khi chưa đọc; bấm để sang câu đó.
 - Tỉ lệ đúng của nhóm và tiêu chí giai đoạn 1 vẫn tính trên 20 lần đọc **gần nhất**, không phải lần tốt nhất: tiêu chí đo mức hiện tại, còn lần tốt nhất chỉ để xem lại.
 - Vì có hai con số khác nhau, thẻ nhóm ghi rõ cả hai: **"Đạt 8/8 câu"** (câu có lần tốt nhất đúng hết từ trọng tâm, `passedCount()`) và **"Gần đây đúng 69%"** (20 lần đọc gần nhất, tính cả lần sai). Trước đây thẻ chỉ ghi "Đúng 69% từ trọng tâm" trong khi cả 8 câu đều xanh, nên người dùng tưởng tính sai. Dòng đầu trang cũng ghi "N lần đọc gần nhất (mọi nhóm, tính cả lần sai)" thay vì "N câu", vì đó là số lần đọc, không phải số câu.

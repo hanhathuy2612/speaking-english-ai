@@ -20,12 +20,6 @@ async def list_sessions(user: dict = Depends(current_user)) -> dict:
 async def session_turns(session_id: int, user: dict = Depends(current_user)) -> list[dict]:
     """Turns of one of the user's sessions; `audio_url` plays the answer back when its recording was kept."""
     turns = history.session_turns(user["id"], session_id)
-    if any(t["source"] == "voice" and not t["audio"] for t in turns):
-        # Turns saved before turns.audio existed: link them to their recording once.
-        found = recordings.match_turns(turns, recordings.transcripts(), history.turn_audio_names())
-        history.set_turn_audio(found)
-        for t in turns:
-            t["audio"] = t["audio"] or found.get(t["id"])
     for t in turns:
         t["audio_url"] = f"/api/history/audio/{t['audio']}" if recordings.path_for(t["audio"]) else None
     return turns

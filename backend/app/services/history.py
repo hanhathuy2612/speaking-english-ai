@@ -431,19 +431,6 @@ def session_turns(uid: int, session_id: int) -> list[dict]:
     return [{**r, "used_phrases": json.loads(r["used_phrases"])} for r in rows]
 
 
-def set_turn_audio(audio: dict[int, str]) -> None:
-    """Store the recording file names of turns saved before `turns.audio` existed."""
-    if not audio or not enabled():
-        return
-    with closing(_connect()) as conn, conn:
-        conn.executemany("UPDATE turns SET audio = ? WHERE id = ?", [(n, i) for i, n in audio.items()])
-
-
-def turn_audio_names() -> set[str]:
-    """Recording names already linked to a turn, of any user (so no file is linked twice)."""
-    return {r["audio"] for r in _rows("SELECT audio FROM turns WHERE audio IS NOT NULL")}
-
-
 def unit_stats(uid: int) -> dict[str, dict]:
     """Per unit: sessions with at least one answer, completed sessions, latest start time."""
     stats: dict[str, dict] = {}
@@ -540,23 +527,6 @@ def add_drill(uid: int, attempt: dict) -> int | None:
 def list_drills(uid: int) -> list[dict]:
     """The user's drill readings, oldest first."""
     return _rows("SELECT * FROM drills WHERE user_id = ? ORDER BY created_at, id", (uid,))
-
-
-def set_drill_audio(audio: dict[int, str]) -> None:
-    """Store the recording file names of drill readings saved before `drills.audio` existed."""
-    if not audio or not enabled():
-        return
-    with closing(_connect()) as conn, conn:
-        conn.executemany("UPDATE drills SET audio = ? WHERE id = ?", [(n, i) for i, n in audio.items()])
-
-
-def recording_names() -> set[str]:
-    """Recording names already linked to a turn or a drill reading, of any user."""
-    rows = _rows(
-        "SELECT audio FROM turns WHERE audio IS NOT NULL "
-        "UNION SELECT audio FROM drills WHERE audio IS NOT NULL"
-    )
-    return {r["audio"] for r in rows}
 
 
 def owns_recording(uid: int, name: str) -> bool:

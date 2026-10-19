@@ -68,7 +68,7 @@ Lượt gõ chữ được tính vào số lượt và mẫu câu, nhưng không
 
 - File ghi âm chỉ còn khi `SAVE_AUDIO_DIR` được đặt (`.env` của người dùng: `recordings`). Xóa buổi tập **không** xóa file ghi âm.
 - Lượt nói mới lưu tên file vào cột `turns.audio` (`stt.kept_name()` → `result["recording"]` trong `ws.py` → `handle_user_input()`).
-- Lượt lưu trước khi có cột này được ghép **một lần**, khi mở chi tiết buổi (`match_turns()` trong `services/recordings.py`): file có `.hyp.txt` trùng đúng chữ câu trả lời, ghi trong vòng 10 phút trước lúc lượt được lưu; chọn file gần nhất, mỗi file dùng một lần; kết quả được lưu lại vào `turns.audio`. Đo ngày 11/10/2026 trên lịch sử thật: ghép được 29/29 lượt nói.
+- Lượt lưu trước khi có cột này **không** được ghép với file ghi âm nào: không đoán theo thời gian hay theo chữ, vì thư mục ghi âm dùng chung cho mọi người dùng và có thể gán nhầm giọng của người khác. Các lượt đó không có nút nghe lại.
 - Cột mới trên DB cũ: `init()` chạy `MIGRATIONS` (`ALTER TABLE ... ADD COLUMN` khi cột chưa có).
 - App không có đăng nhập: khi chạy cho mạng LAN (`SERVER_HOST=0.0.0.0`), thiết bị cùng mạng cũng nghe được các file này.
 

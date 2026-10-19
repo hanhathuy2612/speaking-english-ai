@@ -44,16 +44,6 @@ def _find(uid: int, set_id: str, sentence_id: str) -> dict:
     return x
 
 
-def _link_old_recordings(attempts: list[dict]) -> None:
-    """Readings saved before drills.audio existed: find their recording by time, once."""
-    if not any(not a.get("audio") for a in attempts):
-        return
-    found = recordings.match_by_time(attempts, recordings.untranscribed(), history.recording_names())
-    history.set_drill_audio(found)
-    for a in attempts:
-        a["audio"] = a.get("audio") or found.get(a["id"])
-
-
 def _best(x: dict, by_text: dict[str, list[dict]]) -> dict | None:
     best = drills.best_reading(x["text"], x["focus"], by_text.get(x["text"], []))
     if best:
@@ -68,7 +58,6 @@ async def drill_state(user: dict = Depends(current_user)) -> dict:
     """Sets with their sentences and, per set, recent focus-word accuracy and the best reading of each
     sentence (`best`: sentence id -> result), so past readings show again when the page opens."""
     attempts = history.list_drills(user["id"])
-    _link_old_recordings(attempts)
     by_set: dict[str, list[dict]] = {}
     by_text: dict[str, list[dict]] = {}
     for a in attempts:

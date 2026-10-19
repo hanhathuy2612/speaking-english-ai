@@ -160,15 +160,13 @@ def test_drills_and_shadows_feed_the_readings_list(db):
     assert history.list_drills(U)[0]["focus_total"] == 1
 
 
-def test_drill_recordings_are_stored_and_can_be_linked_later(db):
+def test_drill_recordings_are_stored_with_the_reading(db):
     row = {"set_id": "final-s", "target": "Two cats.", "heard": "two cats", "correct": 2, "total": 2,
            "focus_correct": 1, "focus_total": 1}  # fmt: skip
     history.add_drill(U, {**row, "audio": "20261014-100000-000001.webm"})
-    old = history.add_drill(U, row)  # saved before drills.audio existed
-    history.set_drill_audio({old: "20261014-090000-000001.webm"})
+    history.add_drill(U, row)  # no recording: no playback, and nothing is guessed for it
     audio = [d["audio"] for d in history.list_drills(U)]
-    assert audio == ["20261014-100000-000001.webm", "20261014-090000-000001.webm"]
-    assert history.recording_names() >= {"20261014-100000-000001.webm", "20261014-090000-000001.webm"}
+    assert audio == ["20261014-100000-000001.webm", None]
 
 
 def test_fluency_rounds_round_trip(db):
