@@ -32,8 +32,8 @@ Server tự nạp `.env` bằng python-dotenv khi khởi động. Biến môi tr
 | `SMTP_HOST` / `SMTP_PORT` | trống / `587` | | Máy chủ gửi email. Trống thì email chỉ in ra terminal của server |
 | `SMTP_SECURITY` | `starttls` | | `starttls` (cổng 587), `ssl` (cổng 465) hoặc `none` |
 | `SMTP_USER` / `SMTP_PASSWORD` / `SMTP_FROM` | trống | | Tài khoản SMTP. Gmail dùng App Password. `SMTP_FROM` trống thì dùng `SMTP_USER` |
-| `TTS_VOICE` / `TTS_RATE` | `en-US-JennyNeural` / `-10%` | giống mặc định | |
-| `TTS_TEACHER_VOICE` | `en-US-AvaNeural` | giống mặc định | Giọng giáo viên ở phần bài giảng, khác giọng người phỏng vấn (xem [features/lesson.md](features/lesson.md)) |
+| `TTS_VOICE` / `TTS_RATE` | `en-US-JennyNeural` / `-10%` | giống mặc định | Giọng và tốc độ của người phỏng vấn (trò chuyện, đóng vai). Tốc độ là độ lệch so với bình thường, ví dụ `-20%` chậm hơn, `+10%` nhanh hơn |
+| `TTS_TEACHER_VOICE` / `TTS_TEACHER_RATE` | `en-US-AvaNeural` / `-10%` | giống mặc định | Giọng và tốc độ của giáo viên ở phần bài giảng và bài nói 2 phút, tách khỏi người phỏng vấn (xem [features/lesson.md](features/lesson.md)) |
 | `SERVER_HOST` / `SERVER_PORT` | `127.0.0.1` / `8000` | `0.0.0.0` / `8000` | Chỉ dùng khi chạy bằng `run` hoặc `python -m app`. `0.0.0.0` = thiết bị khác trong LAN vào được |
 | `SSL_CERTFILE` / `SSL_KEYFILE` | trống (HTTP) | `certs/lan-cert.pem` / `certs/lan-key.pem` | HTTPS, cần để dùng micro từ thiết bị khác. Tạo bằng `scripts/make_cert.py` (xem dev-environment.md) |
 

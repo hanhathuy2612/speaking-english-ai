@@ -47,7 +47,8 @@ async def talk_audio(talk_id: str, key: str) -> Response:
     line = lesson.lines(talks.as_unit(_talk(talk_id))).get(key)
     if not line:
         raise HTTPException(404)
-    return Response(await tts.cached_tts(line["en"], voice=config.TTS_TEACHER_VOICE), media_type="audio/mpeg")
+    audio = await tts.cached_tts(line["en"], rate=config.TTS_TEACHER_RATE, voice=config.TTS_TEACHER_VOICE)
+    return Response(audio, media_type="audio/mpeg")
 
 
 async def _transcribe(request: Request, prompt: str) -> dict:

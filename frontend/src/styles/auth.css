@@ -8,6 +8,7 @@
   gap: 20px;
   padding: 32px 16px 48px;
 }
+
 .auth-brand {
   display: flex;
   align-items: center;
@@ -15,6 +16,7 @@
   font-size: 17px;
   font-weight: 650;
 }
+
 .auth-card {
   width: 100%;
   max-width: 400px;
@@ -23,20 +25,24 @@
   flex-direction: column;
   gap: 16px;
 }
+
 .auth-card h1 {
   font-size: 20px;
   font-weight: 650;
 }
+
 .auth-form {
   display: flex;
   flex-direction: column;
   gap: 14px;
 }
+
 .auth-submit {
   width: 100%;
   justify-content: center;
   height: 40px;
 }
+
 .auth-links {
   display: flex;
   justify-content: space-between;
@@ -44,10 +50,12 @@
   flex-wrap: wrap;
   font-size: 14px;
 }
+
 .auth-note {
   color: var(--text-2);
   font-size: 14px;
 }
+
 .auth a,
 .account a {
   color: var(--primary);
@@ -60,11 +68,13 @@
   gap: 6px;
   min-width: 0;
 }
+
 .field-label {
   font-size: 13px;
   font-weight: 600;
   color: var(--text-2);
 }
+
 .field-input {
   width: 100%;
   min-width: 0;
@@ -74,6 +84,7 @@
   border-radius: var(--radius);
   background: var(--surface);
 }
+
 textarea.field-input {
   height: auto;
   min-height: 64px;
@@ -83,13 +94,16 @@ textarea.field-input {
   font: inherit;
   color: inherit;
 }
+
 select.field-input {
   padding-right: 8px;
 }
+
 .field-hint {
   font-size: 13px;
   color: var(--text-3);
 }
+
 .form-error {
   padding: 10px 12px;
   border-radius: var(--radius);
@@ -97,6 +111,7 @@ select.field-input {
   color: var(--danger);
   font-size: 14px;
 }
+
 .form-ok {
   padding: 10px 12px;
   border-radius: var(--radius);
@@ -114,29 +129,35 @@ select.field-input {
   flex-direction: column;
   gap: 16px;
 }
+
 .account h1 {
   font-size: 22px;
   font-weight: 650;
 }
+
 .account-card {
   padding: 20px;
   display: flex;
   flex-direction: column;
   gap: 14px;
 }
+
 .account-card h2 {
   font-size: 16px;
   font-weight: 650;
 }
+
 .account-info {
   margin: 0;
   display: grid;
   grid-template-columns: max-content minmax(0, 1fr);
   gap: 8px 16px;
 }
+
 .account-info dt {
   color: var(--text-2);
 }
+
 .account-info dd {
   margin: 0;
   overflow-wrap: anywhere;

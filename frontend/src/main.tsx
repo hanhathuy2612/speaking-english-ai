@@ -1,27 +1,27 @@
-import { StrictMode } from "react";
-import { createRoot } from "react-dom/client";
-import { BrowserRouter, Navigate, Route, Routes } from "react-router";
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router';
 // Shared styles first: page stylesheets (imported by the pages below) must come later in the
 // bundle so that their rules win over base rules of the same specificity.
-import "./styles/base.css";
-import { AuthProvider, useAuth } from "./auth/AuthContext";
-import { GuestOnly, RequireAdmin, RequireAuth } from "./auth/guards";
-import { AccountPage } from "./features/account/AccountPage";
-import { ContentPage } from "./features/admin/ContentPage";
-import { UnitEditor } from "./features/admin/UnitEditor";
-import { UsersPage } from "./features/admin/UsersPage";
-import { ForgotPage, ResetPage, SignupPage, VerifyPage } from "./features/auth/EmailPages";
-import { LoginPage } from "./features/auth/LoginPage";
-import { BenchPage } from "./features/bench/BenchPage";
-import { CheckPage } from "./features/check/CheckPage";
-import { FluencyPage } from "./features/fluency/FluencyPage";
-import { HistoryPage } from "./features/history/HistoryPage";
-import { LessonPage } from "./features/lesson/LessonPage";
-import { PracticePage } from "./features/practice/PracticePage";
-import { ReviewPage } from "./features/review/ReviewPage";
-import { RoadmapPage } from "./features/roadmap/RoadmapPage";
-import { SoundsPage } from "./features/sounds/SoundsPage";
-import { TalkPracticePage } from "./features/talk/TalkPracticePage";
+import './styles/base.css';
+import { AuthProvider, useAuth } from './auth/AuthContext';
+import { GuestOnly, RequireAdmin, RequireAuth } from './auth/guards';
+import { AccountPage } from './features/account/AccountPage';
+import { ContentPage } from './features/admin/ContentPage';
+import { UnitEditor } from './features/admin/UnitEditor';
+import { UsersPage } from './features/admin/UsersPage';
+import { ForgotPage, ResetPage, SignupPage, VerifyPage } from './features/auth/EmailPages';
+import { LoginPage } from './features/auth/LoginPage';
+import { BenchPage } from './features/bench/BenchPage';
+import { CheckPage } from './features/check/CheckPage';
+import { FluencyPage } from './features/fluency/FluencyPage';
+import { HistoryPage } from './features/history/HistoryPage';
+import { LessonPage } from './features/lesson/LessonPage';
+import { PracticePage } from './features/practice/PracticePage';
+import { ReviewPage } from './features/review/ReviewPage';
+import { RoadmapPage } from './features/roadmap/RoadmapPage';
+import { SoundsPage } from './features/sounds/SoundsPage';
+import { TalkPracticePage } from './features/talk/TalkPracticePage';
 
 /** One route tree, three gates (auth/guards.tsx): guests only, logged in, admin. The server checks the
  * login and the role again on every API call, so these gates decide what is shown, not what is allowed. */
@@ -63,7 +63,7 @@ function AppRoutes() {
   );
 }
 
-createRoot(document.getElementById("root")!).render(
+createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
       <AuthProvider>

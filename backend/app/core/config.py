@@ -86,6 +86,7 @@ SMTP_FROM = os.getenv("SMTP_FROM", "")  # defaults to SMTP_USER
 TTS_VOICE = os.getenv("TTS_VOICE", "en-US-JennyNeural")
 TTS_RATE = os.getenv("TTS_RATE", "-10%")
 TTS_TEACHER_VOICE = os.getenv("TTS_TEACHER_VOICE", "en-US-AvaNeural")  # lesson teacher, not the interviewer
+TTS_TEACHER_RATE = os.getenv("TTS_TEACHER_RATE", "-10%")  # speaking speed of the lesson teacher
 
 # ----- Server (`python -m app` / `run.cmd`; plain `uvicorn ...` ignores these) -----
 SERVER_HOST = os.getenv("SERVER_HOST", "127.0.0.1")  # 0.0.0.0: reachable from other devices on the LAN

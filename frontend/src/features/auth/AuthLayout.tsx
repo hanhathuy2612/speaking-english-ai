@@ -1,4 +1,5 @@
-import type { FormEvent, ReactNode } from "react";
+import * as React from "react";
+import { ReactNode } from "react";
 import { ChatIcon } from "../../components/Icons";
 import "../../styles/auth.css";
 
@@ -43,7 +44,7 @@ export function FormError({ error }: { error: string }) {
 }
 
 /** Calls `fn` on submit with the default navigation prevented. */
-export const onSubmit = (fn: () => void) => (e: FormEvent) => {
+export const onSubmit = (fn: () => void) => (e: React.SubmitEvent<HTMLFormElement>) => {
   e.preventDefault();
   fn();
 };

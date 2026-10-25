@@ -7,7 +7,7 @@ edge-tts, giọng `en-US-JennyNeural`, tốc độ `-10%`, trả về MP3.
 | Phần | Vị trí |
 |---|---|
 | Tạo âm thanh | `tts_bytes()` trong `services/tts.py` (điểm thay thế nếu đổi sang TTS khác) |
-| Cache câu cố định | `cached_tts()` trong `services/tts.py` (khóa cache là câu + tốc độ đọc + giọng; giọng giáo viên của bài giảng là `TTS_TEACHER_VOICE`) |
+| Cache câu cố định | `cached_tts()` trong `services/tts.py` (khóa cache là câu + tốc độ đọc + giọng; giọng giáo viên của bài giảng là `TTS_TEACHER_VOICE`, tốc độ `TTS_TEACHER_RATE`) |
 | TTS trước khi cần | `prewarm()` trong `services/tts.py`, chạy nền từ `start_session()` |
 | Hàng đợi trong một lượt | `tts_worker()` trong `run_turn()` (`interview/turn.py`) |
 | Gửi kèm chữ | `Conn.audio()` trong `utils/ws.py` |
@@ -16,7 +16,7 @@ edge-tts, giọng `en-US-JennyNeural`, tốc độ `-10%`, trả về MP3.
 ## Chi tiết
 
 - Câu cố định (lời chào, câu hỏi chính, câu `simple`, lời kết) đi qua `cached_tts`. Câu do LLM viết (SAY, câu hỏi phụ) đi qua `tts_bytes`.
-- `tts_bytes()` và `cached_tts()` nhận `rate` tùy chọn (mặc định `TTS_RATE`). Trang luyện phát âm dùng `SLOW_RATE` (-30%) cho nút "Nghe chậm" (xem [pronunciation-drills.md](pronunciation-drills.md)).
+- `tts_bytes()` và `cached_tts()` nhận `rate` tùy chọn (mặc định `TTS_RATE`). Giáo viên (bài giảng, bài nói 2 phút) truyền `TTS_TEACHER_RATE`. Trang luyện phát âm dùng `SLOW_RATE` (-30%) cho nút "Nghe chậm" (xem [pronunciation-drills.md](pronunciation-drills.md)).
 - Hàng đợi trong `run_turn` chứa `(câu, có dùng cache không)`, chạy tuần tự để giữ đúng thứ tự, song song với LLM.
 - Trình duyệt chỉ thêm chữ của AI vào khung chat **khi câu đó bắt đầu phát**. Nếu người học bấm nói (hoặc gửi chữ) khi audio chưa phát hết, `stop()` của hàng đợi xóa các câu chưa phát, nên các câu chưa phát sẽ không hiện trong chat.
 - Nếu đổi sang TTS trả về WAV/PCM, sửa `type` của Blob trong `enqueue` (`frontend/src/hooks/useAudioQueue.ts`, đang là `audio/mpeg`).
